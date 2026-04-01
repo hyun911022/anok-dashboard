@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANOK Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --navy:#0B1F3A;--navy2:#162D4E;--navy3:#1E3D6B;
+    --bg:#F4F6F9;--card:#fff;--border:#E2EAF0;
+    --text:#1A202C;--text2:#4A5568;--text3:#8898AA;
+    --purple:#7C3AED;--purple-l:#F5F0FF;
+    --green:#16A34A;--green-l:#F0FDF4;
+    --orange:#EA580C;--orange-l:#FEF3EC;
+    --indigo:#2563EB;--indigo-l:#EFF6FF;
+    --blue:#0EA5E9;--blue-l:#F0F9FF;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* 헤더 */
+  .header{background:var(--navy);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .header-brand{display:flex;align-items:baseline;gap:12px}
+  .header-brand h1{font-size:20px;font-weight:600;color:#fff;letter-spacing:1px}
+  .header-brand span{font-size:12px;color:#8BA3C4}
+  .header-right{display:flex;align-items:center;gap:10px}
+  .month-badge{background:rgba(255,255,255,0.1);color:#AEC6E8;font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.15)}
+  .btn-input{background:#2563EB;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn-input:hover{background:#1D4ED8}
+
+  /* 입력 모달 */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
+  .modal-header{background:var(--navy);padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+  .modal-header h2{color:#fff;font-size:16px;font-weight:500}
+  .modal-close{background:none;border:none;color:#8BA3C4;font-size:20px;cursor:pointer;line-height:1}
+  .modal-body{padding:20px 24px}
+  .modal-date{margin-bottom:16px}
+  .modal-date label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:500}
+  .modal-date input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text)}
+  .ch-section{margin-bottom:16px}
+  .ch-title{font-size:12px;font-weight:600;color:#fff;padding:6px 12px;border-radius:6px;margin-bottom:10px;display:inline-block}
+  .ch-title.cafe{background:var(--purple)}
+  .ch-title.naver{background:var(--green)}
+  .ch-title.coupang{background:var(--orange)}
+  .sku-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .sku-input{display:flex;flex-direction:column;gap:4px}
+  .sku-input label{font-size:11px;color:var(--text3)}
+  .sku-input input{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;text-align:right;color:var(--text);width:100%}
+  .sku-input input:focus{outline:none;border-color:#2563EB;box-shadow:0 0 0 2px rgba(37,99,235,0.15)}
+  .coup-extra{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  .btn-cancel{background:none;border:1px solid var(--border);padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2)}
+  .btn-save{background:var(--navy);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn-save:hover{background:var(--navy2)}
+
+  /* 메인 레이아웃 */
+  .main{padding:20px 24px;max-width:1400px;margin:0 auto}
+
+  /* KPI 카드 */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;border-left:3px solid}
+  .kpi.purple{border-left-color:var(--purple)}
+  .kpi.green{border-left-color:var(--green)}
+  .kpi.orange{border-left-color:var(--orange)}
+  .kpi.indigo{border-left-color:var(--indigo)}
+  .kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+  .kpi-value{font-size:22px;font-weight:600;color:var(--text)}
+  .kpi-sub{font-size:11px;margin-top:3px;color:var(--text3)}
+  .kpi-sub.up{color:var(--green)}
+
+  /* 차트 그리드 */
+  .chart-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px}
+  .legend{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+  .leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+  .leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+  /* SKU 테이블 */
+  .sku-tbl{width:100%;border-collapse:collapse}
+  .sku-tbl th{font-size:10px;color:var(--text3);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.4px}
+  .sku-tbl td{font-size:12px;padding:8px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+  .sku-tbl tr:last-child td{border-bottom:none}
+  .sku-tbl .num{text-align:right;font-weight:500}
+  .sku-bar-bg{background:#F1F5F9;border-radius:2px;height:4px;margin-top:3px}
+  .sku-bar{height:4px;border-radius:2px;background:var(--purple)}
+
+  /* ROAS 카드 */
+  .roas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .roas-card{background:#F8FAFC;border-radius:8px;padding:12px 14px}
+  .roas-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+  .roas-val{font-size:20px;font-weight:600;color:var(--text)}
+  .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+  /* 손익 배너 */
+  .profit-banner{background:var(--navy);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+  .profit-label{font-size:12px;color:#8BA3C4;margin-bottom:4px}
+  .profit-val{font-size:28px;font-weight:600;color:#fff}
+  .profit-sub{font-size:11px;color:#8BA3C4;margin-top:3px}
+
+  /* 일별 데이터 테이블 */
+  .day-table-wrap{overflow-x:auto}
+  .day-tbl{width:100%;border-collapse:collapse;font-size:12px}
+  .day-tbl th{font-size:10px;color:var(--text3);font-weight:500;text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .day-tbl th:first-child{text-align:left}
+  .day-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text)}
+  .day-tbl td:first-child{text-align:left;font-weight:500;color:var(--text2)}
+  .day-tbl tr:last-child td{border-bottom:none}
+  .day-tbl tr:hover td{background:#F8FAFC}
+  .day-tbl .total-row td{font-weight:600;background:#F1F5F9;color:var(--navy)}
+
+  /* 데이터 없음 */
+  .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+
+  /* 탭 */
+  .tabs{display:flex;gap:2px;margin-bottom:16px;background:#E2EAF0;border-radius:8px;padding:3px}
+  .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
+  .tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
+  .ach-row{margin-bottom:20px}
+  .ach-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .ach-label{font-size:12px;font-weight:600;color:var(--text)}
+  .ach-nums{font-size:11px;color:var(--text3)}
+  .ach-nums b{font-weight:600;color:var(--text2)}
+  .ach-track{height:32px;background:#EEF2F7;border-radius:8px;overflow:hidden;position:relative}
+  .ach-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:12px;min-width:2px}
+  .ach-fill-label{font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+  .ach-pct-out{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700}
+  .kpi.total-card{background:#E0F2FE;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none}
+  .kpi.total-card .kpi-label{color:#0369A1}
+  .kpi.total-card .kpi-value{color:#0C4A6E;font-size:24px}
+  .kpi.total-card .kpi-sub{color:#0284C7}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
+  .toast.show{opacity:1}
+
+  /* ===== 모바일 반응형 ===== */
+  @media (max-width: 768px) {
+    body { overflow-x: hidden; }
+    .main { padding: 10px 12px; }
+
+    /* 헤더 */
+    .header { padding: 0 12px; height: 50px; }
+    .header-brand h1 { font-size: 15px; }
+    .header-brand span { display: none; }
+    .month-badge { display: none; }
+    .btn-input { padding: 6px 10px; font-size: 12px; }
+
+    /* KPI 카드: 2열 */
+    .kpi-grid { grid-template-columns: repeat(2,1fr) !important; gap: 8px; margin-bottom: 10px; }
+    .kpi-value { font-size: 17px; }
+    .kpi.total-card .kpi-value { font-size: 19px; }
+    .kpi { padding: 12px 12px; }
+
+    /* 차트: 1열 */
+    .chart-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
+
+    /* 달성률 + SKU: 1열 */
+    .bottom-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
+
+    /* 채널별 수익 카드: 1열 */
+    .profit-grid { grid-template-columns: 1fr !important; gap: 8px; }
+
+    /* inline style 그리드 오버라이드 */
+    div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+
+    /* 달성률 */
+    .ach-nums { font-size: 10px; }
+    .ach-header { flex-direction: column; gap: 2px; }
+    .ach-label { font-size: 11px; }
+
+    /* SKU 테이블 */
+    .sku-tbl { font-size: 11px; }
+    .sku-tbl th, .sku-tbl td { padding: 5px 4px; }
+
+    /* 일별 테이블: 가로 스크롤 */
+    .day-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .day-tbl { font-size: 11px; min-width: 600px; }
+    .day-tbl th, .day-tbl td { padding: 5px 6px; white-space: nowrap; }
+
+    /* 모달: 하단 시트 */
+    .modal { width: 100% !important; max-width: 100vw !important; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; max-height: 88vh; }
+    .modal-bg.open { align-items: flex-end; }
+    .sku-grid { grid-template-columns: repeat(2,1fr) !important; }
+    .coup-extra { grid-template-columns: repeat(2,1fr) !important; }
+
+    /* 탭 */
+    .tabs { margin-bottom: 10px; }
+    .tab { font-size: 12px; padding: 6px 12px; }
+
+    /* 카드 */
+    .card { padding: 12px 12px; }
+    .card-title { font-size: 12px; }
+    .profit-banner { padding: 12px 14px; }
+    .profit-val { font-size: 20px; }
+
+    /* 달성률 행 */
+    .ach-row { margin-bottom: 14px; }
+
+    /* ROAS 카드 */
+    .roas-grid { grid-template-columns: 1fr 1fr !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <h1>ANOK</h1>
+    <span id="headerMonth">월간 성과 대시보드</span>
+  </div>
+  <div class="header-right">
+    <span class="month-badge" id="todayBadge">--</span>
+    <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
+  </div>
+</div>
+
+<!-- 입력 모달 -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>일 실적 입력</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-date">
+        <label>날짜</label>
+        <input type="date" id="inputDate">
+      </div>
+      <div class="ch-section">
+        <div class="ch-title cafe">자사몰 (cafe24)</div>
+        <div class="sku-grid">
+          <div class="sku-input"><label>샴푸</label><input type="number" id="c_shampoo" value="0" min="0"></div>
+          <div class="sku-input"><label>트리트먼트</label><input type="number" id="c_treatment" value="0" min="0"></div>
+          <div class="sku-input"><label>헤어세트</label><input type="number" id="c_hairset" value="0" min="0"></div>
+          <div class="sku-input"><label>바디워시</label><input type="number" id="c_bodywash" value="0" min="0"></div>
+          <div class="sku-input"><label>바디로션</label><input type="number" id="c_bodylotion" value="0" min="0"></div>
+          <div class="sku-input"><label>바디세트</label><input type="number" id="c_bodyset" value="0" min="0"></div>
+          <div class="sku-input"><label>워시세트</label><input type="number" id="c_washset" value="0" min="0"></div>
+        </div>
+      </div>
+      <div class="ch-section">
+        <div class="ch-title naver">네이버 스마트스토어</div>
+        <div class="sku-grid">
+          <div class="sku-input"><label>샴푸</label><input type="number" id="n_shampoo" value="0" min="0"></div>
+          <div class="sku-input"><label>트리트먼트</label><input type="number" id="n_treatment" value="0" min="0"></div>
+          <div class="sku-input"><label>헤어세트</label><input type="number" id="n_hairset" value="0" min="0"></div>
+          <div class="sku-input"><label>바디워시</label><input type="number" id="n_bodywash" value="0" min="0"></div>
+          <div class="sku-input"><label>바디로션</label><input type="number" id="n_bodylotion" value="0" min="0"></div>
+          <div class="sku-input"><label>바디세트</label><input type="number" id="n_bodyset" value="0" min="0"></div>
+          <div class="sku-input"><label>워시세트</label><input type="number" id="n_washset" value="0" min="0"></div>
+        </div>
+      </div>
+      <div class="ch-section">
+        <div class="ch-title coupang">쿠팡</div>
+        <div class="sku-grid">
+          <div class="sku-input"><label>샴푸</label><input type="number" id="o_shampoo" value="0" min="0"></div>
+          <div class="sku-input"><label>트리트먼트</label><input type="number" id="o_treatment" value="0" min="0"></div>
+          <div class="sku-input"><label>바디워시</label><input type="number" id="o_bodywash" value="0" min="0"></div>
+          <div class="sku-input"><label>바디로션</label><input type="number" id="o_bodylotion" value="0" min="0"></div>
+        </div>
+        <div class="coup-extra">
+          <div class="sku-input"><label>풀필비</label><input type="number" id="o_fulfil" value="0" min="0"></div>
+          <div class="sku-input"><label>판매자할인쿠폰</label><input type="number" id="o_coupon" value="0" min="0"></div>
+          <div class="sku-input"><label>쿠팡광고비</label><input type="number" id="o_adcost" value="0" min="0"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="saveDay()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
+    <button class="tab" onclick="switchTab('daily')">일별 내역</button>
+  </div>
+
+  <!-- 대시보드 탭 -->
+  <div id="tabDashboard">
+    <div class="kpi-grid">
+      <div class="kpi indigo total-card"><div class="kpi-label">채널 총매출</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub up" id="kpiRate">수익률 -</div></div>
+      <div class="kpi purple"><div class="kpi-label">자사몰 매출</div><div class="kpi-value" id="kpiCafe">0</div><div class="kpi-sub">cafe24</div></div>
+      <div class="kpi green"><div class="kpi-label">네이버 매출</div><div class="kpi-value" id="kpiNaver">0</div><div class="kpi-sub">스마트스토어</div></div>
+      <div class="kpi orange"><div class="kpi-label">쿠팡 매출</div><div class="kpi-value" id="kpiCoupang">0</div><div class="kpi-sub">wing</div></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title">일 매출 추이</div>
+        <div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">채널 비중</div>
+        <div style="position:relative;height:170px"><canvas id="donutChart"></canvas></div>
+        <div class="legend" style="justify-content:center;margin-top:10px">
+          <span class="leg"><span class="leg-dot" style="background:#7C3AED"></span><span id="legCafe">자사몰</span></span>
+          <span class="leg"><span class="leg-dot" style="background:#16A34A"></span><span id="legNaver">네이버</span></span>
+          <span class="leg"><span class="leg-dot" style="background:#EA580C"></span><span id="legCoupang">쿠팡</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-title">전월 대비 달성률 및 예상 매출</div>
+        <div id="achieveWrap" style="padding:8px 0"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">SKU 판매 현황</div>
+        <table class="sku-tbl">
+          <thead><tr><th>상품</th><th style="text-align:right">자사몰</th><th style="text-align:right">네이버</th><th style="text-align:right">쿠팡</th><th style="text-align:right">합계</th><th style="text-align:right;color:#2563EB">단품환산</th></tr></thead>
+          <tbody id="skuBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 채널별 수익 카드 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+      <div class="card" style="border-top:3px solid #7C3AED">
+        <div style="font-size:11px;font-weight:600;color:#7C3AED;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">자사몰 수익</div>
+        <div id="profitCafeVal" style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:3px">-</div>
+        <div id="profitCafeRate" style="font-size:12px;color:var(--text3)">수익률 -</div>
+      </div>
+      <div class="card" style="border-top:3px solid #16A34A">
+        <div style="font-size:11px;font-weight:600;color:#16A34A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">네이버 수익</div>
+        <div id="profitNaverVal" style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:3px">-</div>
+        <div id="profitNaverRate" style="font-size:12px;color:var(--text3)">수익률 -</div>
+      </div>
+      <div class="card" style="border-top:3px solid #EA580C">
+        <div style="font-size:11px;font-weight:600;color:#EA580C;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">쿠팡 수익</div>
+        <div id="profitCoupangVal" style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:3px">-</div>
+        <div id="profitCoupangRate" style="font-size:12px;color:var(--text3)">수익률 -</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 220px;gap:12px;margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">ROAS</div>
+        <div class="roas-grid">
+          <div class="roas-card"><div class="roas-label">자사몰 ROAS</div><div class="roas-val" id="raosC">-</div><div class="roas-sub">자사몰 ÷ 메타 80,000/일</div></div>
+          <div class="roas-card"><div class="roas-label">네이버 ROAS</div><div class="roas-val" id="raosN">-</div><div class="roas-sub">네이버 ÷ 네이버 10,000/일</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">광고비</div>
+        <div class="roas-grid">
+          <div class="roas-card"><div class="roas-label">메타 광고비</div><div class="roas-val" id="adMeta">0</div><div class="roas-sub">80,000원 × 입력일수</div></div>
+          <div class="roas-card"><div class="roas-label">네이버 광고비</div><div class="roas-val" id="adNaver">0</div><div class="roas-sub">10,000원 × 입력일수</div></div>
+        </div>
+      </div>
+      <div class="profit-banner">
+        <div>
+          <div class="profit-label">예상 손익</div>
+          <div class="profit-val" id="profitVal">0</div>
+          <div class="profit-sub">수익 - 광고비</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 일별 내역 탭 -->
+  <div id="tabDaily" style="display:none">
+    <div class="card">
+      <div class="card-title">일별 매출 내역</div>
+      <div class="day-table-wrap">
+        <table class="day-tbl">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>자사몰<br>매출</th><th>자사몰<br>수익</th>
+              <th>네이버<br>매출</th><th>네이버<br>수익</th>
+              <th>쿠팡<br>매출</th><th>쿠팡<br>수익</th>
+              <th>총매출</th><th>총수익</th><th>수익률</th>
+              <th style="cursor:pointer">삭제</th>
+            </tr>
+          </thead>
+          <tbody id="dayBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'anok_data_v1';
+const META_AD = 80000;
+const NAVER_AD = 10000;
+
+const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
+const CAFE_PROFITS   = {shampoo:8766,treatment:9066,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
+const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
+const NAVER_PROFITS  = {shampoo:8683.09,treatment:8983.09,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
+const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
+const COUP_PROFITS   = {shampoo:13767.87,treatment:14067.87,bodywash:13854.78,bodylotion:13654.78};
+
+const SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
+
+let records = [];
+let trendChart, donutChart;
+
+async function loadData(){
+  try{
+    const r = await window.storage.get(STORAGE_KEY);
+    if(r && r.value) records = JSON.parse(r.value);
+  } catch(e){ records=[]; }
+  initCharts();
+  render();
+}
+
+async function saveData(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
+}
+
+function calcDay(rec){
+  let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0;
+  const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{};
+  for(const k in CAFE_PRICES){ cRev+=( c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
+  for(const k in NAVER_PRICES){ nRev+=(n[k]||0)*NAVER_PRICES[k]; nPrf+=(n[k]||0)*NAVER_PROFITS[k]; }
+  for(const k in COUP_PRICES){ oRev+=(o[k]||0)*COUP_PRICES[k]; }
+  const fulfil=(o.fulfil||0)/1.1;
+  const coupon=o.coupon||0, oadcost=o.adcost||0;
+  for(const k in COUP_PROFITS) oPrf+=(o[k]||0)*COUP_PROFITS[k];
+  oPrf = oPrf - fulfil - coupon - oadcost;
+  return {cRev,cPrf,nRev,nPrf,oRev,oPrf,total:cRev+nRev+oRev,profit:cPrf+nPrf+oPrf};
+}
+
+function fmt(n){ return Math.round(n).toLocaleString(); }
+function fmtK(n){ return n>=10000?(Math.round(n/1000)+'K'):Math.round(n).toLocaleString(); }
+
+function render(){
+  const now = new Date();
+  document.getElementById('headerMonth').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 성과 대시보드`;
+  document.getElementById('todayBadge').textContent = `${now.getMonth()+1}/${now.getDate()} 기준`;
+
+  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const mRecs = records.filter(r=>r.date.startsWith(month));
+  const days = mRecs.length;
+
+  let totC=0,totN=0,totO=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0;
+  mRecs.forEach(r=>{
+    const d=calcDay(r);
+    totC+=d.cRev; totN+=d.nRev; totO+=d.oRev;
+    totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
+  });
+  const totRev=totC+totN+totO;
+  const metaAd=days*META_AD, naverAdTotal=days*NAVER_AD;
+  const profit=totPrf-metaAd-naverAdTotal;
+  const rate=totRev>0?totPrf/totRev:0;
+
+  document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
+  document.getElementById('kpiNaver').textContent='₩'+fmt(totN);
+  document.getElementById('kpiCoupang').textContent='₩'+fmt(totO);
+  document.getElementById('kpiTotal').textContent='₩'+fmt(totRev);
+  document.getElementById('kpiRate').textContent='수익률 '+(rate*100).toFixed(1)+'%';
+  document.getElementById('raosC').textContent=metaAd>0?(totC/metaAd).toFixed(2):'-';
+  document.getElementById('raosN').textContent=naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
+  document.getElementById('adMeta').textContent='₩'+fmt(metaAd);
+  document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
+  document.getElementById('profitVal').textContent=(profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
+
+  const totPct=totRev>0;
+  const cPct=totPct?Math.round(totC/totRev*100):0;
+  const nPct=totPct?Math.round(totN/totRev*100):0;
+  const oPct=totPct?Math.round(totO/totRev*100):0;
+  document.getElementById('legCafe').textContent=`자사몰 ${cPct}%`;
+  document.getElementById('legNaver').textContent=`네이버 ${nPct}%`;
+  document.getElementById('legCoupang').textContent=`쿠팡 ${oPct}%`;
+
+  updateTrendChart(mRecs);
+  updateDonutChart(totC,totN,totO);
+  renderAchieve(mRecs);
+  renderSkuTable(mRecs);
+
+  // 채널별 수익 카드 업데이트
+  const fmtPrf=v=>(v>=0?'':'−')+'₩'+fmt(Math.abs(v));
+  const fmtRt=(p,r)=>r>0?(p/r*100).toFixed(1)+'%':'-';
+  document.getElementById('profitCafeVal').textContent=fmtPrf(totCprf);
+  document.getElementById('profitCafeVal').style.color=totCprf>=0?'var(--text)':'#E24B4A';
+  document.getElementById('profitCafeRate').textContent='수익률 '+fmtRt(totCprf,totC);
+  document.getElementById('profitNaverVal').textContent=fmtPrf(totNprf);
+  document.getElementById('profitNaverVal').style.color=totNprf>=0?'var(--text)':'#E24B4A';
+  document.getElementById('profitNaverRate').textContent='수익률 '+fmtRt(totNprf,totN);
+  document.getElementById('profitCoupangVal').textContent=fmtPrf(totOprf);
+  document.getElementById('profitCoupangVal').style.color=totOprf>=0?'var(--text)':'#E24B4A';
+  document.getElementById('profitCoupangRate').textContent='수익률 '+fmtRt(totOprf,totO);
+
+  renderDayTable(mRecs);
+}
+
+function updateTrendChart(mRecs){
+  if(!trendChart) return;
+  const now=new Date();
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const labels=Array.from({length:daysInMonth},(_,i)=>(i+1)+'일');
+  const cData=Array(daysInMonth).fill(null);
+  const nData=Array(daysInMonth).fill(null);
+  const oData=Array(daysInMonth).fill(null);
+  mRecs.forEach(r=>{
+    const day=parseInt(r.date.slice(8,10))-1;
+    if(day>=0&&day<daysInMonth){
+      const d=calcDay(r);
+      if(d.cRev>0) cData[day]=d.cRev;
+      if(d.nRev>0) nData[day]=d.nRev;
+      if(d.oRev>0) oData[day]=d.oRev;
+    }
+  });
+  trendChart.data.labels=labels;
+  trendChart.data.datasets[0].data=cData;
+  trendChart.data.datasets[1].data=nData;
+  trendChart.data.datasets[2].data=oData;
+  trendChart.update();
+}
+
+function updateDonutChart(c,n,o){
+  if(donutChart){
+    donutChart.data.datasets[0].data=[c||1,n||0,o||0];
+    donutChart.update();
+  }
+}
+
+function renderAchieve(mRecs){
+  const wrap=document.getElementById('achieveWrap');
+  if(!wrap) return;
+  let totC=0,totN=0,totO=0;
+  mRecs.forEach(r=>{const d=calcDay(r);totC+=d.cRev;totN+=d.nRev;totO+=d.oRev;});
+
+  // 예상 매출: 일평균 × 당월 총 일수
+  const now=new Date();
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const enteredDays=mRecs.length||1;
+  const projC=Math.round(totC/enteredDays*daysInMonth);
+  const projN=Math.round(totN/enteredDays*daysInMonth);
+  const projO=Math.round(totO/enteredDays*daysInMonth);
+  const projTotal=projC+projN+projO;
+
+  const channels=[
+    {label:'자사몰  (cafe24)',      actual:totC, target:TARGETS.cafe,    proj:projC, color:'#7C3AED'},
+    {label:'네이버  스마트스토어',   actual:totN, target:TARGETS.naver,   proj:projN, color:'#16A34A'},
+    {label:'쿠팡',                  actual:totO, target:TARGETS.coupang, proj:projO, color:'#EA580C'},
+  ];
+
+  const projHtml=`<div style="background:#F1F5F9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:12px;color:#4A5568;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
+    <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
+  </div>`;
+
+  wrap.innerHTML=projHtml+channels.map(ch=>{
+    const rawPct=ch.target>0?ch.actual/ch.target*100:0;
+    const fillPct=Math.min(Math.round(rawPct),100);
+    const pctLabel=Math.round(rawPct)+'%';
+    const fillColor=rawPct>=100?'#16A34A':ch.color;
+    return `<div class="ach-row">
+      <div class="ach-header">
+        <span class="ach-label">${ch.label}</span>
+        <span class="ach-nums">
+          <b>₩${Math.round(ch.actual).toLocaleString()}</b>&nbsp;/&nbsp;₩${Math.round(ch.target).toLocaleString()}
+          &nbsp;<span style="color:${ch.color};font-weight:600">→ 예상 ₩${ch.proj.toLocaleString()}</span>
+        </span>
+      </div>
+      <div class="ach-track">
+        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}">
+          ${fillPct>18?`<span class="ach-fill-label">${pctLabel}</span>`:''}
+        </div>
+        ${fillPct<=18?`<span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcUnitQty(mRecs,sku){
+  const sc=(k)=>mRecs.reduce((sum,r)=>sum+(r.cafe[k]||0),0);
+  const sn=(k)=>mRecs.reduce((sum,r)=>sum+(r.naver[k]||0),0);
+  const so=(k)=>mRecs.reduce((sum,r)=>sum+((r.coupang||{})[k]||0),0);
+  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo');
+  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment');
+  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash');
+  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion');
+  return null;
+}
+
+function renderSkuTable(mRecs){
+  const skus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
+  const oSkus=['shampoo','treatment','bodywash','bodylotion'];
+  const unitSkus=['shampoo','treatment','bodywash','bodylotion'];
+  let html='';
+  skus.forEach(k=>{
+    const c=mRecs.reduce((s,r)=>s+(r.cafe[k]||0),0);
+    const n=mRecs.reduce((s,r)=>s+(r.naver[k]||0),0);
+    const o=oSkus.includes(k)?mRecs.reduce((s,r)=>s+((r.coupang||{})[k]||0),0):0;
+    const tot=c+n+o;
+    if(tot===0 && !unitSkus.includes(k)) return;
+    const maxTot=Math.max(...skus.map(sk=>{
+      const tc=mRecs.reduce((s,r)=>s+(r.cafe[sk]||0),0);
+      const tn=mRecs.reduce((s,r)=>s+(r.naver[sk]||0),0);
+      const to=oSkus.includes(sk)?mRecs.reduce((s,r)=>s+((r.coupang||{})[sk]||0),0):0;
+      return tc+tn+to;
+    }),1);
+    const pct=Math.round(tot/maxTot*100);
+    const uq=unitSkus.includes(k)?calcUnitQty(mRecs,k):null;
+    const unitCell=uq!==null
+      ?`<td class="num" style="color:#2563EB;font-weight:600;background:#EFF6FF;border-radius:4px">${uq}</td>`
+      :`<td class="num" style="color:#CBD5E0">-</td>`;
+    html+=`<tr><td>${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#7C3AED">${c}</td><td class="num" style="color:#16A34A">${n}</td><td class="num" style="color:#EA580C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
+  });
+  document.getElementById('skuBody').innerHTML=html||'<tr><td colspan="6" class="empty">데이터 없음</td></tr>';
+}
+
+function renderDayTable(mRecs){
+  const sorted=[...mRecs].sort((a,b)=>b.date.localeCompare(a.date));
+  let html='';
+  let tC=0,tN=0,tO=0,tT=0,tP=0;
+  sorted.forEach(r=>{
+    const d=calcDay(r);
+    tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;
+    const rate=d.total>0?((d.profit/d.total)*100).toFixed(1)+'%':'-';
+    html+=`<tr>
+      <td>${r.date}</td>
+      <td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td>
+      <td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td>
+      <td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td>
+      <td>₩${fmt(d.total)}</td><td>₩${fmt(d.profit)}</td><td>${rate}</td>
+      <td><button onclick="deleteDay('${r.date}')" style="background:none;border:none;color:#E24B4A;cursor:pointer;font-size:12px">삭제</button></td>
+    </tr>`;
+  });
+  if(sorted.length>0){
+    const rate=tT>0?((tP/tT)*100).toFixed(1)+'%':'-';
+    html+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tC)}</td><td></td><td>₩${fmt(tN)}</td><td></td><td>₩${fmt(tO)}</td><td></td><td>₩${fmt(tT)}</td><td>₩${fmt(tP)}</td><td>${rate}</td><td></td></tr>`;
+  }
+  document.getElementById('dayBody').innerHTML=html||'<tr><td colspan="11" class="empty">입력된 데이터가 없습니다</td></tr>';
+}
+
+const TARGETS={cafe:2212800,naver:1586800,coupang:809500};
+
+function initCharts(){
+  const skus=['샴푸','트리트먼트','헤어세트','바디워시','바디로션','바디세트','워시세트'];
+  trendChart=new Chart(document.getElementById('trendChart'),{
+    type:'bar',
+    data:{
+      labels:[],
+      datasets:[
+        {label:'자사몰',data:[],backgroundColor:'#7C3AED',stack:'sales'},
+        {label:'네이버',data:[],backgroundColor:'#16A34A',stack:'sales'},
+        {label:'쿠팡',data:[],backgroundColor:'#EA580C',stack:'sales'}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{mode:'index',intersect:false,callbacks:{
+          label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
+        }}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},color:'#8898AA'},stacked:true},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},color:'#8898AA',callback:v=>'₩'+Math.round(v).toLocaleString()},border:{display:false},stacked:true}
+      }
+    }
+  });
+  donutChart=new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{labels:['자사몰','네이버','쿠팡'],datasets:[{data:[1,0,0],backgroundColor:['#7C3AED','#16A34A','#EA580C'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': ₩'+Math.round(c.raw).toLocaleString()}}}}
+  });
+  // 전월(3월) 매출 기준 목표
+  const TARGETS = { cafe: 2212800, naver: 1586800, coupang: 809500 };
+  const DAYS_IN_MONTH = 30;
+
+
+}
+
+function openModal(){
+  const today=new Date();
+  document.getElementById('inputDate').value=today.toISOString().split('T')[0];
+  ['c_shampoo','c_treatment','c_hairset','c_bodywash','c_bodylotion','c_bodyset','c_washset',
+   'n_shampoo','n_treatment','n_hairset','n_bodywash','n_bodylotion','n_bodyset','n_washset',
+   'o_shampoo','o_treatment','o_bodywash','o_bodylotion','o_fulfil','o_coupon','o_adcost'].forEach(id=>{
+    document.getElementById(id).value=0;
+  });
+  const date=document.getElementById('inputDate').value;
+  const existing=records.find(r=>r.date===date);
+  if(existing){
+    const c=existing.cafe||{}, n=existing.naver||{}, o=existing.coupang||{};
+    for(const k in c) if(document.getElementById('c_'+k)) document.getElementById('c_'+k).value=c[k]||0;
+    for(const k in n) if(document.getElementById('n_'+k)) document.getElementById('n_'+k).value=n[k]||0;
+    for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
+  }
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+function saveDay(){
+  const date=document.getElementById('inputDate').value;
+  if(!date){showToast('날짜를 입력해주세요');return;}
+  const gv=id=>parseInt(document.getElementById(id).value)||0;
+  const entry={
+    date,
+    cafe:{shampoo:gv('c_shampoo'),treatment:gv('c_treatment'),hairset:gv('c_hairset'),bodywash:gv('c_bodywash'),bodylotion:gv('c_bodylotion'),bodyset:gv('c_bodyset'),washset:gv('c_washset')},
+    naver:{shampoo:gv('n_shampoo'),treatment:gv('n_treatment'),hairset:gv('n_hairset'),bodywash:gv('n_bodywash'),bodylotion:gv('n_bodylotion'),bodyset:gv('n_bodyset'),washset:gv('n_washset')},
+    coupang:{shampoo:gv('o_shampoo'),treatment:gv('o_treatment'),bodywash:gv('o_bodywash'),bodylotion:gv('o_bodylotion'),fulfil:gv('o_fulfil'),coupon:gv('o_coupon'),adcost:gv('o_adcost')}
+  };
+  const idx=records.findIndex(r=>r.date===date);
+  if(idx>=0) records[idx]=entry; else records.push(entry);
+  saveData();
+  closeModal();
+  render();
+  showToast(`${date} 실적이 저장되었습니다`);
+}
+
+function deleteDay(date){
+  if(!confirm(`${date} 데이터를 삭제할까요?`)) return;
+  records=records.filter(r=>r.date!==date);
+  saveData();
+  render();
+  showToast('삭제되었습니다');
+}
+
+function switchTab(tab){
+  document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
+  document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',(tab==='dashboard'&&i===0)||(tab==='daily'&&i===1));
+  });
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+document.getElementById('inputDate').addEventListener('change',function(){
+  const existing=records.find(r=>r.date===this.value);
+  if(existing){
+    const c=existing.cafe||{},n=existing.naver||{},o=existing.coupang||{};
+    for(const k in c) if(document.getElementById('c_'+k)) document.getElementById('c_'+k).value=c[k]||0;
+    for(const k in n) if(document.getElementById('n_'+k)) document.getElementById('n_'+k).value=n[k]||0;
+    for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
+  }
+});
+
+loadData().then(() => {
+  const existing = records.findIndex(r => r.date === '2026-04-01');
+  const entry = {
+    date: '2026-04-01',
+    cafe:    { shampoo:3, treatment:0, hairset:0, bodywash:2, bodylotion:0, bodyset:2, washset:0 },
+    naver:   { shampoo:1, treatment:0, hairset:2, bodywash:0, bodylotion:1, bodyset:0, washset:0 },
+    coupang: { shampoo:0, treatment:0, bodywash:1, bodylotion:0, fulfil:4099, coupon:3370, adcost:0 }
+  };
+  if(existing >= 0) records[existing] = entry; else records.push(entry);
+  saveData().then(() => render());
+});
+</script>
+</body>
+</html>
