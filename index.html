@@ -1737,11 +1737,34 @@ async function sendChat(){
   }
 }
 
+function markdownToHtml(text){
+  return text
+    // **굵게**
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 줄바꿈
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    // - 리스트
+    .replace(/(^|<br>)\s*[-•] (.+?)(?=<br>|<\/p>|$)/g, '$1<li>$2</li>')
+    // 숫자 리스트
+    .replace(/(^|<br>)\s*(\d+[.)]) (.+?)(?=<br>|<\/p>|$)/g, '$1<li>$3</li>')
+    // li 감싸기
+    .replace(/(<li>.*<\/li>)/gs, '<ul style="margin:6px 0 6px 16px;padding:0">$1</ul>')
+    // p 감싸기
+    .replace(/^(.)/,'<p>$1')
+    .replace(/(.)$/, '$1</p>');
+}
+
 function appendChatMsg(text, cls){
   const msgs = document.getElementById('anokChatMessages');
   const el = document.createElement('div');
   el.className = 'chat-msg ' + cls;
-  el.textContent = text;
+  if(cls.includes('ai') && !cls.includes('loading')){
+    el.innerHTML = markdownToHtml(text);
+    el.style.lineHeight = '1.7';
+  } else {
+    el.textContent = text;
+  }
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
   return el;
