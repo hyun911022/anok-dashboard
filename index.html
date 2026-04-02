@@ -762,6 +762,7 @@ function renderAchieve(mRecs){
     <span style="font-size:12px;color:#4A5568;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
     <span style="display:flex;align-items:center;gap:10px">
       <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
+      <span style="font-size:13px;font-weight:700;color:${projTotal>=prevTotal?'#E24B4A':'#2563EB'}">(${Math.round(projTotal/prevTotal*100)}%)</span>
       <span style="font-size:11px;color:#8898AA;font-weight:400">월 목표 ₩${prevTotal.toLocaleString()}</span>
     </span>
   </div>`;
@@ -1079,9 +1080,10 @@ async function renderInsight(){
     `현재 ${days}일 누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
 
   // ── KPI 카드 4개 ──
+  const projAchRate=Math.round(projTotal/targetTotal*100);
   const kpiItems=[
-    {label:'순수익',val:'₩'+fmt(netProfit),sub:'광고비·대행료 제외',color:'#6366F1',icon:'💰',positive:netProfit>=0},
-    {label:'순수익률',val:netMargin+'%',sub:`목표 ${Math.round(calcPrevMonthMargin()*100)}% (전월 마진율)`,color:'#0EA5E9',icon:'📊',positive:netMargin>=Math.round(calcPrevMonthMargin()*100)},
+    {label:'순수익 (률)',val:'₩'+fmt(netProfit),sub2:netMargin+'%',sub:`광고비·대행료 제외`,color:'#6366F1',icon:'💰',positive:netProfit>=0},
+    {label:'목표 달성률',val:projAchRate+'%',sub:`예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,color:'#0EA5E9',icon:'🎯',positive:projAchRate>=100},
     {label:'일평균 매출',val:'₩'+fmt(avgDaily),sub:`목표일평균 ₩${fmt(Math.round(targetTotal/daysInMonth))}`,color:'#16A34A',icon:'📈',positive:avgDaily>=Math.round(targetTotal/daysInMonth)},
     {label:'잔여 목표',val:'₩'+fmt(Math.max(0,targetTotal-totRev)),sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,color:'#EA580C',icon:'🎯',positive:totRev>=targetTotal},
   ];
@@ -1092,33 +1094,60 @@ async function renderInsight(){
         <div style="font-size:10px;color:${k.positive?'#16A34A':'#EA580C'};background:${k.positive?'#F0FDF4':'#FFF7ED'};padding:2px 8px;border-radius:20px;font-weight:600">${k.positive?'▲ 양호':'▼ 주의'}</div>
       </div>
       <div style="font-size:10px;color:#8898AA;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${k.label}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--navy);margin:2px 0">${k.val}</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div style="font-size:20px;font-weight:800;color:var(--navy);margin:2px 0">${k.val}</div>
+        ${k.sub2?`<div style="font-size:13px;font-weight:700;color:#6366F1">${k.sub2}</div>`:''}
+      </div>
       <div style="font-size:11px;color:#8898AA">${k.sub}</div>
     </div>
   `).join('');
 
-  // ── 채널 퍼포먼스 카드 ──
-  const channels=[
-    {name:'자사몰',rev:totC,prf:totCprf,share:cShare,margin:cMargin,color:'#7C3AED',bg:'#F5F3FF',target:TARGETS.cafe},
-    {name:'네이버',rev:totN,prf:totNprf,share:nShare,margin:nMargin,color:'#16A34A',bg:'#F0FDF4',target:TARGETS.naver},
-    {name:'쿠팡',rev:totO,prf:totOprf,share:oShare,margin:oMarginVal,color:'#EA580C',bg:'#FFF7ED',target:TARGETS.coupang},
+  // ── AI 전략 지표 3개 ──
+  const daysElapsed=days; const daysLeft2=daysInMonth-days;
+  // 1. 손익분기 돌파까지 남은 매출
+  const bepGap=Math.max(0,targetTotal-totRev);
+  const bepDailyNeed=daysLeft2>0?Math.round(bepGap/daysLeft2):0;
+  const onPace=avgDaily>=Math.round(targetTotal/daysInMonth);
+  // 2. 광고비 효율 (ROAS: 총매출 / 총광고비)
+  const totalAdSpend=metaAd+naverAdTotal;
+  const roas=totalAdSpend>0?(totRev/totalAdSpend).toFixed(1):'-';
+  const roasGood=parseFloat(roas)>=3;
+  // 3. 수익 개선 여력: 현재 마진율 vs 전월 마진율
+  const prevMarginPct=Math.round(calcPrevMonthMargin()*100);
+  const currentMarginPct=totRev>0?Math.round(totPrf/totRev*100):0;
+  const marginDiff=currentMarginPct-prevMarginPct;
+
+  const stratCards=[
+    {
+      icon:'🏁', label:'BEP 달성 시나리오',
+      val: bepGap===0?'달성 완료':'₩'+fmt(bepGap)+' 부족',
+      sub: bepGap===0?`목표 초과 ₩${fmt(totRev-targetTotal)}`:`잔여 ${daysLeft2}일 · 일 ₩${fmt(bepDailyNeed)} 필요`,
+      color:'#6366F1', positive: bepGap===0
+    },
+    {
+      icon:'📡', label:'광고 ROAS',
+      val: roas+'x',
+      sub:`광고비 ₩${fmt(totalAdSpend)} → 매출 ₩${fmt(totRev)} · ${roasGood?'효율 양호':'효율 점검 필요'}`,
+      color:'#0EA5E9', positive: roasGood
+    },
+    {
+      icon:'📐', label:'마진율 추이',
+      val: currentMarginPct+'%',
+      sub:`전월 ${prevMarginPct}% 대비 ${marginDiff>=0?'+':''}${marginDiff}%p · ${marginDiff>=0?'개선':'하락'}`,
+      color: marginDiff>=0?'#16A34A':'#EA580C', positive: marginDiff>=0
+    },
   ];
-  document.getElementById('insightChannelRow').innerHTML=channels.map(ch=>{
-    const ach=Math.min(100,Math.round(ch.rev/ch.target*100));
-    return `<div class="card" style="padding:16px 18px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-        <div style="width:10px;height:10px;border-radius:2px;background:${ch.color}"></div>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">${ch.name}</div>
-        <div style="margin-left:auto;font-size:10px;color:${ch.color};background:${ch.bg};padding:2px 7px;border-radius:20px;font-weight:600">${ch.share}%</div>
+  document.getElementById('insightChannelRow').innerHTML=stratCards.map(c=>`
+    <div class="card" style="padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:20px">${c.icon}</div>
+        <div style="font-size:10px;color:${c.positive?'#16A34A':'#EA580C'};background:${c.positive?'#F0FDF4':'#FFF7ED'};padding:2px 8px;border-radius:20px;font-weight:600">${c.positive?'▲ 양호':'▼ 주의'}</div>
       </div>
-      <div style="font-size:18px;font-weight:800;color:var(--navy)">₩${fmt(ch.rev)}</div>
-      <div style="font-size:11px;color:#8898AA;margin-bottom:10px">수익 ₩${fmt(ch.prf)} · 마진 ${ch.margin}%</div>
-      <div style="background:#E2EAF0;border-radius:4px;height:5px;overflow:hidden">
-        <div style="height:100%;background:${ch.color};width:${ach}%;border-radius:4px;transition:width 0.6s"></div>
-      </div>
-      <div style="font-size:10px;color:#8898AA;margin-top:4px">목표 달성 ${ach}%</div>
-    </div>`;
-  }).join('');
+      <div style="font-size:10px;color:#8898AA;font-weight:600;letter-spacing:0.5px;margin-bottom:2px">${c.label}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--navy);margin:2px 0">${c.val}</div>
+      <div style="font-size:11px;color:#8898AA;line-height:1.5">${c.sub}</div>
+    </div>
+  `).join('');
 
   // ── Claude API 호출 ──
   document.getElementById('insightLoadingBadge').style.display='block';
