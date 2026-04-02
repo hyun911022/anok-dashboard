@@ -760,22 +760,24 @@ function initCharts(){
             const total = items.reduce((s,c)=>s+(c.raw||0),0);
             const cafeMargin=0.457, naverMargin=0.449, coupangMargin=0.295;
             const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
-            // 해당 날짜 record 찾기
             const label=items[0].label;
             const dayNum=parseInt(label);
             const now=new Date();
             const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
             const rec=records.find(r=>r.date===dateStr);
             let profitLine='';
+            window._tooltipIsProfit=null;
             if(rec){
               const d=calcDay(rec);
               const estProfit=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
               const gap=Math.round(estProfit-dailyFixed);
-              if(gap>=0) profitLine='+₩'+gap.toLocaleString()+' 이익';
-              else {
-                const needMore=Math.round(Math.abs(gap)/((d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin)/Math.max(total,1)));
+              if(gap>=0){
+                profitLine='+₩'+gap.toLocaleString()+' 이익';
+                window._tooltipIsProfit=true;
+              } else {
                 const needRevenue=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3));
                 profitLine='₩'+needRevenue.toLocaleString()+' 더 필요';
+                window._tooltipIsProfit=false;
               }
             }
             const isMobile = window.innerWidth <= 768;
@@ -784,6 +786,14 @@ function initCharts(){
               : items[0].label + '   ₩'+Math.round(total).toLocaleString();
             if(profitLine) return isMobile ? [...(Array.isArray(titleLine)?titleLine:[titleLine]), profitLine] : [titleLine, profitLine];
             return titleLine;
+          },
+          titleColor:(ctx)=>{
+            // 줄 인덱스별 색상 적용
+            const idx=ctx.index||0;
+            if(idx===0) return '#fff';
+            if(idx===1 && window._tooltipIsProfit===true) return '#E24B4A';
+            if(idx===1 && window._tooltipIsProfit===false) return '#60A5FA';
+            return '#fff';
           },
           label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
         }}
