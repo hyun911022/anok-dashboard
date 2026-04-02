@@ -207,6 +207,46 @@
     .roas-grid[style*="repeat(3"] { grid-template-columns: repeat(3,1fr) !important; }
   }
 </style>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfIt4-fxvBaYs0QQlsVvjChxrIRb9Ge-E",
+    authDomain: "anok-f8400.firebaseapp.com",
+    projectId: "anok-f8400",
+    storageBucket: "anok-f8400.firebasestorage.app",
+    messagingSenderId: "194709696264",
+    appId: "1:194709696264:web:bf352666fbaf30ddf486bd"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Firestore에서 데이터 로드
+  async function loadFromFirestore() {
+    try {
+      const docRef = doc(db, 'anok', 'records');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data().records || [];
+      }
+    } catch(e) { console.log('Firestore load error:', e); }
+    return null;
+  }
+
+  // Firestore에 데이터 저장
+  async function saveToFirestore(records) {
+    try {
+      const docRef = doc(db, 'anok', 'records');
+      await setDoc(docRef, { records: records });
+    } catch(e) { console.log('Firestore save error:', e); }
+  }
+
+  // 전역으로 노출
+  window._firestore = { load: loadFromFirestore, save: saveToFirestore };
+</script>
 </head>
 <body>
 
@@ -413,12 +453,23 @@ const SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어�
 let records = [];
 let trendChart, donutChart;
 
-function loadData(){
+async function loadData(){
+  // Firestore에서 먼저 로드 시도
+  if(window._firestore) {
+    const fsData = await window._firestore.load();
+    if(fsData && fsData.length > 0) {
+      records = fsData;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      initCharts();
+      render();
+      return;
+    }
+  }
+  // Firestore 없거나 비어있으면 localStorage
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) records = JSON.parse(raw);
   } catch(e){ records=[]; }
-  // localStorage 비어있으면 초기 데이터 세팅 (1회만)
   if(records.length === 0){
     records = [
       {
@@ -429,12 +480,11 @@ function loadData(){
       },
       {
         date: '2026-04-02',
-        cafe:    { shampoo:0, treatment:0, hairset:0, bodywash:0, bodylotion:0, bodyset:0, washset:0 },
+        cafe:    { shampoo:0, treatment:0, hairset:1, bodywash:0, bodylotion:0, bodyset:0, washset:0 },
         naver:   { shampoo:0, treatment:0, hairset:0, bodywash:1, bodylotion:0, bodyset:0, washset:0 },
         coupang: { shampoo:0, treatment:0, bodywash:0, bodylotion:0, fulfil:0, coupon:0, adcost:0 }
       }
     ];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   }
   initCharts();
   render();
@@ -442,6 +492,10 @@ function loadData(){
 
 function saveData(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
+  // Firestore에도 저장
+  if(window._firestore) {
+    window._firestore.save(records);
+  }
 }
 
 function calcDay(rec){
@@ -779,7 +833,8 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-loadData();
+// Firebase 모듈 로딩 대기 후 실행
+setTimeout(function(){ loadData(); }, 500);
 </script>
 </body>
 </html>
