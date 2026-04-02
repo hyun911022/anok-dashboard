@@ -641,7 +641,7 @@
     <div class="chat-msg ai">안녕하세요! 아녹 대시보드 AI예요.<br>매출, 수익, 전략에 대해 질문해보세요 😊</div>
   </div>
   <div id="anokChatInputRow">
-    <textarea id="anokChatInput" rows="1" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+    <textarea id="anokChatInput" rows="1" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();sendChat()}"></textarea>
     <button id="anokChatSend" onclick="sendChat()">↑</button>
   </div>
 </div>
