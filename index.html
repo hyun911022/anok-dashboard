@@ -1443,6 +1443,28 @@ async function renderInsight(){
   const totalQty=setQty+singleQty;
   const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
 
+  // 전월 실적 동적 계산
+  const pYear=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
+  const pMonth=now.getMonth()===0?12:now.getMonth();
+  const pKey2=pYear+'-'+String(pMonth).padStart(2,'0');
+  const pRecs=records.filter(r=>r.date.startsWith(pKey2));
+  let prevSection='';
+  if(pRecs.length===0){
+    prevSection='【전월 실적 (참고 — Firebase 데이터 없음)】\n- 3월 초기값: 총매출 ₩6,289,700 / 마진율 44% / 손익 ₩176,118\n- 메타 ROAS 0.895 (광고비 > 매출 적자 구조)';
+  } else {
+    let pC2=0,pN2=0,pO2=0,pPrf2=0;
+    pRecs.forEach(r=>{const d=calcDay(r);pC2+=d.cRev;pN2+=d.nRev;pO2+=d.oRev;pPrf2+=d.profit;});
+    const pTotal2=pC2+pN2+pO2;
+    const pDays2=pRecs.length;
+    const pMargin2=pTotal2>0?Math.round(pPrf2/pTotal2*100):0;
+    const pMetaAd2=pDays2*META_AD,pNaverAd2=pDays2*NAVER_AD,pAgency2=Math.round(AGENCY_FEE/30*pDays2);
+    const pNet2=pPrf2-pMetaAd2-pNaverAd2-pAgency2;
+    const pRoas2=pMetaAd2>0?(pC2/pMetaAd2).toFixed(2):'N/A';
+    prevSection='【전월 실적 ('+pYear+'년 '+pMonth+'월 — Firebase 실측)】\n- 자사몰 ₩'+fmt(pC2)+' / 네이버 ₩'+fmt(pN2)+' / 쿠팡 ₩'+fmt(pO2)+'\n- 전월 총매출 ₩'+fmt(pTotal2)+' / 마진율 '+pMargin2+'% / 순손익 ₩'+fmt(pNet2)+'\n- 메타 ROAS '+pRoas2+' (자사몰 매출 ÷ 메타광고비)';
+  }
+
+  const coupangFixed=mRecs.reduce(function(s,r){return s+(r.coupang&&r.coupang.fulfil?r.coupang.fulfil:0)+(r.coupang&&r.coupang.coupon?r.coupang.coupon:0);},0);
+
   const promptLines = [
     '당신은 뷰티 D2C 브랜드 아녹(ANOK)의 COO·CSO입니다. 아래 실측 데이터를 기반으로 경영진 수준의 전략 분석을 제시하세요.',
     '',
@@ -1452,37 +1474,12 @@ async function renderInsight(){
     '- 주력 라인: 샴푸/트리트먼트(헤어), 바디워시/로션(바디) + 각 세트 상품',
     '- 포지셔닝: 프리미엄 비건 클린뷰티 (정상가 대비 할인 구조, 단가 3~6만원대)',
     '',
-    // 전월 실적 동적 계산
-    ...((()=>{
-      const pYear=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
-      const pMonth=now.getMonth()===0?12:now.getMonth();
-      const pKey=`${pYear}-${String(pMonth).padStart(2,'0')}`;
-      const pRecs=records.filter(r=>r.date.startsWith(pKey));
-      if(pRecs.length===0) return [
-        '【전월 실적 (참고 — 데이터 없음)】',
-        '- 전월 Firebase 데이터 없음. 3월 초기값: 총매출 ₩6,289,700 / 마진율 44% / 손익 ₩176,118',
-        '- 메타 ROAS 0.895 (3월 기준 광고비 > 매출 적자 구조)',
-      ];
-      let pC=0,pN=0,pO=0,pPrf=0;
-      pRecs.forEach(r=>{const d=calcDay(r);pC+=d.cRev;pN+=d.nRev;pO+=d.oRev;pPrf+=d.profit;});
-      const pTotal=pC+pN+pO;
-      const pDays=pRecs.length;
-      const pMargin=pTotal>0?Math.round(pPrf/pTotal*100):0;
-      const pMetaAd=pDays*META_AD,pNaverAd=pDays*NAVER_AD,pAgency=Math.round(AGENCY_FEE/30*pDays);
-      const pNet=pPrf-pMetaAd-pNaverAd-pAgency;
-      const pRoas=pMetaAd>0?(pC/pMetaAd).toFixed(2):'N/A';
-      return [
-        '【전월 실적 ('+pYear+'년 '+pMonth+'월 — Firebase 실측)】',
-        '- 자사몰 ₩'+fmt(pC)+' / 네이버 ₩'+fmt(pN)+' / 쿠팡 ₩'+fmt(pO),
-        '- 전월 총매출 ₩'+fmt(pTotal)+' / 마진율 '+pMargin+'% / 순손익 ₩'+fmt(pNet),
-        '- 메타 ROAS '+pRoas+' (자사몰 매출 ÷ 메타광고비)',
-      ];
-    })()),
+    prevSection,
     '',
     '【SKU 실제 마진율 (엑셀 실측)】',
     '- 자사몰: 샴푸 44.3% / 트리트먼트 45.8% / 헤어세트 44.4% / 바디워시 46.8% / 바디로션 45.7% / 바디세트 46.0% / 워시세트 45.1%',
     '- 쿠팡: 샴푸 57.6% / 트리트먼트 58.9% / 바디워시 60.5% / 바디로션 59.6% (풀필비·쿠폰 미차감 수치)',
-    '- 쿠팡 고정비: 풀필비·판매자할인쿠폰 매월 입력값 기준 실시간 반영 (₩'+fmt(mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0)+(r.coupang?.coupon||0),0))+')',
+    '- 쿠팡 고정비: 풀필비·판매자할인쿠폰 매월 입력값 합계 ₩'+fmt(coupangFixed),',
     '',
     '【이번 달 실적 (' + (now.getMonth()+1) + '월, ' + daysInMonth + '일 중 ' + days + '일 경과 / ' + Math.round(days/daysInMonth*100) + '%)】',
     '- 채널 총매출: ₩' + fmt(totRev) + ' (자사몰 ₩' + fmt(totC) + ' / 네이버 ₩' + fmt(totN) + ' / 쿠팡 ₩' + fmt(totO) + ')',
@@ -1659,18 +1656,7 @@ async function sendChat(){
       '쿠팡(풀필비·쿠폰 전): 샴푸57.6% / 트리트먼트58.9% / 바디워시60.5% / 바디로션59.6%',
       '쿠팡 월고정비: ₩7,096 (매출 없어도 발생)',
       '',
-      // 채팅용 전월 동적 계산
-      ...((()=>{
-        const pYear2=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
-        const pMonth2=now.getMonth()===0?12:now.getMonth();
-        const pKey2=`${pYear2}-${String(pMonth2).padStart(2,'0')}`;
-        const pRecs2=records.filter(r=>r.date.startsWith(pKey2));
-        if(pRecs2.length===0) return ['【전월 실적】Firebase 데이터 없음 / 3월 참고: 총매출₩6,289,700 / 마진44% / ROAS 0.895'];
-        let pC2=0,pN2=0,pO2=0,pP2=0;
-        pRecs2.forEach(r=>{const d=calcDay(r);pC2+=d.cRev;pN2+=d.nRev;pO2+=d.oRev;pP2+=d.profit;});
-        const pT2=pC2+pN2+pO2;
-        return ['【'+pYear2+'년 '+pMonth2+'월 전월 실적 (Firebase 실측)】자사몰₩'+fmt(pC2)+' / 네이버₩'+fmt(pN2)+' / 쿠팡₩'+fmt(pO2)+' / 총₩'+fmt(pT2)+' / 마진율'+(pT2>0?Math.round(pP2/pT2*100):0)+'%'];
-      })()),
+      prevSection,
       '',
       '【고정비 구조】',
       '메타광고: 일₩80,000 / 네이버광고: 일₩10,000 / 메타대행료: 월₩700,000',
