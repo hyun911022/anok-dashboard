@@ -355,7 +355,7 @@
 
     <div class="bottom-grid">
       <div class="card">
-        <div class="card-title">전월 대비 달성률 및 예상 매출</div>
+        <div class="card-title">예상 매출 및 목표 달성률</div>
         <div id="achieveWrap" style="padding:8px 0"></div>
       </div>
       <div class="card">
@@ -637,8 +637,8 @@ function updateTrendChart(mRecs){
   const oData=Array(daysInMonth).fill(null);
   // 날짜별 손익분기 색상
   const tickColors=Array(daysInMonth).fill('#8898AA');
-  const cafeMargin=0.457, naverMargin=0.449, coupangMargin=0.295;
-  const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
+  const _prevMargin=calcPrevMonthMargin();
+  const _dailyBEP=Math.round(TARGET_TOTAL/daysInMonth);
   mRecs.forEach(r=>{
     const day=parseInt(r.date.slice(8,10))-1;
     if(day>=0&&day<daysInMonth){
@@ -646,8 +646,7 @@ function updateTrendChart(mRecs){
       if(d.cRev>0) cData[day]=d.cRev;
       if(d.nRev>0) nData[day]=d.nRev;
       if(d.oRev>0) oData[day]=d.oRev;
-      const estProfit=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
-      tickColors[day]=estProfit>=dailyFixed?'#E24B4A':'#2563EB';
+      tickColors[day]=d.total>=_dailyBEP?'#E24B4A':'#2563EB';
     }
   });
   trendChart.data.labels=labels;
@@ -836,11 +835,10 @@ function renderDayTable(mRecs){
     const d=calcDay(r);
     tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;
     const rate=d.total>0?((d.profit/d.total)*100).toFixed(1)+'%':'-';
-    // 채널별 수익률 기반 당일 예상 수익 계산
-    const cafeMargin = 0.457, naverMargin = 0.449, coupangMargin = 0.295;
-    const dailyFixed = META_AD + NAVER_AD + Math.round(AGENCY_FEE/30);
-    const estProfit = d.cRev*cafeMargin + d.nRev*naverMargin + d.oRev*coupangMargin;
-    const isProfit = estProfit >= dailyFixed;
+    // BEP 일할 기준으로 당일 달성 여부 판단
+    const _daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+    const _dailyBEP = Math.round(TARGET_TOTAL / _daysInMonth);
+    const isProfit = d.total >= _dailyBEP;
     html+=`<tr>
       <td>${r.date}</td>
       <td style="font-weight:700;color:${isProfit ? '#E24B4A' : '#2563EB'};text-align:right">₩${fmt(d.total)}</td>
@@ -936,19 +934,18 @@ function initCharts(){
             if(tooltip.opacity===0){ window._hideChartTooltip && window._hideChartTooltip(); return; }
             const items=tooltip.dataPoints||[];
             if(!items.length) return;
-            const cafeMargin=0.457,naverMargin=0.449,coupangMargin=0.295;
-            const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
             const dayNum=parseInt(items[0].label);
             const now=new Date();
+            const daysInMo=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+            const dailyBEP=Math.round(TARGET_TOTAL/daysInMo);
             const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
             const rec=records.find(r=>r.date===dateStr);
             let profitInfo={line2:'',profit:null};
             if(rec){
               const d=calcDay(rec);
-              const est=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
-              const gap=Math.round(est-dailyFixed);
+              const gap=d.total-dailyBEP;
               if(gap>=0){ profitInfo={line2:'₩'+gap.toLocaleString()+' 이익',profit:true}; }
-              else{ const nr=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3)); profitInfo={line2:'₩'+nr.toLocaleString()+' 더 필요',profit:false}; }
+              else{ profitInfo={line2:'₩'+Math.abs(gap).toLocaleString()+' 더 필요',profit:false}; }
             }
             window._showChartTooltip && window._showChartTooltip(items, profitInfo, chart.canvas);
           }
@@ -1084,7 +1081,7 @@ async function renderInsight(){
   // ── KPI 카드 4개 ──
   const kpiItems=[
     {label:'순수익',val:'₩'+fmt(netProfit),sub:'광고비·대행료 제외',color:'#6366F1',icon:'💰',positive:netProfit>=0},
-    {label:'순수익률',val:netMargin+'%',sub:'매출 대비 순이익',color:'#0EA5E9',icon:'📊',positive:netMargin>=15},
+    {label:'순수익률',val:netMargin+'%',sub:`목표 ${Math.round(calcPrevMonthMargin()*100)}% (전월 마진율)`,color:'#0EA5E9',icon:'📊',positive:netMargin>=Math.round(calcPrevMonthMargin()*100)},
     {label:'일평균 매출',val:'₩'+fmt(avgDaily),sub:`목표일평균 ₩${fmt(Math.round(targetTotal/daysInMonth))}`,color:'#16A34A',icon:'📈',positive:avgDaily>=Math.round(targetTotal/daysInMonth)},
     {label:'잔여 목표',val:'₩'+fmt(Math.max(0,targetTotal-totRev)),sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,color:'#EA580C',icon:'🎯',positive:totRev>=targetTotal},
   ];
