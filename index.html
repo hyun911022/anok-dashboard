@@ -568,9 +568,13 @@ function renderAchieve(mRecs){
     {label:'쿠팡',                  actual:totO, target:TARGETS.coupang, proj:projO, color:'#EA580C'},
   ];
 
-  const projHtml=`<div style="background:#F1F5F9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+  const prevTotal = TARGETS.cafe + TARGETS.naver + TARGETS.coupang;
+  const projHtml=`<div style="background:#F1F5F9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
     <span style="font-size:12px;color:#4A5568;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
-    <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
+    <span style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
+      <span style="font-size:11px;color:#8898AA;font-weight:400">전월 매출 ₩${prevTotal.toLocaleString()}</span>
+    </span>
   </div>`;
 
   wrap.innerHTML=projHtml+channels.map(ch=>{
