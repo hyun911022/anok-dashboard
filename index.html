@@ -1107,7 +1107,10 @@ async function renderInsight(){
 - 일평균 매출: ₩${fmt(avgDaily)} (목표 일평균 ₩${fmt(Math.round(targetTotal/daysInMonth))})
 - 잔여일수: ${daysLeft}일 (잔여 필요액: ₩${fmt(Math.max(0,targetTotal-totRev))})
 - 광고비: 메타 일 ₩${META_AD.toLocaleString()} + 네이버 일 ₩${NAVER_AD.toLocaleString()} + 대행료 월 ₩${AGENCY_FEE.toLocaleString()}
-⚠️ 핵심 지침: 누적 달성률(${achRate}%)이 아닌 반드시 페이스 달성률과 예상 월매출 기준으로 성과를 판단하세요. 월 초반은 누적 달성률이 낮은 게 정상입니다.
+⚠️ 분석 필수 지침:
+1. 누적 달성률(${achRate}%)은 절대 기준으로 쓰지 마세요. 월 초반이라 당연히 낮습니다.
+2. 핵심 지표는 "페이스 달성률 ${Math.round(totRev/(targetTotal*days/daysInMonth)*100)}%"와 "예상 월매출 ₩${fmt(projTotal)} (목표 ₩${fmt(targetTotal)} 대비 ${Math.round(projTotal/targetTotal*100)}%)"입니다.
+3. 예상 월매출이 목표를 상회하면 반드시 긍정적으로 평가하세요. 현재 예상 월매출은 목표의 ${Math.round(projTotal/targetTotal*100)}% 수준입니다.
 
 【SKU별 판매 현황】
 ${skuSummary}
