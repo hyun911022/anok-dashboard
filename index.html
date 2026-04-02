@@ -414,14 +414,22 @@ function loadData(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) records = JSON.parse(raw);
   } catch(e){ records=[]; }
-  // localStorage 비어있으면 4/1 기본값 1회만 세팅
+  // localStorage 비어있으면 초기 데이터 세팅 (1회만)
   if(records.length === 0){
-    records = [{
-      date: '2026-04-01',
-      cafe:    { shampoo:3, treatment:0, hairset:0, bodywash:2, bodylotion:0, bodyset:2, washset:0 },
-      naver:   { shampoo:1, treatment:0, hairset:2, bodywash:0, bodylotion:1, bodyset:0, washset:0 },
-      coupang: { shampoo:0, treatment:0, bodywash:1, bodylotion:0, fulfil:4099, coupon:3370, adcost:0 }
-    }];
+    records = [
+      {
+        date: '2026-04-01',
+        cafe:    { shampoo:3, treatment:0, hairset:0, bodywash:2, bodylotion:0, bodyset:2, washset:0 },
+        naver:   { shampoo:1, treatment:0, hairset:2, bodywash:0, bodylotion:1, bodyset:0, washset:0 },
+        coupang: { shampoo:0, treatment:0, bodywash:1, bodylotion:0, fulfil:4099, coupon:3370, adcost:0 }
+      },
+      {
+        date: '2026-04-02',
+        cafe:    { shampoo:0, treatment:0, hairset:0, bodywash:0, bodylotion:0, bodyset:0, washset:0 },
+        naver:   { shampoo:0, treatment:0, hairset:0, bodywash:1, bodylotion:0, bodyset:0, washset:0 },
+        coupang: { shampoo:0, treatment:0, bodywash:0, bodylotion:0, fulfil:0, coupon:0, adcost:0 }
+      }
+    ];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   }
   initCharts();
