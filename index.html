@@ -298,18 +298,13 @@
     </div>
   </div>
 
-  <!-- 가운데 -->
-  <div style="position:absolute;left:50%;transform:translateX(-50%);z-index:1;display:flex;align-items:center;gap:10px">
-    <div style="width:4px;height:4px;border-radius:50%;background:#6366F1;opacity:0.7"></div>
-    <span id="headerMonth" style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);letter-spacing:0.5px"></span>
-    <div style="width:4px;height:4px;border-radius:50%;background:#6366F1;opacity:0.7"></div>
+  <!-- 오른쪽: 날짜만 -->
+  <div style="z-index:1">
+    <span class="month-badge" id="todayBadge">--</span>
   </div>
 
-  <!-- 오른쪽 -->
-  <div style="z-index:1;display:flex;align-items:center;gap:10px">
-    <span class="month-badge" id="todayBadge">--</span>
-    <button class="btn-input" onclick="openModal()">+ 입력</button>
-  </div>
+  <!-- headerMonth 숨김 (JS 호환용) -->
+  <span id="headerMonth" style="display:none"></span>
 </div>
 
 <!-- 입력 모달 -->
