@@ -1083,7 +1083,7 @@ async function renderInsight(){
   const projAchRate=Math.round(projTotal/targetTotal*100);
   const kpiItems=[
     {label:'순수익 (률)',val:'₩'+fmt(netProfit),sub2:netMargin+'%',sub:`광고비·대행료 제외`,color:'#6366F1',icon:'💰',positive:netProfit>=0},
-    {label:'목표 달성률',val:projAchRate+'%',sub:`예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,color:'#0EA5E9',icon:'🎯',positive:projAchRate>=100},
+    {label:'예상 목표 달성률',val:projAchRate+'%',sub:`예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,color:'#0EA5E9',icon:'🎯',positive:projAchRate>=100},
     {label:'일평균 매출',val:'₩'+fmt(avgDaily),sub:`목표일평균 ₩${fmt(Math.round(targetTotal/daysInMonth))}`,color:'#16A34A',icon:'📈',positive:avgDaily>=Math.round(targetTotal/daysInMonth)},
     {label:'잔여 목표',val:'₩'+fmt(Math.max(0,targetTotal-totRev)),sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,color:'#EA580C',icon:'🎯',positive:totRev>=targetTotal},
   ];
