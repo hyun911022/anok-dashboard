@@ -283,9 +283,9 @@
   <!-- 상단 미세 라인 -->
   <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(99,102,241,0.5) 30%,rgba(255,255,255,0.15) 50%,rgba(99,102,241,0.3) 70%,transparent 100%)"></div>
 
-  <!-- 왼쪽 -->
+  <!-- 왼쪽 (홈버튼) -->
   <div style="display:flex;align-items:center;gap:12px;z-index:1">
-    <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(99,102,241,0.45);flex-shrink:0">
+    <div onclick="switchTab('dashboard');window.scrollTo({top:0,behavior:'smooth'})" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(99,102,241,0.45);flex-shrink:0;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 18px rgba(99,102,241,0.65)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 12px rgba(99,102,241,0.45)'" title="홈으로">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
         <rect x="1" y="9" width="3" height="5" rx="1" fill="white" opacity="0.7"/>
         <rect x="6" y="5" width="3" height="9" rx="1" fill="white"/>
