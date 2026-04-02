@@ -419,7 +419,7 @@
           <thead>
             <tr>
               <th>날짜</th>
-              <th style="background:#EEF2F7;color:var(--navy)">합산매출</th>
+              <th style="background:#D8E4F0;color:#0B1F3A;border-left:3px solid #94B4D0">합산매출</th>
               <th>자사몰<br>매출</th><th>자사몰<br>수익</th>
               <th>네이버<br>매출</th><th>네이버<br>수익</th>
               <th>쿠팡<br>매출</th><th>쿠팡<br>수익</th>
@@ -707,9 +707,14 @@ function renderDayTable(mRecs){
     const d=calcDay(r);
     tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;
     const rate=d.total>0?((d.profit/d.total)*100).toFixed(1)+'%':'-';
+    // 채널별 수익률 기반 당일 예상 수익 계산
+    const cafeMargin = 0.457, naverMargin = 0.449, coupangMargin = 0.295;
+    const dailyFixed = META_AD + NAVER_AD + Math.round(AGENCY_FEE/30);
+    const estProfit = d.cRev*cafeMargin + d.nRev*naverMargin + d.oRev*coupangMargin;
+    const isProfit = estProfit >= dailyFixed;
     html+=`<tr>
       <td>${r.date}</td>
-      <td style="background:#EEF2F7;font-weight:700;color:var(--navy)">₩${fmt(d.total)}</td>
+      <td style="font-weight:700;color:${isProfit ? '#16A34A' : '#2563EB'}">₩${fmt(d.total)}</td>
       <td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td>
       <td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td>
       <td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td>
@@ -719,7 +724,7 @@ function renderDayTable(mRecs){
   });
   if(sorted.length>0){
     const rate=tT>0?((tP/tT)*100).toFixed(1)+'%':'-';
-    html+=`<tr class="total-row"><td>합계</td><td style="background:#D1D9E6">₩${fmt(tT)}</td><td>₩${fmt(tC)}</td><td></td><td>₩${fmt(tN)}</td><td></td><td>₩${fmt(tO)}</td><td></td><td>₩${fmt(tT)}</td><td>₩${fmt(tP)}</td><td>${rate}</td><td></td></tr>`;
+    html+=`<tr class="total-row"><td>합계</td><td style="background:#B8CDE0 !important;font-weight:700;color:#0B1F3A;border-left:3px solid #94B4D0">₩${fmt(tT)}</td><td>₩${fmt(tC)}</td><td></td><td>₩${fmt(tN)}</td><td></td><td>₩${fmt(tO)}</td><td></td><td>₩${fmt(tT)}</td><td>₩${fmt(tP)}</td><td>${rate}</td><td></td></tr>`;
   }
   document.getElementById('dayBody').innerHTML=html||'<tr><td colspan="12" class="empty">입력된 데이터가 없습니다</td></tr>';
 }
