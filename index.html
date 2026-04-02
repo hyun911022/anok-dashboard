@@ -422,14 +422,36 @@
             <tr>
               <th>날짜</th>
               <th>합산매출</th>
-              <th>자사몰<br>매출</th><th>자사몰<br>수익</th>
-              <th>네이버<br>매출</th><th>네이버<br>수익</th>
-              <th>쿠팡<br>매출</th><th>쿠팡<br>수익</th>
-              <th>총매출</th><th>총수익</th><th>수익률</th>
-              <th style="cursor:pointer">삭제</th>
+              <th style="color:#7C3AED">자사몰</th>
+              <th style="color:#16A34A">네이버</th>
+              <th style="color:#EA580C">쿠팡</th>
+              <th>총수익</th>
+              <th style="color:#7C3AED">자사몰<br>수익</th>
+              <th style="color:#16A34A">네이버<br>수익</th>
+              <th style="color:#EA580C">쿠팡<br>수익</th>
+              <th>수익률</th>
+              <th>삭제</th>
             </tr>
           </thead>
           <tbody id="dayBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 일별 채널별 판매수량 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">일별 채널별 판매수량</div>
+      <div class="day-table-wrap">
+        <table class="day-tbl">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th style="color:#7C3AED">자사몰<br>샴푸</th><th style="color:#7C3AED">트리트<br>먼트</th><th style="color:#7C3AED">헤어<br>세트</th><th style="color:#7C3AED">바디<br>워시</th><th style="color:#7C3AED">바디<br>로션</th><th style="color:#7C3AED">바디<br>세트</th><th style="color:#7C3AED">워시<br>세트</th>
+              <th style="color:#16A34A">네이버<br>샴푸</th><th style="color:#16A34A">트리트<br>먼트</th><th style="color:#16A34A">헤어<br>세트</th><th style="color:#16A34A">바디<br>워시</th><th style="color:#16A34A">바디<br>로션</th><th style="color:#16A34A">바디<br>세트</th><th style="color:#16A34A">워시<br>세트</th>
+              <th style="color:#EA580C">쿠팡<br>샴푸</th><th style="color:#EA580C">트리트<br>먼트</th><th style="color:#EA580C">바디<br>워시</th><th style="color:#EA580C">바디<br>로션</th>
+            </tr>
+          </thead>
+          <tbody id="dayQtyBody"></tbody>
         </table>
       </div>
     </div>
@@ -829,37 +851,75 @@ function renderSkuTable(mRecs){
 }
 
 function renderDayTable(mRecs){
-  const sorted=[...mRecs].sort((a,b)=>b.date.localeCompare(a.date));
-  let html='';
-  let tC=0,tN=0,tO=0,tT=0,tP=0;
+  // 오름차순 (1일→말일)
+  const sorted=[...mRecs].sort((a,b)=>a.date.localeCompare(b.date));
+  const _daysInMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
+  const _dailyBEP=Math.round(TARGET_TOTAL/_daysInMonth);
+  const _dow=['일','월','화','수','목','금','토'];
+
+  // ── 매출/수익 테이블 ──
+  let html=''; let tC=0,tN=0,tO=0,tT=0,tP=0,tCp=0,tNp=0,tOp=0;
   sorted.forEach(r=>{
     const d=calcDay(r);
-    tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;
+    tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;tCp+=d.cPrf;tNp+=d.nPrf;tOp+=d.oPrf;
     const rate=d.total>0?((d.profit/d.total)*100).toFixed(1)+'%':'-';
-    // BEP 일할 기준으로 당일 달성 여부 판단
-    const _daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-    const _dailyBEP = Math.round(TARGET_TOTAL / _daysInMonth);
-    const isProfit = d.total >= _dailyBEP;
-    const _dow=['일','월','화','수','목','금','토'];
-    const _d=new Date(r.date+'T00:00:00+09:00');
-    const _dowIdx=_d.getDay();
-    const _dowStr=_dow[_dowIdx];
-    const _dowColor=_dowIdx===0?'#E24B4A':_dowIdx===6?'#2563EB':'inherit';
+    const isProfit=d.total>=_dailyBEP;
+    const _dt=new Date(r.date+'T00:00:00+09:00');
+    const _di=_dt.getDay();
+    const _dowColor=_di===0?'#E24B4A':_di===6?'#2563EB':'inherit';
     html+=`<tr>
-      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dowStr})</span></td>
-      <td style="font-weight:700;color:${isProfit ? '#E24B4A' : '#2563EB'};text-align:right">₩${fmt(d.total)}</td>
-      <td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td>
-      <td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td>
-      <td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td>
-      <td>₩${fmt(d.total)}</td><td>₩${fmt(d.profit)}</td><td>${rate}</td>
+      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dow[_di]})</span></td>
+      <td style="font-weight:700;color:${isProfit?'#E24B4A':'#2563EB'}">₩${fmt(d.total)}</td>
+      <td style="color:#7C3AED">₩${fmt(d.cRev)}</td>
+      <td style="color:#16A34A">₩${fmt(d.nRev)}</td>
+      <td style="color:#EA580C">₩${fmt(d.oRev)}</td>
+      <td style="font-weight:600">₩${fmt(d.profit)}</td>
+      <td style="color:#7C3AED">₩${fmt(d.cPrf)}</td>
+      <td style="color:#16A34A">₩${fmt(d.nPrf)}</td>
+      <td style="color:#EA580C">₩${fmt(d.oPrf)}</td>
+      <td>${rate}</td>
       <td><button onclick="deleteDay('${r.date}')" style="background:none;border:none;color:#E24B4A;cursor:pointer;font-size:12px">삭제</button></td>
     </tr>`;
   });
   if(sorted.length>0){
     const rate=tT>0?((tP/tT)*100).toFixed(1)+'%':'-';
-    html+=`<tr class="total-row"><td>합계</td><td style="font-weight:700">₩${fmt(tT)}</td><td>₩${fmt(tC)}</td><td></td><td>₩${fmt(tN)}</td><td></td><td>₩${fmt(tO)}</td><td></td><td>₩${fmt(tT)}</td><td>₩${fmt(tP)}</td><td>${rate}</td><td></td></tr>`;
+    html+=`<tr class="total-row"><td>합계</td><td style="font-weight:700">₩${fmt(tT)}</td><td style="color:#7C3AED">₩${fmt(tC)}</td><td style="color:#16A34A">₩${fmt(tN)}</td><td style="color:#EA580C">₩${fmt(tO)}</td><td style="font-weight:700">₩${fmt(tP)}</td><td style="color:#7C3AED">₩${fmt(tCp)}</td><td style="color:#16A34A">₩${fmt(tNp)}</td><td style="color:#EA580C">₩${fmt(tOp)}</td><td>${rate}</td><td></td></tr>`;
   }
-  document.getElementById('dayBody').innerHTML=html||'<tr><td colspan="12" class="empty">입력된 데이터가 없습니다</td></tr>';
+  document.getElementById('dayBody').innerHTML=html||'<tr><td colspan="11" class="empty">입력된 데이터가 없습니다</td></tr>';
+
+  // ── 수량 테이블 ──
+  const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
+  const nSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
+  const oSkus=['shampoo','treatment','bodywash','bodylotion'];
+  let qHtml='';
+  let tcS={},tnS={},toS={};
+  cSkus.forEach(k=>tcS[k]=0); nSkus.forEach(k=>tnS[k]=0); oSkus.forEach(k=>toS[k]=0);
+  sorted.forEach(r=>{
+    const _dt=new Date(r.date+'T00:00:00+09:00');
+    const _di=_dt.getDay();
+    const _dowColor=_di===0?'#E24B4A':_di===6?'#2563EB':'inherit';
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+    cSkus.forEach(k=>tcS[k]+=(c[k]||0));
+    nSkus.forEach(k=>tnS[k]+=(n[k]||0));
+    oSkus.forEach(k=>toS[k]+=(o[k]||0));
+    const cell=(v,col)=>v?`<td style="color:${col};font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
+    qHtml+=`<tr>
+      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dow[_di]})</span></td>
+      ${cSkus.map(k=>cell(c[k]||0,'#7C3AED')).join('')}
+      ${nSkus.map(k=>cell(n[k]||0,'#16A34A')).join('')}
+      ${oSkus.map(k=>cell(o[k]||0,'#EA580C')).join('')}
+    </tr>`;
+  });
+  if(sorted.length>0){
+    const cell=(v,col)=>v?`<td style="color:${col};font-weight:700">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
+    qHtml+=`<tr class="total-row"><td>합계</td>
+      ${cSkus.map(k=>cell(tcS[k],'#7C3AED')).join('')}
+      ${nSkus.map(k=>cell(tnS[k],'#16A34A')).join('')}
+      ${oSkus.map(k=>cell(toS[k],'#EA580C')).join('')}
+    </tr>`;
+  }
+  const qBody=document.getElementById('dayQtyBody');
+  if(qBody) qBody.innerHTML=qHtml||'<tr><td colspan="19" class="empty">입력된 데이터가 없습니다</td></tr>';
 }
 
 // ── 전월 마진율 기반 BEP 목표 자동 계산 ──────────────────────────────────
