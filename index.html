@@ -203,6 +203,8 @@
 
     /* ROAS 카드 */
     .roas-grid { grid-template-columns: 1fr 1fr !important; }
+    /* 광고비 3열 유지 */
+    .roas-grid[style*="repeat(3"] { grid-template-columns: repeat(3,1fr) !important; }
   }
 </style>
 </head>
