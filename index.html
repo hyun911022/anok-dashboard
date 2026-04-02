@@ -615,11 +615,11 @@ function updateTrendChart(mRecs){
   el.id = 'chartTooltip';
   el.style.cssText = `
     position:fixed; pointer-events:none; z-index:9999;
-    background:#F8FAFC; color:#1E293B;
+    background:rgba(10,18,36,0.95); color:#fff;
     border-radius:10px; padding:10px 14px;
     font-family:-apple-system,sans-serif; font-size:13px; line-height:1.7;
-    box-shadow:0 4px 16px rgba(0,0,0,0.10);
-    border:1px solid #E2EAF0;
+    box-shadow:0 4px 20px rgba(0,0,0,0.35);
+    border:1px solid rgba(255,255,255,0.08);
     min-width:160px; transition:opacity 0.12s;
     opacity:0;
   `;
@@ -630,26 +630,26 @@ function updateTrendChart(mRecs){
 
     // 내용 구성
     const total = items.reduce((s,c)=>s+(c.raw||0),0);
-    const dayLabel = items[0].label;
+    const dayLabel = items[0].label.replace('일',''); // '1일' → '1'
     const colorMap = {'자사몰':'#A78BFA','네이버':'#4ADE80','쿠팡':'#FB923C'};
 
-    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid #E2EAF0;padding-bottom:6px;color:#0B1F3A">
-      ${dayLabel}&nbsp;&nbsp;<span style="color:#0B1F3A">₩${Math.round(total).toLocaleString()}</span>
+    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;color:#fff">
+      ${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span>
     </div>`;
 
     items.forEach(c => {
       if (!c.raw) return;
-      const col = colorMap[c.dataset.label] || '#888';
+      const col = colorMap[c.dataset.label] || '#A78BFA';
       html += `<div style="display:flex;align-items:center;gap:6px">
         <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span>
-        <span style="color:#64748B">${c.dataset.label}</span>
-        <span style="margin-left:auto;font-weight:600;color:#1E293B">₩${Math.round(c.raw).toLocaleString()}</span>
+        <span style="color:#CBD5E1">${c.dataset.label}</span>
+        <span style="margin-left:auto;font-weight:600;color:#fff">₩${Math.round(c.raw).toLocaleString()}</span>
       </div>`;
     });
 
     if (profitInfo && profitInfo.line2) {
-      const pc = profitInfo.profit ? '#E24B4A' : '#2563EB';
-      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid #E2EAF0;font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
+      const pc = profitInfo.profit ? '#F87171' : '#60A5FA';
+      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.12);font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
     }
 
     el.innerHTML = html;
