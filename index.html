@@ -324,8 +324,8 @@
   <!-- 탭 -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-    <button class="tab" onclick="switchTab('daily')">일별 내역</button>
     <button class="tab" onclick="switchTab('insight')">월간 인사이트</button>
+    <button class="tab" onclick="switchTab('daily')">일별 내역</button>
   </div>
 
   <!-- 대시보드 탭 -->
@@ -840,8 +840,13 @@ function renderDayTable(mRecs){
     const _daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
     const _dailyBEP = Math.round(TARGET_TOTAL / _daysInMonth);
     const isProfit = d.total >= _dailyBEP;
+    const _dow=['일','월','화','수','목','금','토'];
+    const _d=new Date(r.date+'T00:00:00+09:00');
+    const _dowIdx=_d.getDay();
+    const _dowStr=_dow[_dowIdx];
+    const _dowColor=_dowIdx===0?'#E24B4A':_dowIdx===6?'#2563EB':'inherit';
     html+=`<tr>
-      <td>${r.date}</td>
+      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dowStr})</span></td>
       <td style="font-weight:700;color:${isProfit ? '#E24B4A' : '#2563EB'};text-align:right">₩${fmt(d.total)}</td>
       <td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td>
       <td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td>
@@ -1026,8 +1031,8 @@ function switchTab(tab){
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
       (tab==='dashboard'&&i===0)||
-      (tab==='daily'&&i===1)||
-      (tab==='insight'&&i===2)
+      (tab==='insight'&&i===1)||
+      (tab==='daily'&&i===2)
     );
   });
   if(tab==='insight') renderInsight();
@@ -1108,7 +1113,7 @@ async function renderInsight(){
   const bepGap=Math.max(0,targetTotal-totRev);
   const bepDailyNeed=daysLeft2>0?Math.round(bepGap/daysLeft2):0;
   const onPace=avgDaily>=Math.round(targetTotal/daysInMonth);
-  // 2. 광고비 효율 (ROAS: 총매출 / 총광고비)
+  // 2. 광고비 효율 (ROAS: 전체 매출 / 총 광고비)
   const totalAdSpend=metaAd+naverAdTotal;
   const roas=totalAdSpend>0?(totRev/totalAdSpend).toFixed(1):'-';
   const roasGood=parseFloat(roas)>=3;
@@ -1118,16 +1123,45 @@ async function renderInsight(){
   const marginDiff=currentMarginPct-prevMarginPct;
 
   const stratCards=[
-    {
-      icon:'🏁', label:'BEP 달성 시나리오',
-      val: bepGap===0?'달성 완료':'₩'+fmt(bepGap)+' 부족',
-      sub: bepGap===0?`목표 초과 ₩${fmt(totRev-targetTotal)}`:`잔여 ${daysLeft2}일 · 일 ₩${fmt(bepDailyNeed)} 필요`,
-      color:'#6366F1', positive: bepGap===0
-    },
+    (()=>{
+      // 세트 구성 비율 — 세트 비중 높을수록 객단가·마진 개선
+      const setKeys=['hairset','bodyset','washset'];
+      const singleKeys=['shampoo','treatment','bodywash','bodylotion'];
+      let setQty=0, singleQty=0, setRev=0, totalQty=0;
+      mRecs.forEach(r=>{
+        setKeys.forEach(k=>{
+          const q=(r.cafe[k]||0)+(r.naver[k]||0);
+          setQty+=q;
+          setRev+=q*(CAFE_PRICES[k]||0);
+        });
+        singleKeys.forEach(k=>{
+          singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang||{})[k]||0);
+        });
+      });
+      totalQty=setQty+singleQty;
+      const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
+      const setRevRatio=totRev>0?Math.round(setRev/totRev*100):0;
+      // 헤어 vs 바디 카테고리 매출
+      let hairRev=0, bodyRev=0;
+      mRecs.forEach(r=>{
+        hairRev+=(r.cafe.shampoo||0)*CAFE_PRICES.shampoo+(r.cafe.treatment||0)*CAFE_PRICES.treatment+(r.cafe.hairset||0)*CAFE_PRICES.hairset
+                +(r.naver.shampoo||0)*NAVER_PRICES.shampoo+(r.naver.treatment||0)*NAVER_PRICES.treatment+(r.naver.hairset||0)*NAVER_PRICES.hairset;
+        bodyRev+=(r.cafe.bodywash||0)*CAFE_PRICES.bodywash+(r.cafe.bodylotion||0)*CAFE_PRICES.bodylotion+(r.cafe.bodyset||0)*CAFE_PRICES.bodyset
+                +(r.naver.bodywash||0)*NAVER_PRICES.bodywash+(r.naver.bodylotion||0)*NAVER_PRICES.bodylotion+(r.naver.bodyset||0)*NAVER_PRICES.bodyset;
+      });
+      const hairPct=totRev>0?Math.round(hairRev/(hairRev+bodyRev)*100):0;
+      const bodyPct=100-hairPct;
+      return {
+        icon:'📦', label:'세트 구성 비율',
+        val: setRatio+'%',
+        sub:`세트 ${setQty}개(${setRevRatio}% 매출) · 단품 ${singleQty}개 · 헤어 ${hairPct}% / 바디 ${bodyPct}%`,
+        color:'#8B5CF6', positive: setRatio>=30
+      };
+    })(),
     {
       icon:'📡', label:'광고 ROAS',
       val: roas+'x',
-      sub:`광고비 ₩${fmt(totalAdSpend)} → 매출 ₩${fmt(totRev)} · ${roasGood?'효율 양호':'효율 점검 필요'}`,
+      sub:`광고비 ₩${fmt(totalAdSpend)} → 전체 매출 ₩${fmt(totRev)} · ${roasGood?'효율 양호':'효율 점검 필요'}`,
       color:'#0EA5E9', positive: roasGood
     },
     {
