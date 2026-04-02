@@ -9,6 +9,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
     --navy:#0B1F3A;--navy2:#162D4E;--navy3:#1E3D6B;
+    --anok-green:#1C3A2A;--anok-green2:#254D38;--anok-green3:#2E6347;
     --bg:#F4F6F9;--card:#fff;--border:#E2EAF0;
     --text:#1A202C;--text2:#4A5568;--text3:#8898AA;
     --purple:#7C3AED;--purple-l:#F5F0FF;
@@ -20,20 +21,20 @@
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
   /* 헤더 */
-  .header{background:var(--navy);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .header{background:var(--anok-green);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
   .header-brand{display:flex;align-items:baseline;gap:12px}
-  .header-brand h1{font-size:20px;font-weight:600;color:#fff;letter-spacing:1px}
-  .header-brand span{font-size:12px;color:#8BA3C4}
+  .header-brand h1{font-size:22px;font-weight:300;color:#fff;letter-spacing:4px;font-family:Georgia,'Times New Roman',serif}
+  .header-brand span{font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.5px}
   .header-right{display:flex;align-items:center;gap:10px}
-  .month-badge{background:rgba(255,255,255,0.1);color:#AEC6E8;font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.15)}
-  .btn-input{background:#2563EB;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
-  .btn-input:hover{background:#1D4ED8}
+  .month-badge{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2)}
+  .btn-input{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;backdrop-filter:blur(4px)}
+  .btn-input:hover{background:rgba(255,255,255,0.25)}
 
   /* 입력 모달 */
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
   .modal-bg.open{display:flex}
   .modal{background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
-  .modal-header{background:var(--navy);padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+  .modal-header{background:var(--anok-green);padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
   .modal-header h2{color:#fff;font-size:16px;font-weight:500}
   .modal-close{background:none;border:none;color:#8BA3C4;font-size:20px;cursor:pointer;line-height:1}
   .modal-body{padding:20px 24px}
@@ -53,8 +54,8 @@
   .coup-extra{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
   .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
   .btn-cancel{background:none;border:1px solid var(--border);padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2)}
-  .btn-save{background:var(--navy);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
-  .btn-save:hover{background:var(--navy2)}
+  .btn-save{background:var(--anok-green);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn-save:hover{background:var(--anok-green2)}
 
   /* 메인 레이아웃 */
   .main{padding:20px 24px;max-width:1400px;margin:0 auto}
@@ -98,7 +99,7 @@
   .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
   /* 손익 배너 */
-  .profit-banner{background:var(--navy);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+  .profit-banner{background:var(--anok-green);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
   .profit-label{font-size:12px;color:#8BA3C4;margin-bottom:4px}
   .profit-val{font-size:28px;font-weight:600;color:#fff}
   .profit-sub{font-size:11px;color:#8BA3C4;margin-top:3px}
@@ -120,7 +121,7 @@
   /* 탭 */
   .tabs{display:flex;gap:2px;margin-bottom:16px;background:#E2EAF0;border-radius:8px;padding:3px}
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
-  .tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+  .tab.active{background:#fff;color:var(--anok-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
 
   .ach-row{margin-bottom:20px}
   .ach-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
@@ -142,7 +143,7 @@
   #anokChatBtn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.65)}
   #anokChatPanel{position:fixed;bottom:88px;right:24px;width:360px;max-height:520px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:999;display:none;flex-direction:column;overflow:hidden;border:1px solid #E2EAF0}
   #anokChatPanel.open{display:flex}
-  #anokChatHeader{background:linear-gradient(135deg,#0B1F3A,#1E3A5F);padding:14px 16px;display:flex;align-items:center;gap:10px}
+  #anokChatHeader{background:linear-gradient(135deg,#1C3A2A,#2E6347);padding:14px 16px;display:flex;align-items:center;gap:10px}
   #anokChatHeader .icon{width:28px;height:28px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
   #anokChatHeader .title{color:#fff;font-size:13px;font-weight:700}
   #anokChatHeader .sub{color:#7B96B2;font-size:11px}
@@ -553,7 +554,7 @@
   <div id="tabInsight" style="display:none">
 
     <!-- AI 분석 헤더 -->
-    <div style="background:linear-gradient(135deg,#0B1F3A 0%,#1E3A5F 100%);border-radius:14px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#1C3A2A 0%,#2E6347 100%);border-radius:14px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">
       <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
       <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(99,102,241,0.15);border-radius:50%"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
