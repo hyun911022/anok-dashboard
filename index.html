@@ -787,15 +787,14 @@ function initCharts(){
             if(profitLine) return isMobile ? [...(Array.isArray(titleLine)?titleLine:[titleLine]), profitLine] : [titleLine, profitLine];
             return titleLine;
           },
-          titleColor:(ctx)=>{
-            // 줄 인덱스별 색상 적용
-            const idx=ctx.index||0;
-            if(idx===0) return '#fff';
-            if(idx===1 && window._tooltipIsProfit===true) return '#E24B4A';
-            if(idx===1 && window._tooltipIsProfit===false) return '#60A5FA';
-            return '#fff';
-          },
           label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
+        },
+        titleColor: ctx => {
+          const lines = ctx.tooltip?.title || [];
+          const idx = ctx.index ?? 0;
+          if(idx === 0) return '#fff';
+          if(idx === 1) return window._tooltipIsProfit === true ? '#E24B4A' : (window._tooltipIsProfit === false ? '#60A5FA' : '#fff');
+          return '#fff';
         }}
       },
       scales:{
