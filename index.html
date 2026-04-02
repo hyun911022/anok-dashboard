@@ -603,7 +603,7 @@
         <div class="card-title" style="margin-bottom:0">전략 분석 리포트</div>
         <div id="insightLoadingBadge" style="margin-left:auto;font-size:11px;color:#6366F1;background:#EEF2FF;padding:3px 10px;border-radius:20px;display:none">분석 중...</div>
       </div>
-      <div id="insightReport" style="color:#4A5568;font-size:13px;line-height:1.85">
+      <div id="insightReport" style="color:#4A5568;font-size:13px;line-height:1.85;max-height:520px;overflow-y:auto;padding-right:4px">
         <div style="color:#8898AA;text-align:center;padding:30px 0">탭을 클릭하면 AI가 이번 달 데이터를 분석합니다.</div>
       </div>
     </div>
@@ -1417,18 +1417,16 @@ async function renderInsight(){
   // SKU별 실제 마진율 (엑셀 실측 기준)
   const SKU_MARGINS = {
     cafe: {shampoo:44.3,treatment:45.8,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1},
-    naver:{shampoo:44.1,treatment:45.6,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1},
-    coupang:{shampoo:57.6,treatment:58.9,bodywash:60.5,bodylotion:59.6} // 풀필비/쿠폰 미차감
+    naver:{shampoo:44.1,treatment:45.6,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1}
+    // 쿠팡은 풀필비(매일 변동)+할인쿠폰(판매시 발생)+수수료 모두 차감해야 실질 마진 산정 가능
+    // calcDay()에서 입력된 fulfil/coupon 실측값으로 계산됨
   };
-  // 쿠팡 실질 비용 (월 고정: 풀필비VAT제외 3726 + 쿠폰 3370)
-  const COUPANG_FIXED_MONTHLY = 7096;
 
-  // SKU별 판매수량 × 마진율로 실질 공헌마진 계산
+  // SKU별 판매수량 × 마진율로 실질 공헌마진 계산 (쿠팡 제외 — 실측 비용 별도 입력)
   let skuContrib = [];
   mRecs.forEach(r=>{
     for(const k in CAFE_PRICES) if((r.cafe[k]||0)>0) skuContrib.push({ch:'자사몰',sku:k,qty:r.cafe[k],margin:SKU_MARGINS.cafe[k]||45,rev:(r.cafe[k]||0)*CAFE_PRICES[k]});
     for(const k in NAVER_PRICES) if((r.naver[k]||0)>0) skuContrib.push({ch:'네이버',sku:k,qty:r.naver[k],margin:SKU_MARGINS.naver[k]||45,rev:(r.naver[k]||0)*NAVER_PRICES[k]});
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{ if((r.coupang[k]||0)>0) skuContrib.push({ch:'쿠팡',sku:k,qty:r.coupang[k],margin:SKU_MARGINS.coupang[k]||57,rev:(r.coupang[k]||0)*COUP_PRICES[k]}); });
   });
   const skuNames2={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
   const skuLine = skuContrib.map(s=>`${s.ch} ${skuNames2[s.sku]} ${s.qty}개 (마진${s.margin}%, 공헌마진 ₩${Math.round(s.rev*s.margin/100).toLocaleString()})`).join(' | ') || '없음';
@@ -1478,8 +1476,11 @@ async function renderInsight(){
     '',
     '【SKU 실제 마진율 (엑셀 실측)】',
     '- 자사몰: 샴푸 44.3% / 트리트먼트 45.8% / 헤어세트 44.4% / 바디워시 46.8% / 바디로션 45.7% / 바디세트 46.0% / 워시세트 45.1%',
-    '- 쿠팡: 샴푸 57.6% / 트리트먼트 58.9% / 바디워시 60.5% / 바디로션 59.6% (풀필비·쿠폰 미차감 수치)',
-    '- 쿠팡 고정비: 풀필비·판매자할인쿠폰 매월 입력값 합계 ₩'+fmt(coupangFixed),
+    '- 쿠팡 수익구조: 판매가에서 부가세+제품가+포장+판매수수료(9.6%) 차감 후 수익 — 여기서 추가로 풀필비(매일 청구)와 판매자할인쿠폰(판매 발생 시)을 빼야 실질 이익',
+    '- 쿠팡 3월 실측 마진율: 35.6% (총매출 ₩809,500 / 수익 ₩288,393 기준 — 풀필비+할인쿠폰+수수료 9.6% 모두 차감)',
+    '- 쿠팡 풀필비: 매일 다르게 발생 → 사용자가 매일 입력. 할인쿠폰: 쿠폰 적용 상품 판매 시에만 발생 → 매일 입력',
+    '- 쿠팡 실질 마진 = (판매가 - 수수료 9.6% - 원가 - 풀필비 - 할인쿠폰). 입력된 실측 비용 기준 이번달 쿠팡 실질수익: ₩'+fmt(totOprf),
+    '- 쿠팡 비용(변동): 풀필비(매일 청구, 입력값 기준)+판매자할인쿠폰(판매시 발생, 입력값 기준) = 이번달 누계 ₩'+fmt(coupangFixed)+' (고정비 아님 — 매일/판매건별 발생)',
     '',
     '【이번 달 실적 (' + (now.getMonth()+1) + '월, ' + daysInMonth + '일 중 ' + days + '일 경과 / ' + Math.round(days/daysInMonth*100) + '%)】',
     '- 채널 총매출: ₩' + fmt(totRev) + ' (자사몰 ₩' + fmt(totC) + ' / 네이버 ₩' + fmt(totN) + ' / 쿠팡 ₩' + fmt(totO) + ')',
@@ -1504,7 +1505,7 @@ async function renderInsight(){
     '⚠️ 분석 필수 지침:',
     '1. 페이스 달성률(' + Math.round(totRev/(targetTotal*days/daysInMonth)*100) + '%)과 예상 월매출로 성과 판단 — 누적 달성률(' + achRate + '%)은 월초라 당연히 낮음',
     '2. 3월 메타 ROAS 0.895는 매출<광고비 구조 — 광고 효율 개선이 이번 달 핵심 과제',
-    '3. 쿠팡은 풀필비+쿠폰 고정비 구조라 소량 판매 시 오히려 손실 가능성 있음',
+    '3. 쿠팡 실질 마진 = 판매수수료+풀필비+쿠폰 모두 차감 후 수익. 풀필비는 판매 없어도 매일 발생하므로 소량 판매일수록 손실 위험. 입력된 비용 기준 이번달 쿠팡 실질수익: ₩'+fmt(totOprf)+'(마진율 '+(totO>0?Math.round(totOprf/totO*100):0)+'%)',
     '4. 세트 상품(헤어세트·바디세트·워시세트)이 단품보다 마진율 비슷하지만 객단가 2배 — 세트 전환이 핵심 레버',
     '5. 바디워시·바디로션이 마진율 최상위 (46.8%) — 바디라인 집중 마케팅 검토',
   ];
@@ -1516,7 +1517,7 @@ async function renderInsight(){
     '<section><h4>📊 성과 진단</h4><p>전월 대비, 페이스 달성률, 채널별 추이를 수치 근거로 3~4문장 명확하게.</p></section>',
     '<section><h4>💡 수익성 개선 포인트</h4><p>SKU 마진율, 세트 전환율, 채널별 공헌마진 데이터를 근거로 즉시 개선 가능한 수익 레버 분석.</p></section>',
     '<section><h4>📣 광고 효율 진단</h4><p>전월 메타 ROAS 적자 구조를 짚고, 이번 달 광고비 집행 방향 구체적으로 제시.</p></section>',
-    '<section><h4>⚡ 즉시 실행 액션 (우선순위 순)</h4><ul><li>데이터 기반 실행 액션 4가지 — 각각 담당 채널·SKU·예상 효과 명시</li></ul></section>',
+    '<section><h4>⚡ 즉시 실행 액션 (우선순위 순)</h4><ul><li>[반드시 4개의 실행 액션을 li 태그로 각각 작성. 채널명·SKU·예상효과 포함]</li></ul></section>',
     '<section><h4>🎯 잔여 ' + daysLeft + '일 마감 전략</h4><p>채널별·SKU별 집중 전술. 목표 달성 가능성 판단과 현실적 대안 포함.</p></section>',
     '',
     'COO/CSO 톤으로 — 단호하고 수치 기반. 뷰티 D2C 업계 특성 반영. 반말 금지.',
@@ -1548,15 +1549,24 @@ async function renderInsight(){
 
     document.getElementById('insightReport').innerHTML=styled;
 
-    // 액션 아이템 추출해서 하단 카드에도 반영
-    const liMatches=[...raw.matchAll(/<li>(.*?)<\/li>/gs)].map(m=>m[1].trim()).slice(0,5);
-    if(liMatches.length){
-      document.getElementById('insightActions').innerHTML=liMatches.map((item,i)=>`
+    // 액션 아이템 추출 - li 태그 또는 번호 목록 파싱
+    // 액션 아이템 추출
+    let actionItems = [];
+    const liRaw = [...raw.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1].replace(/<[^>]+>/g,"").trim()).filter(t=>t.length>5);
+    if(liRaw.length>0) actionItems = liRaw;
+    if(actionItems.length===0){
+      actionItems = raw.split("\n").filter(l=>/^\s*(\d+[.):] |[-])/.test(l)).map(l=>l.replace(/^\s*(\d+[.): ]|[-])\s*/,"").replace(/<[^>]+>/g,"").trim()).filter(t=>t.length>5);
+    }
+    actionItems = actionItems.slice(0,5);
+    if(actionItems.length>0){
+      document.getElementById('insightActions').innerHTML=actionItems.map((item,i)=>`
         <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${['#EEF2FF','#FFF7ED','#F0FDF4','#FFF1F2','#F0F9FF'][i%5]};border-radius:8px;margin-bottom:8px">
           <div style="width:22px;height:22px;border-radius:6px;background:${['#6366F1','#EA580C','#16A34A','#E24B4A','#0EA5E9'][i%5]};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
           <div style="font-size:13px;color:#374151;line-height:1.6">${item}</div>
         </div>
       `).join('');
+    } else {
+      document.getElementById('insightActions').innerHTML='<div style="color:#8898AA;font-size:13px">전략 분석 리포트에서 액션 아이템을 확인하세요.</div>';
     }
   }catch(e){
     document.getElementById('insightReport').innerHTML=`<div style="color:#E24B4A;font-size:13px">분석 중 오류가 발생했습니다: ${e.message}</div>`;
@@ -1665,7 +1675,8 @@ async function sendChat(){
       '',
       '【실제 SKU 마진율】',
       '자사몰: 샴푸44.3% / 트리트먼트45.8% / 헤어세트44.4% / 바디워시46.8% / 바디로션45.7% / 바디세트46.0% / 워시세트45.1%',
-      '쿠팡(풀필비·쿠폰 전): 샴푸57.6% / 트리트먼트58.9% / 바디워시60.5% / 바디로션59.6%',
+      '쿠팡 3월 실측 마진율 35.6% (풀필비+할인쿠폰+수수료 9.6% 모두 차감 후 기준)',
+      '쿠팡 풀필비: 판매 없어도 매일 발생(금액 매일 다름) / 할인쿠폰: 쿠폰 적용 상품 판매 시만 발생 → 둘 다 사용자가 매일 직접 입력',
       '쿠팡 월고정비: ₩7,096 (매출 없어도 발생)',
       '',
       prevSection,
