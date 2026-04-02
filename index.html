@@ -608,7 +608,7 @@ function updateTrendChart(mRecs){
   trendChart.update();
 }
 
-// 툴팁 손익 컬러 텍스트 커스텀 플러그인 - 툴팁 박스 위에 표시
+// 툴팁 손익 컬러 텍스트 커스텀 플러그인 - 툴팁 박스 바로 아래에 표시
 const profitTooltipPlugin = {
   id:'profitTooltip',
   afterDraw(chart){
@@ -616,22 +616,21 @@ const profitTooltipPlugin = {
     if(!tp||!tp._active||!tp._active.length) return;
     if(!window._tp||!window._tp.line2) return;
     const {ctx}=chart;
-    const fontSize=14;
+    const fontSize=13;
     const text=window._tp.line2;
     const color=window._tp.profit?'#E24B4A':'#3B82F6';
-    // 측정
     ctx.save();
     ctx.font=`bold ${fontSize}px -apple-system,sans-serif`;
     const tw=ctx.measureText(text).width;
-    const pad=10;
+    const pad=8;
     const bw=tw+pad*2;
     const bh=fontSize+pad*2;
-    // 툴팁 박스 위 중앙에 배치
+    // 툴팁 박스 바로 아래 중앙
     const cx=tp.x+tp.width/2;
-    const by=tp.y-bh-6;
+    const by=tp.y+tp.height+6;
     const bx=cx-bw/2;
     // 배경 박스
-    ctx.fillStyle='rgba(15,23,42,0.92)';
+    ctx.fillStyle='rgba(10,18,36,0.95)';
     ctx.beginPath();
     ctx.roundRect(bx,by,bw,bh,6);
     ctx.fill();
