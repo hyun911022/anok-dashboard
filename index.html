@@ -615,11 +615,11 @@ function updateTrendChart(mRecs){
   el.id = 'chartTooltip';
   el.style.cssText = `
     position:fixed; pointer-events:none; z-index:9999;
-    background:rgba(10,18,36,0.95); color:#fff;
+    background:#F8FAFC; color:#1E293B;
     border-radius:10px; padding:10px 14px;
     font-family:-apple-system,sans-serif; font-size:13px; line-height:1.7;
-    box-shadow:0 4px 20px rgba(0,0,0,0.35);
-    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 4px 16px rgba(0,0,0,0.10);
+    border:1px solid #E2EAF0;
     min-width:160px; transition:opacity 0.12s;
     opacity:0;
   `;
@@ -633,23 +633,23 @@ function updateTrendChart(mRecs){
     const dayLabel = items[0].label;
     const colorMap = {'자사몰':'#A78BFA','네이버':'#4ADE80','쿠팡':'#FB923C'};
 
-    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px">
-      ${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span>
+    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid #E2EAF0;padding-bottom:6px;color:#0B1F3A">
+      ${dayLabel}일&nbsp;&nbsp;<span style="color:#0B1F3A">₩${Math.round(total).toLocaleString()}</span>
     </div>`;
 
     items.forEach(c => {
       if (!c.raw) return;
-      const col = colorMap[c.dataset.label] || '#fff';
+      const col = colorMap[c.dataset.label] || '#888';
       html += `<div style="display:flex;align-items:center;gap:6px">
         <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span>
-        <span style="color:#CBD5E1">${c.dataset.label}</span>
-        <span style="margin-left:auto;font-weight:600">₩${Math.round(c.raw).toLocaleString()}</span>
+        <span style="color:#64748B">${c.dataset.label}</span>
+        <span style="margin-left:auto;font-weight:600;color:#1E293B">₩${Math.round(c.raw).toLocaleString()}</span>
       </div>`;
     });
 
     if (profitInfo && profitInfo.line2) {
-      const pc = profitInfo.profit ? '#F87171' : '#60A5FA';
-      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.12);font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
+      const pc = profitInfo.profit ? '#E24B4A' : '#2563EB';
+      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid #E2EAF0;font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
     }
 
     el.innerHTML = html;
@@ -846,7 +846,7 @@ function initCharts(){
               const d=calcDay(rec);
               const est=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
               const gap=Math.round(est-dailyFixed);
-              if(gap>=0){ profitInfo={line2:'+₩'+gap.toLocaleString()+' 이익',profit:true}; }
+              if(gap>=0){ profitInfo={line2:'₩'+gap.toLocaleString()+' 이익',profit:true}; }
               else{ const nr=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3)); profitInfo={line2:'₩'+nr.toLocaleString()+' 더 필요',profit:false}; }
             }
             window._showChartTooltip && window._showChartTooltip(items, profitInfo, chart.canvas);
