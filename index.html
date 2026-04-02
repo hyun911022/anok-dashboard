@@ -608,41 +608,77 @@ function updateTrendChart(mRecs){
   trendChart.update();
 }
 
-// 툴팁 손익 컬러 텍스트 커스텀 플러그인 - 툴팁 박스 바로 아래에 표시
-const profitTooltipPlugin = {
-  id:'profitTooltip',
-  afterDraw(chart){
-    const tp=chart.tooltip;
-    if(!tp||!tp._active||!tp._active.length) return;
-    if(!window._tp||!window._tp.line2) return;
-    const {ctx}=chart;
-    const fontSize=13;
-    const text=window._tp.line2;
-    const color=window._tp.profit?'#E24B4A':'#3B82F6';
-    ctx.save();
-    ctx.font=`bold ${fontSize}px -apple-system,sans-serif`;
-    const tw=ctx.measureText(text).width;
-    const pad=8;
-    const bw=tw+pad*2;
-    const bh=fontSize+pad*2;
-    // 툴팁 박스 바로 아래 중앙
-    const cx=tp.x+tp.width/2;
-    const by=tp.y+tp.height+6;
-    const bx=cx-bw/2;
-    // 배경 박스
-    ctx.fillStyle='rgba(10,18,36,0.95)';
-    ctx.beginPath();
-    ctx.roundRect(bx,by,bw,bh,6);
-    ctx.fill();
-    // 텍스트
-    ctx.fillStyle=color;
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText(text,cx,by+bh/2);
-    ctx.restore();
-  }
-};
-Chart.register(profitTooltipPlugin);
+// ── DOM 기반 툴팁 (canvas 잘림 문제 완전 해결) ──────────────────────────
+(function(){
+  // 툴팁 엘리먼트 생성 (body에 붙여서 overflow 영향 없음)
+  const el = document.createElement('div');
+  el.id = 'chartTooltip';
+  el.style.cssText = `
+    position:fixed; pointer-events:none; z-index:9999;
+    background:rgba(10,18,36,0.95); color:#fff;
+    border-radius:10px; padding:10px 14px;
+    font-family:-apple-system,sans-serif; font-size:13px; line-height:1.7;
+    box-shadow:0 4px 20px rgba(0,0,0,0.35);
+    border:1px solid rgba(255,255,255,0.08);
+    min-width:160px; transition:opacity 0.12s;
+    opacity:0;
+  `;
+  document.body.appendChild(el);
+
+  window._showChartTooltip = function(items, profitInfo, canvasEl) {
+    if (!items || !items.length) { el.style.opacity = '0'; return; }
+
+    // 내용 구성
+    const total = items.reduce((s,c)=>s+(c.raw||0),0);
+    const dayLabel = items[0].label;
+    const colorMap = {'자사몰':'#A78BFA','네이버':'#4ADE80','쿠팡':'#FB923C'};
+
+    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px">
+      ${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span>
+    </div>`;
+
+    items.forEach(c => {
+      if (!c.raw) return;
+      const col = colorMap[c.dataset.label] || '#fff';
+      html += `<div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span>
+        <span style="color:#CBD5E1">${c.dataset.label}</span>
+        <span style="margin-left:auto;font-weight:600">₩${Math.round(c.raw).toLocaleString()}</span>
+      </div>`;
+    });
+
+    if (profitInfo && profitInfo.line2) {
+      const pc = profitInfo.profit ? '#F87171' : '#60A5FA';
+      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.12);font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
+    }
+
+    el.innerHTML = html;
+    el.style.opacity = '1';
+  };
+
+  window._hideChartTooltip = function() {
+    el.style.opacity = '0';
+  };
+
+  // 마우스 위치 추적해서 툴팁 위치 스마트하게 결정
+  document.addEventListener('mousemove', function(e) {
+    if (el.style.opacity === '0') return;
+    const TW = el.offsetWidth + 16;
+    const TH = el.offsetHeight + 16;
+    const VW = window.innerWidth;
+    const VH = window.innerHeight;
+    let x = e.clientX + 14;
+    let y = e.clientY - TH / 2;
+    // 오른쪽 벗어나면 왼쪽에
+    if (x + TW > VW) x = e.clientX - TW;
+    // 위아래 경계
+    if (y < 8) y = 8;
+    if (y + TH > VH) y = VH - TH - 8;
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+  });
+})();
+// ────────────────────────────────────────────────────────────────────────
 
 function updateDonutChart(c,n,o){
   if(donutChart){
@@ -790,30 +826,30 @@ function initCharts(){
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{mode:'index',intersect:false,
-          callbacks:{
-            title:items=>{
-              if(!items.length) return '';
-              const total=items.reduce((s,c)=>s+(c.raw||0),0);
-              // 손익 계산해서 전역 저장
-              const cafeMargin=0.457,naverMargin=0.449,coupangMargin=0.295;
-              const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
-              const dayNum=parseInt(items[0].label);
-              const now=new Date();
-              const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-              const rec=records.find(r=>r.date===dateStr);
-              window._tp={line2:'',profit:null};
-              if(rec){
-                const d=calcDay(rec);
-                const est=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
-                const gap=Math.round(est-dailyFixed);
-                if(gap>=0){ window._tp={line2:'+₩'+gap.toLocaleString()+' 이익',profit:true}; }
-                else{ const nr=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3)); window._tp={line2:'₩'+nr.toLocaleString()+' 더 필요',profit:false}; }
-              }
-              const isMobile=window.innerWidth<=768;
-              return isMobile?[items[0].label,'₩'+Math.round(total).toLocaleString()]:items[0].label+'   ₩'+Math.round(total).toLocaleString();
-            },
-            label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
+        tooltip:{
+          enabled:false,
+          mode:'index',
+          intersect:false,
+          external(context){
+            const {chart,tooltip}=context;
+            if(tooltip.opacity===0){ window._hideChartTooltip && window._hideChartTooltip(); return; }
+            const items=tooltip.dataPoints||[];
+            if(!items.length) return;
+            const cafeMargin=0.457,naverMargin=0.449,coupangMargin=0.295;
+            const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
+            const dayNum=parseInt(items[0].label);
+            const now=new Date();
+            const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+            const rec=records.find(r=>r.date===dateStr);
+            let profitInfo={line2:'',profit:null};
+            if(rec){
+              const d=calcDay(rec);
+              const est=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
+              const gap=Math.round(est-dailyFixed);
+              if(gap>=0){ profitInfo={line2:'+₩'+gap.toLocaleString()+' 이익',profit:true}; }
+              else{ const nr=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3)); profitInfo={line2:'₩'+nr.toLocaleString()+' 더 필요',profit:false}; }
+            }
+            window._showChartTooltip && window._showChartTooltip(items, profitInfo, chart.canvas);
           }
         }
       },
@@ -822,6 +858,10 @@ function initCharts(){
         y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},color:'#8898AA',callback:v=>'₩'+Math.round(v).toLocaleString()},border:{display:false},stacked:true}
       }
     }
+  });
+  // 차트 영역 벗어나면 툴팁 숨기기
+  document.getElementById('trendChart').addEventListener('mouseleave', ()=>{
+    window._hideChartTooltip && window._hideChartTooltip();
   });
   donutChart=new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
