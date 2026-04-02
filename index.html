@@ -352,16 +352,17 @@
       </div>
       <div class="card">
         <div class="card-title">광고비</div>
-        <div class="roas-grid">
+        <div class="roas-grid" style="grid-template-columns:repeat(3,1fr)">
           <div class="roas-card"><div class="roas-label">메타 광고비</div><div class="roas-val" id="adMeta">0</div><div class="roas-sub">80,000원 × 입력일수</div></div>
           <div class="roas-card"><div class="roas-label">네이버 광고비</div><div class="roas-val" id="adNaver">0</div><div class="roas-sub">10,000원 × 입력일수</div></div>
+          <div class="roas-card"><div class="roas-label">메타 대행료</div><div class="roas-val" id="adAgency">0</div><div class="roas-sub">700,000원 월 일할계산</div></div>
         </div>
       </div>
       <div class="profit-banner">
         <div>
           <div class="profit-label">예상 손익</div>
           <div class="profit-val" id="profitVal">0</div>
-          <div class="profit-sub">수익 - 광고비</div>
+          <div class="profit-sub">수익 - 광고비 - 대행료</div>
         </div>
       </div>
     </div>
@@ -396,6 +397,7 @@
 const STORAGE_KEY = 'anok_data_v1';
 const META_AD = 80000;
 const NAVER_AD = 10000;
+const AGENCY_FEE = 700000; // 메타 대행료 월 70만원
 
 const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
 const CAFE_PROFITS   = {shampoo:8766,treatment:9066,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
@@ -473,7 +475,8 @@ function render(){
   });
   const totRev=totC+totN+totO;
   const metaAd=days*META_AD, naverAdTotal=days*NAVER_AD;
-  const profit=totPrf-metaAd-naverAdTotal;
+  const agencyFee=Math.round(AGENCY_FEE/30*days);
+  const profit=totPrf-metaAd-naverAdTotal-agencyFee;
   const rate=totRev>0?totPrf/totRev:0;
 
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
@@ -485,6 +488,7 @@ function render(){
   document.getElementById('raosN').textContent=naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   document.getElementById('adMeta').textContent='₩'+fmt(metaAd);
   document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
+  document.getElementById('adAgency').textContent='₩'+fmt(agencyFee);
   document.getElementById('profitVal').textContent=(profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
 
   const totPct=totRev>0;
