@@ -119,7 +119,7 @@
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 
   /* 탭 */
-  .tabs{display:flex;gap:2px;margin-bottom:16px;background:#E2EAF0;border-radius:8px;padding:3px}
+  .tabs{display:flex;gap:2px;background:#E2EAF0;border-radius:8px;padding:3px}
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
   .tab.active{background:#fff;color:var(--anok-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
 
@@ -367,10 +367,13 @@
 
 <div class="main">
   <!-- 탭 -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-    <button class="tab" onclick="switchTab('insight')">월간 인사이트</button>
-    <button class="tab" onclick="switchTab('daily')">일별 내역</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div class="tabs" style="margin-bottom:0">
+      <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
+      <button class="tab" onclick="switchTab('insight')">월간 인사이트</button>
+      <button class="tab" onclick="switchTab('daily')">일별 내역</button>
+    </div>
+    <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
   </div>
 
   <!-- 대시보드 탭 -->
@@ -1411,53 +1414,87 @@ async function renderInsight(){
     '쿠팡: '+Object.entries(skuO).filter(([,v])=>v>0).map(([k,v])=>`${skuNames[k]||k} ${v}개`).join(', ')||'없음',
   ].join('\n');
 
-  const prompt=`당신은 뷰티 브랜드 아녹(ANOK)의 COO·CSO 역할을 하는 전략 어드바이저입니다. 아래 이번 달 실적 데이터를 분석하고 경영진 수준의 인사이트와 실행 가능한 전략을 제시하세요.
+  // SKU별 실제 마진율 (엑셀 실측 기준)
+  const SKU_MARGINS = {
+    cafe: {shampoo:44.3,treatment:45.8,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1},
+    naver:{shampoo:44.1,treatment:45.6,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1},
+    coupang:{shampoo:57.6,treatment:58.9,bodywash:60.5,bodylotion:59.6} // 풀필비/쿠폰 미차감
+  };
+  // 쿠팡 실질 비용 (월 고정: 풀필비VAT제외 3726 + 쿠폰 3370)
+  const COUPANG_FIXED_MONTHLY = 7096;
 
-【이번 달 실적 (${now.getMonth()+1}월, 총 ${daysInMonth}일 중 ${days}일 경과)】
-- 누적 매출: ₩${fmt(totRev)} / 경과일 비례 목표 ₩${fmt(Math.round(targetTotal*days/daysInMonth))} → 페이스 달성률 ${Math.round(totRev/(targetTotal*days/daysInMonth)*100)}%
-- 월 전체 목표 달성률: ${achRate}% (월초라 낮은 건 당연 — 페이스로 판단할 것)
-- 예상 월매출: ₩${fmt(projTotal)} (목표 대비 ${Math.round(projTotal/targetTotal*100)}%)
-- 자사몰: ₩${fmt(totC)} (점유 ${cShare}%, 마진 ${cMargin}%)
-- 네이버: ₩${fmt(totN)} (점유 ${nShare}%, 마진 ${nMargin}%)
-- 쿠팡: ₩${fmt(totO)} (점유 ${oShare}%, 마진 ${oMarginVal}%)
-- 순수익: ₩${fmt(netProfit)} (순수익률 ${netMargin}%)
-- 일평균 매출: ₩${fmt(avgDaily)} (목표 일평균 ₩${fmt(Math.round(targetTotal/daysInMonth))})
-- 잔여일수: ${daysLeft}일 (잔여 필요액: ₩${fmt(Math.max(0,targetTotal-totRev))})
-- 고정비: 메타 일 ₩${META_AD.toLocaleString()} + 네이버 일 ₩${NAVER_AD.toLocaleString()} + 대행료 월 ₩${AGENCY_FEE.toLocaleString()} = 월 합계 ₩${(META_AD*30+NAVER_AD*30+AGENCY_FEE).toLocaleString()}
-- 목표 기준: 고정비 + 순익 ₩1,000,000 달성을 위한 BEP 목표매출 ₩${fmt(targetTotal)} (쿠팡 실비 미반영으로 추후 조정 예정)
-⚠️ 분석 필수 지침:
-1. 누적 달성률(${achRate}%)은 절대 기준으로 쓰지 마세요. 월 초반이라 당연히 낮습니다.
-2. 핵심 지표는 "페이스 달성률 ${Math.round(totRev/(targetTotal*days/daysInMonth)*100)}%"와 "예상 월매출 ₩${fmt(projTotal)} (목표 ₩${fmt(targetTotal)} 대비 ${Math.round(projTotal/targetTotal*100)}%)"입니다.
-3. 예상 월매출이 목표를 상회하면 반드시 긍정적으로 평가하세요. 현재 예상 월매출은 목표의 ${Math.round(projTotal/targetTotal*100)}% 수준입니다.
+  // SKU별 판매수량 × 마진율로 실질 공헌마진 계산
+  let skuContrib = [];
+  mRecs.forEach(r=>{
+    for(const k in CAFE_PRICES) if((r.cafe[k]||0)>0) skuContrib.push({ch:'자사몰',sku:k,qty:r.cafe[k],margin:SKU_MARGINS.cafe[k]||45,rev:(r.cafe[k]||0)*CAFE_PRICES[k]});
+    for(const k in NAVER_PRICES) if((r.naver[k]||0)>0) skuContrib.push({ch:'네이버',sku:k,qty:r.naver[k],margin:SKU_MARGINS.naver[k]||45,rev:(r.naver[k]||0)*NAVER_PRICES[k]});
+    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{ if((r.coupang[k]||0)>0) skuContrib.push({ch:'쿠팡',sku:k,qty:r.coupang[k],margin:SKU_MARGINS.coupang[k]||57,rev:(r.coupang[k]||0)*COUP_PRICES[k]}); });
+  });
+  const skuNames2={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
+  const skuLine = skuContrib.map(s=>`${s.ch} ${skuNames2[s.sku]} ${s.qty}개 (마진${s.margin}%, 공헌마진 ₩${Math.round(s.rev*s.margin/100).toLocaleString()})`).join(' | ') || '없음';
 
-【SKU별 판매 현황】
-${skuSummary}
+  // 세트 vs 단품 분석
+  const setSkus=['hairset','bodyset','washset'];
+  let setQty=0,singleQty=0,setRev=0;
+  mRecs.forEach(r=>{
+    setSkus.forEach(k=>{setQty+=(r.cafe[k]||0)+(r.naver[k]||0); setRev+=((r.cafe[k]||0)*CAFE_PRICES[k])||0;});
+    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0));});
+  });
+  const totalQty=setQty+singleQty;
+  const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
 
-다음 형식으로 응답해주세요. HTML을 사용하되 반드시 아래 구조를 지키세요:
+  const promptLines = [
+    '당신은 뷰티 D2C 브랜드 아녹(ANOK)의 COO·CSO입니다. 아래 실측 데이터를 기반으로 경영진 수준의 전략 분석을 제시하세요.',
+    '',
+    '【브랜드 컨텍스트】',
+    '- 뷰티 D2C 브랜드 / 운영사: (주)퍼펙트드라이브',
+    '- 채널: 자사몰(cafe24), 네이버 스마트스토어, 쿠팡',
+    '- 주력 라인: 샴푸/트리트먼트(헤어), 바디워시/로션(바디) + 각 세트 상품',
+    '- 포지셔닝: 프리미엄 비건 클린뷰티 (정상가 대비 할인 구조, 단가 3~6만원대)',
+    '',
+    '【3월 전월 실적 (벤치마크)】',
+    '- 자사몰 ₩2,212,800 / 마진율 45.6%',
+    '- 네이버 ₩1,586,800 / 마진율 44.9%',
+    '- 쿠팡 ₩809,500 / 마진율 35.6% (풀필비+쿠폰 포함)',
+    '- 공구 ₩1,680,600 / 마진율 49.1%',
+    '- 3월 총매출 ₩6,289,700 / 예상손익 ₩176,118',
+    '- 광고비(실): 메타 ₩2,471,679 + 네이버 ₩188,656 = ₩2,660,335',
+    '- 메타 ROAS: 0.895 (매출 < 광고비 — 3월 광고 효율 적자)',
+    '',
+    '【SKU 실제 마진율 (엑셀 실측)】',
+    '- 자사몰: 샴푸 44.3% / 트리트먼트 45.8% / 헤어세트 44.4% / 바디워시 46.8% / 바디로션 45.7% / 바디세트 46.0% / 워시세트 45.1%',
+    '- 쿠팡: 샴푸 57.6% / 트리트먼트 58.9% / 바디워시 60.5% / 바디로션 59.6% (풀필비·쿠폰 미차감 수치)',
+    '- 쿠팡 월정 고정비: 풀필비 ₩3,726 + 판매자할인쿠폰 ₩3,370 = ₩7,096 (매출 없어도 발생)',
+    '',
+    '【이번 달 실적 (' + (now.getMonth()+1) + '월, ' + daysInMonth + '일 중 ' + days + '일 경과 / ' + Math.round(days/daysInMonth*100) + '%)】',
+    '- 채널 총매출: ₩' + fmt(totRev) + ' (자사몰 ₩' + fmt(totC) + ' / 네이버 ₩' + fmt(totN) + ' / 쿠팡 ₩' + fmt(totO) + ')',
+    '- 채널 비중: 자사몰 ' + cShare + '% / 네이버 ' + nShare + '% / 쿠팡 ' + oShare + '%',
+    '- 순수익(광고비 차감): ₩' + fmt(netProfit) + ' (' + netMargin + '%)',
+    '- 일평균 매출: ₩' + fmt(avgDaily) + ' (전월 일평균 ₩' + fmt(Math.round(6289700/31)) + ')',
+    '- 예상 월매출: ₩' + fmt(projTotal) + ' (BEP 목표 ₩' + fmt(targetTotal) + ' 대비 ' + Math.round(projTotal/targetTotal*100) + '%)',
+    '- 페이스 달성률: ' + Math.round(totRev/(targetTotal*days/daysInMonth)*100) + '% (경과일 기준)',
+    '- 잔여: ' + daysLeft + '일 / 목표까지 ₩' + fmt(Math.max(0,targetTotal-totRev)) + ' 필요',
+    '',
+    '【SKU별 공헌마진 분석】',
+    skuLine,
+    '- 세트 구성비: ' + setRatio + '% (' + setQty + '개 세트 / ' + singleQty + '개 단품)',
+    '- 세트 매출: ₩' + fmt(setRev) + ' (' + (totRev>0?Math.round(setRev/totRev*100):0) + '%)',
+    '',
+    '【고정비 구조】',
+    '- 메타 광고비: 일 ₩' + META_AD.toLocaleString() + ' (전월 실제 지출 기준 월 ₩2,471,679 — ROAS 0.895로 적자)',
+    '- 네이버 광고비: 일 ₩' + NAVER_AD.toLocaleString(),
+    '- 메타 대행료: 월 ₩' + AGENCY_FEE.toLocaleString(),
+    '- 쿠팡 고정비: 월 ₩7,096 (매출 무관)',
+    '',
+    '⚠️ 분석 필수 지침:',
+    '1. 페이스 달성률(' + Math.round(totRev/(targetTotal*days/daysInMonth)*100) + '%)과 예상 월매출로 성과 판단 — 누적 달성률(' + achRate + '%)은 월초라 당연히 낮음',
+    '2. 3월 메타 ROAS 0.895는 매출<광고비 구조 — 광고 효율 개선이 이번 달 핵심 과제',
+    '3. 쿠팡은 풀필비+쿠폰 고정비 구조라 소량 판매 시 오히려 손실 가능성 있음',
+    '4. 세트 상품(헤어세트·바디세트·워시세트)이 단품보다 마진율 비슷하지만 객단가 2배 — 세트 전환이 핵심 레버',
+    '5. 바디워시·바디로션이 마진율 최상위 (46.8%) — 바디라인 집중 마케팅 검토',
+  ];
 
-<section>
-<h4>📊 성과 진단</h4>
-<p>2~3문장. 이번 달 전체 성과의 핵심을 짚어주세요. 숫자를 근거로 명확하게.</p>
-</section>
-
-<section>
-<h4>🏆 채널 전략</h4>
-<p>채널별 마진과 점유율을 분석하여, 어느 채널에 집중하고 어느 채널을 어떻게 개선해야 하는지 구체적으로.</p>
-</section>
-
-<section>
-<h4>⚡ 즉시 실행 가능한 액션</h4>
-<ul>
-<li>구체적이고 즉시 실행 가능한 액션 3가지</li>
-</ul>
-</section>
-
-<section>
-<h4>🔮 이번 달 마감 전략</h4>
-<p>잔여 ${daysLeft}일 동안 목표 달성을 위한 구체적 전술. 채널별 집중 방향 포함.</p>
-</section>
-
-반말 금지. COO/CSO처럼 단호하고 데이터 기반으로 말하되 실용적으로.`;
+  const prompt = promptLines.join('\n') + '\n\n다음 형식으로 응답해주세요. HTML을 사용하되 반드시 아래 구조를 지키세요:\n\n<section>\n<h4>📊 성과 진단</h4>\n<p>전월 대비, 페이스 달성률, 채널별 추이를 수치 근거로 3~4문장 명확하게.</p>\n</section>\n\n<section>\n<h4>💡 수익성 개선 포인트</h4>\n<p>SKU 마진율, 세트 전환율, 채널별 공헌마진 데이터를 근거로 즉시 개선 가능한 수익 레버 분석.</p>\n</section>\n\n<section>\n<h4>📣 광고 효율 진단</h4>\n<p>3월 메타 ROAS 0.895 적자 구조를 짚고, 이번 달 광고비 집행 방향 구체적으로 제시.</p>\n</section>\n\n<section>\n<h4>⚡ 즉시 실행 액션 (우선순위 순)</h4>\n<ul>\n<li>데이터 기반 실행 액션 4가지 — 각각 담당 채널·SKU·예상 효과 명시</li>\n</ul>\n</section>\n\n<section>\n<h4>🎯 잔여 ' + daysLeft + '일 마감 전략</h4>\n<p>채널별·SKU별 집중 전술. 목표 달성 가능성 판단과 현실적 대안 포함.</p>\n</section>\n\nCOO/CSO 톤으로 — 단호하고 수치 기반. 뷰티 D2C 업계 특성 반영. 반말 금지.`;
 
   try{
     const resp=await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev',{
@@ -1590,9 +1627,34 @@ async function sendChat(){
 
   try {
     const ctx = buildDataContext();
-    const systemPrompt = `당신은 뷰티 브랜드 아녹(ANOK)의 전담 AI 어드바이저입니다. 아래 실시간 데이터를 바탕으로 질문에 답하세요. 답변은 간결하고 실용적으로, 한국어로, 200자 이내로 핵심만 말하세요. 긴 목록보다는 핵심 1-2가지를 명확하게.
-
-${ctx}`;
+    const systemPrompt = [
+      '당신은 뷰티 D2C 브랜드 아녹(ANOK)의 전담 AI 전략 어드바이저입니다.',
+      '운영사: (주)퍼펙트드라이브 / 채널: 자사몰(cafe24), 네이버 스마트스토어, 쿠팡',
+      '',
+      '【브랜드 & 상품 구조】',
+      '헤어라인: 샴푸(₩19,800), 트리트먼트(₩19,800), 헤어세트(₩38,700)',
+      '바디라인: 바디워시(₩18,700), 바디로션(₩18,700), 바디세트(₩36,800), 워시세트(₩37,800)',
+      '쿠팡: 샴푸(₩23,900), 트리트먼트(₩23,900), 바디워시(₩22,900), 바디로션(₩22,900)',
+      '',
+      '【실제 SKU 마진율】',
+      '자사몰: 샴푸44.3% / 트리트먼트45.8% / 헤어세트44.4% / 바디워시46.8% / 바디로션45.7% / 바디세트46.0% / 워시세트45.1%',
+      '쿠팡(풀필비·쿠폰 전): 샴푸57.6% / 트리트먼트58.9% / 바디워시60.5% / 바디로션59.6%',
+      '쿠팡 월고정비: ₩7,096 (매출 없어도 발생)',
+      '',
+      '【3월 전월 실적】',
+      '자사몰₩2,212,800(45.6%) / 네이버₩1,586,800(44.9%) / 쿠팡₩809,500(35.6%) / 공구₩1,680,600(49.1%)',
+      '총매출₩6,289,700 / 손익₩176,118 / 메타ROAS 0.895(광고비>매출 — 적자 구조)',
+      '메타광고비 실지출: 월₩2,471,679 / 네이버₩188,656',
+      '',
+      '【고정비 구조】',
+      '메타광고: 일₩80,000 / 네이버광고: 일₩10,000 / 메타대행료: 월₩700,000',
+      'BEP+순익100만원 목표매출: ₩10,000,000 (전월마진율 44% 기준)',
+      '',
+      '【현재 실시간 데이터】',
+      ctx,
+      '',
+      '답변 원칙: 한국어, 수치 근거 명확히, 뷰티 D2C 업계 실무 관점, 300자 이내 핵심만. 반말 금지.'
+    ].join('\n');
 
     const messages = _chatHistory.length > 1
       ? _chatHistory
