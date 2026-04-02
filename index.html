@@ -1509,7 +1509,19 @@ async function renderInsight(){
     '5. 바디워시·바디로션이 마진율 최상위 (46.8%) — 바디라인 집중 마케팅 검토',
   ];
 
-  const prompt = promptLines.join('\n') + '\n\n다음 형식으로 응답해주세요. HTML을 사용하되 반드시 아래 구조를 지키세요:\n\n<section>\n<h4>📊 성과 진단</h4>\n<p>전월 대비, 페이스 달성률, 채널별 추이를 수치 근거로 3~4문장 명확하게.</p>\n</section>\n\n<section>\n<h4>💡 수익성 개선 포인트</h4>\n<p>SKU 마진율, 세트 전환율, 채널별 공헌마진 데이터를 근거로 즉시 개선 가능한 수익 레버 분석.</p>\n</section>\n\n<section>\n<h4>📣 광고 효율 진단</h4>\n<p>3월 메타 ROAS 0.895 적자 구조를 짚고, 이번 달 광고비 집행 방향 구체적으로 제시.</p>\n</section>\n\n<section>\n<h4>⚡ 즉시 실행 액션 (우선순위 순)</h4>\n<ul>\n<li>데이터 기반 실행 액션 4가지 — 각각 담당 채널·SKU·예상 효과 명시</li>\n</ul>\n</section>\n\n<section>\n<h4>🎯 잔여 ' + daysLeft + '일 마감 전략</h4>\n<p>채널별·SKU별 집중 전술. 목표 달성 가능성 판단과 현실적 대안 포함.</p>\n</section>\n\nCOO/CSO 톤으로 — 단호하고 수치 기반. 뷰티 D2C 업계 특성 반영. 반말 금지.`;
+  const promptInstructions = [
+    '',
+    '다음 형식으로 응답하세요. HTML 구조를 반드시 지켜주세요:',
+    '',
+    '<section><h4>📊 성과 진단</h4><p>전월 대비, 페이스 달성률, 채널별 추이를 수치 근거로 3~4문장 명확하게.</p></section>',
+    '<section><h4>💡 수익성 개선 포인트</h4><p>SKU 마진율, 세트 전환율, 채널별 공헌마진 데이터를 근거로 즉시 개선 가능한 수익 레버 분석.</p></section>',
+    '<section><h4>📣 광고 효율 진단</h4><p>전월 메타 ROAS 적자 구조를 짚고, 이번 달 광고비 집행 방향 구체적으로 제시.</p></section>',
+    '<section><h4>⚡ 즉시 실행 액션 (우선순위 순)</h4><ul><li>데이터 기반 실행 액션 4가지 — 각각 담당 채널·SKU·예상 효과 명시</li></ul></section>',
+    '<section><h4>🎯 잔여 ' + daysLeft + '일 마감 전략</h4><p>채널별·SKU별 집중 전술. 목표 달성 가능성 판단과 현실적 대안 포함.</p></section>',
+    '',
+    'COO/CSO 톤으로 — 단호하고 수치 기반. 뷰티 D2C 업계 특성 반영. 반말 금지.',
+  ];
+  const prompt = promptLines.concat(promptInstructions).join('\n');
 
   try{
     const resp=await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev',{
