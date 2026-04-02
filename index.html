@@ -585,6 +585,10 @@ function updateTrendChart(mRecs){
   const cData=Array(daysInMonth).fill(null);
   const nData=Array(daysInMonth).fill(null);
   const oData=Array(daysInMonth).fill(null);
+  // 날짜별 손익분기 색상
+  const tickColors=Array(daysInMonth).fill('#8898AA');
+  const cafeMargin=0.457, naverMargin=0.449, coupangMargin=0.295;
+  const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
   mRecs.forEach(r=>{
     const day=parseInt(r.date.slice(8,10))-1;
     if(day>=0&&day<daysInMonth){
@@ -592,12 +596,15 @@ function updateTrendChart(mRecs){
       if(d.cRev>0) cData[day]=d.cRev;
       if(d.nRev>0) nData[day]=d.nRev;
       if(d.oRev>0) oData[day]=d.oRev;
+      const estProfit=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
+      tickColors[day]=estProfit>=dailyFixed?'#E24B4A':'#2563EB';
     }
   });
   trendChart.data.labels=labels;
   trendChart.data.datasets[0].data=cData;
   trendChart.data.datasets[1].data=nData;
   trendChart.data.datasets[2].data=oData;
+  trendChart.options.scales.x.ticks.color=tickColors;
   trendChart.update();
 }
 
@@ -714,7 +721,7 @@ function renderDayTable(mRecs){
     const isProfit = estProfit >= dailyFixed;
     html+=`<tr>
       <td>${r.date}</td>
-      <td style="font-weight:700;color:${isProfit ? '#16A34A' : '#2563EB'}">₩${fmt(d.total)}</td>
+      <td style="font-weight:700;color:${isProfit ? '#E24B4A' : '#2563EB'}">₩${fmt(d.total)}</td>
       <td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td>
       <td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td>
       <td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td>
