@@ -608,6 +608,29 @@ function updateTrendChart(mRecs){
   trendChart.update();
 }
 
+// 툴팁 손익 컬러 텍스트 커스텀 플러그인 (캔버스에 직접 그리기)
+const profitTooltipPlugin = {
+  id:'profitTooltip',
+  afterDraw(chart){
+    const tp=chart.tooltip;
+    if(!tp||!tp._active||!tp._active.length) return;
+    if(!window._tp||!window._tp.line2) return;
+    const {ctx}=chart;
+    const x=tp.caretX, y=tp.y;
+    // title 줄 높이 감안해서 아래에 색상 텍스트 그리기
+    const titleH = tp.options.titleFont?.size||13;
+    const pad = tp.options.padding||8;
+    const textY = y + pad + titleH + 6;
+    ctx.save();
+    ctx.font=`bold ${titleH}px sans-serif`;
+    ctx.fillStyle=window._tp.profit?'#E24B4A':'#60A5FA';
+    ctx.textAlign='left';
+    ctx.fillText(window._tp.line2, x - tp.width/2 + pad, textY);
+    ctx.restore();
+  }
+};
+Chart.register(profitTooltipPlugin);
+
 function updateDonutChart(c,n,o){
   if(donutChart){
     donutChart.data.datasets[0].data=[c||1,n||0,o||0];
@@ -754,48 +777,32 @@ function initCharts(){
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{mode:'index',intersect:false,callbacks:{
-          title:items=>{
-            if(!items.length) return '';
-            const total = items.reduce((s,c)=>s+(c.raw||0),0);
-            const cafeMargin=0.457, naverMargin=0.449, coupangMargin=0.295;
-            const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
-            const label=items[0].label;
-            const dayNum=parseInt(label);
-            const now=new Date();
-            const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-            const rec=records.find(r=>r.date===dateStr);
-            let profitLine='';
-            window._tooltipIsProfit=null;
-            if(rec){
-              const d=calcDay(rec);
-              const estProfit=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
-              const gap=Math.round(estProfit-dailyFixed);
-              if(gap>=0){
-                profitLine='+₩'+gap.toLocaleString()+' 이익';
-                window._tooltipIsProfit=true;
-              } else {
-                const needRevenue=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3));
-                profitLine='₩'+needRevenue.toLocaleString()+' 더 필요';
-                window._tooltipIsProfit=false;
+        tooltip:{mode:'index',intersect:false,
+          callbacks:{
+            title:items=>{
+              if(!items.length) return '';
+              const total=items.reduce((s,c)=>s+(c.raw||0),0);
+              // 손익 계산해서 전역 저장
+              const cafeMargin=0.457,naverMargin=0.449,coupangMargin=0.295;
+              const dailyFixed=META_AD+NAVER_AD+Math.round(AGENCY_FEE/30);
+              const dayNum=parseInt(items[0].label);
+              const now=new Date();
+              const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+              const rec=records.find(r=>r.date===dateStr);
+              window._tp={line2:'',profit:null};
+              if(rec){
+                const d=calcDay(rec);
+                const est=d.cRev*cafeMargin+d.nRev*naverMargin+d.oRev*coupangMargin;
+                const gap=Math.round(est-dailyFixed);
+                if(gap>=0){ window._tp={line2:'+₩'+gap.toLocaleString()+' 이익',profit:true}; }
+                else{ const nr=Math.round(Math.abs(gap)/((cafeMargin+naverMargin+coupangMargin)/3)); window._tp={line2:'₩'+nr.toLocaleString()+' 더 필요',profit:false}; }
               }
-            }
-            const isMobile = window.innerWidth <= 768;
-            const titleLine = isMobile
-              ? [items[0].label, '₩'+Math.round(total).toLocaleString()]
-              : items[0].label + '   ₩'+Math.round(total).toLocaleString();
-            if(profitLine) return isMobile ? [...(Array.isArray(titleLine)?titleLine:[titleLine]), profitLine] : [titleLine, profitLine];
-            return titleLine;
-          },
-          label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
-        },
-        titleColor: ctx => {
-          const lines = ctx.tooltip?.title || [];
-          const idx = ctx.index ?? 0;
-          if(idx === 0) return '#fff';
-          if(idx === 1) return window._tooltipIsProfit === true ? '#E24B4A' : (window._tooltipIsProfit === false ? '#60A5FA' : '#fff');
-          return '#fff';
-        }}
+              const isMobile=window.innerWidth<=768;
+              return isMobile?[items[0].label,'₩'+Math.round(total).toLocaleString()]:items[0].label+'   ₩'+Math.round(total).toLocaleString();
+            },
+            label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
+          }
+        }
       },
       scales:{
         x:{grid:{display:false},ticks:{font:{size:10},color:'#8898AA'},stacked:true},
