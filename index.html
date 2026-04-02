@@ -741,6 +741,11 @@ function initCharts(){
       plugins:{
         legend:{display:false},
         tooltip:{mode:'index',intersect:false,callbacks:{
+          title:items=>{
+            if(!items.length) return '';
+            const total = items.reduce((s,c)=>s+(c.raw||0),0);
+            return [items[0].label, '₩'+Math.round(total).toLocaleString()];
+          },
           label:c=>c.raw?'  '+c.dataset.label+': ₩'+Math.round(c.raw).toLocaleString():null
         }}
       },
