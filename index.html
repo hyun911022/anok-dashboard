@@ -616,16 +616,18 @@ const profitTooltipPlugin = {
     if(!tp||!tp._active||!tp._active.length) return;
     if(!window._tp||!window._tp.line2) return;
     const {ctx}=chart;
-    const x=tp.caretX, y=tp.y;
-    // title 줄 높이 감안해서 아래에 색상 텍스트 그리기
-    const titleH = tp.options.titleFont?.size||13;
     const pad = tp.options.padding||8;
-    const textY = y + pad + titleH + 6;
+    const titleFont = tp.options.titleFont||{};
+    const titleSize = titleFont.size||13;
+    const lineH = titleSize * 1.2;
+    // 툴팁 박스 기준 텍스트 위치
+    const bx = tp.x + pad;
+    const by = tp.y + pad + lineH + 4; // title 한줄 아래
     ctx.save();
-    ctx.font=`bold ${titleH}px sans-serif`;
+    ctx.font=`bold ${titleSize}px ${titleFont.family||'sans-serif'}`;
     ctx.fillStyle=window._tp.profit?'#E24B4A':'#60A5FA';
     ctx.textAlign='left';
-    ctx.fillText(window._tp.line2, x - tp.width/2 + pad, textY);
+    ctx.fillText(window._tp.line2, bx, by);
     ctx.restore();
   }
 };
