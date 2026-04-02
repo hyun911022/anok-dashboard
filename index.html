@@ -414,45 +414,116 @@
 
   <!-- 일별 내역 탭 -->
   <div id="tabDaily" style="display:none">
-    <div class="card">
-      <div class="card-title">일별 매출 내역</div>
-      <div class="day-table-wrap">
-        <table class="day-tbl">
-          <thead>
-            <tr>
-              <th>날짜</th>
-              <th>합산매출</th>
-              <th style="color:#7C3AED">자사몰</th>
-              <th style="color:#16A34A">네이버</th>
-              <th style="color:#EA580C">쿠팡</th>
-              <th>총수익</th>
-              <th style="color:#7C3AED">자사몰<br>수익</th>
-              <th style="color:#16A34A">네이버<br>수익</th>
-              <th style="color:#EA580C">쿠팡<br>수익</th>
-              <th>수익률</th>
-              <th>삭제</th>
-            </tr>
-          </thead>
-          <tbody id="dayBody"></tbody>
-        </table>
+
+    <!-- ── 일별 매출 내역 ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 매출 내역</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+
+      <!-- 자사몰 매출 카드 -->
+      <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
+          <div style="font-size:13px;font-weight:700;color:#7C3AED">자사몰</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th><th>삭제</th>
+            </tr></thead>
+            <tbody id="dayCafeBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 네이버 매출 카드 -->
+      <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
+          <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th>
+            </tr></thead>
+            <tbody id="dayNaverBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 쿠팡 매출 카드 -->
+      <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
+          <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th>
+            </tr></thead>
+            <tbody id="dayCoupangBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- 일별 채널별 판매수량 -->
-    <div class="card" style="margin-top:14px">
-      <div class="card-title">일별 채널별 판매수량</div>
-      <div class="day-table-wrap">
-        <table class="day-tbl">
-          <thead>
-            <tr>
-              <th>날짜</th>
-              <th style="color:#7C3AED">자사몰<br>샴푸</th><th style="color:#7C3AED">트리트<br>먼트</th><th style="color:#7C3AED">헤어<br>세트</th><th style="color:#7C3AED">바디<br>워시</th><th style="color:#7C3AED">바디<br>로션</th><th style="color:#7C3AED">바디<br>세트</th><th style="color:#7C3AED">워시<br>세트</th>
-              <th style="color:#16A34A">네이버<br>샴푸</th><th style="color:#16A34A">트리트<br>먼트</th><th style="color:#16A34A">헤어<br>세트</th><th style="color:#16A34A">바디<br>워시</th><th style="color:#16A34A">바디<br>로션</th><th style="color:#16A34A">바디<br>세트</th><th style="color:#16A34A">워시<br>세트</th>
-              <th style="color:#EA580C">쿠팡<br>샴푸</th><th style="color:#EA580C">트리트<br>먼트</th><th style="color:#EA580C">바디<br>워시</th><th style="color:#EA580C">바디<br>로션</th>
-            </tr>
-          </thead>
-          <tbody id="dayQtyBody"></tbody>
-        </table>
+    <!-- ── 일별 채널별 판매수량 ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 채널별 판매수량</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+
+      <!-- 자사몰 수량 카드 -->
+      <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
+          <div style="font-size:13px;font-weight:700;color:#7C3AED">자사몰</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th>
+            </tr></thead>
+            <tbody id="dayQtyCafeBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 네이버 수량 카드 -->
+      <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
+          <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th>
+            </tr></thead>
+            <tbody id="dayQtyNaverBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 쿠팡 수량 카드 -->
+      <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
+          <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr>
+              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>바디<br>워시</th><th>바디<br>로션</th>
+            </tr></thead>
+            <tbody id="dayQtyCoupangBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -851,75 +922,83 @@ function renderSkuTable(mRecs){
 }
 
 function renderDayTable(mRecs){
-  // 오름차순 (1일→말일)
   const sorted=[...mRecs].sort((a,b)=>a.date.localeCompare(b.date));
-  const _daysInMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
-  const _dailyBEP=Math.round(TARGET_TOTAL/_daysInMonth);
   const _dow=['일','월','화','수','목','금','토'];
-
-  // ── 매출/수익 테이블 ──
-  let html=''; let tC=0,tN=0,tO=0,tT=0,tP=0,tCp=0,tNp=0,tOp=0;
-  sorted.forEach(r=>{
-    const d=calcDay(r);
-    tC+=d.cRev;tN+=d.nRev;tO+=d.oRev;tT+=d.total;tP+=d.profit;tCp+=d.cPrf;tNp+=d.nPrf;tOp+=d.oPrf;
-    const rate=d.total>0?((d.profit/d.total)*100).toFixed(1)+'%':'-';
-    const isProfit=d.total>=_dailyBEP;
-    const _dt=new Date(r.date+'T00:00:00+09:00');
-    const _di=_dt.getDay();
-    const _dowColor=_di===0?'#E24B4A':_di===6?'#2563EB':'inherit';
-    html+=`<tr>
-      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dow[_di]})</span></td>
-      <td style="font-weight:700;color:${isProfit?'#E24B4A':'#2563EB'}">₩${fmt(d.total)}</td>
-      <td style="color:#7C3AED">₩${fmt(d.cRev)}</td>
-      <td style="color:#16A34A">₩${fmt(d.nRev)}</td>
-      <td style="color:#EA580C">₩${fmt(d.oRev)}</td>
-      <td style="font-weight:600">₩${fmt(d.profit)}</td>
-      <td style="color:#7C3AED">₩${fmt(d.cPrf)}</td>
-      <td style="color:#16A34A">₩${fmt(d.nPrf)}</td>
-      <td style="color:#EA580C">₩${fmt(d.oPrf)}</td>
-      <td>${rate}</td>
-      <td><button onclick="deleteDay('${r.date}')" style="background:none;border:none;color:#E24B4A;cursor:pointer;font-size:12px">삭제</button></td>
-    </tr>`;
-  });
-  if(sorted.length>0){
-    const rate=tT>0?((tP/tT)*100).toFixed(1)+'%':'-';
-    html+=`<tr class="total-row"><td>합계</td><td style="font-weight:700">₩${fmt(tT)}</td><td style="color:#7C3AED">₩${fmt(tC)}</td><td style="color:#16A34A">₩${fmt(tN)}</td><td style="color:#EA580C">₩${fmt(tO)}</td><td style="font-weight:700">₩${fmt(tP)}</td><td style="color:#7C3AED">₩${fmt(tCp)}</td><td style="color:#16A34A">₩${fmt(tNp)}</td><td style="color:#EA580C">₩${fmt(tOp)}</td><td>${rate}</td><td></td></tr>`;
-  }
-  document.getElementById('dayBody').innerHTML=html||'<tr><td colspan="11" class="empty">입력된 데이터가 없습니다</td></tr>';
-
-  // ── 수량 테이블 ──
   const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
-  const nSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
   const oSkus=['shampoo','treatment','bodywash','bodylotion'];
-  let qHtml='';
-  let tcS={},tnS={},toS={};
-  cSkus.forEach(k=>tcS[k]=0); nSkus.forEach(k=>tnS[k]=0); oSkus.forEach(k=>toS[k]=0);
-  sorted.forEach(r=>{
-    const _dt=new Date(r.date+'T00:00:00+09:00');
+
+  // 날짜 셀 공통 함수
+  const dateCell=(date)=>{
+    const _dt=new Date(date+'T00:00:00+09:00');
     const _di=_dt.getDay();
-    const _dowColor=_di===0?'#E24B4A':_di===6?'#2563EB':'inherit';
-    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
-    cSkus.forEach(k=>tcS[k]+=(c[k]||0));
-    nSkus.forEach(k=>tnS[k]+=(n[k]||0));
-    oSkus.forEach(k=>toS[k]+=(o[k]||0));
-    const cell=(v,col)=>v?`<td style="color:${col};font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
-    qHtml+=`<tr>
-      <td>${r.date} <span style="color:${_dowColor};font-weight:600">(${_dow[_di]})</span></td>
-      ${cSkus.map(k=>cell(c[k]||0,'#7C3AED')).join('')}
-      ${nSkus.map(k=>cell(n[k]||0,'#16A34A')).join('')}
-      ${oSkus.map(k=>cell(o[k]||0,'#EA580C')).join('')}
-    </tr>`;
+    const _dc=_di===0?'#E24B4A':_di===6?'#2563EB':'inherit';
+    const day=date.slice(8);
+    return `<td>${day}일 <span style="color:${_dc};font-weight:600">(${_dow[_di]})</span></td>`;
+  };
+
+  // ── 매출 카드 - 자사몰 ──
+  let cHtml=''; let tCr=0,tCp=0;
+  sorted.forEach(r=>{
+    const d=calcDay(r); tCr+=d.cRev; tCp+=d.cPrf;
+    const rate=d.cRev>0?((d.cPrf/d.cRev)*100).toFixed(1)+'%':'-';
+    cHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td><td>${rate}</td>
+      <td><button onclick="deleteDay('${r.date}')" style="background:none;border:none;color:#E24B4A;cursor:pointer;font-size:11px">×</button></td></tr>`;
   });
-  if(sorted.length>0){
-    const cell=(v,col)=>v?`<td style="color:${col};font-weight:700">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
-    qHtml+=`<tr class="total-row"><td>합계</td>
-      ${cSkus.map(k=>cell(tcS[k],'#7C3AED')).join('')}
-      ${nSkus.map(k=>cell(tnS[k],'#16A34A')).join('')}
-      ${oSkus.map(k=>cell(toS[k],'#EA580C')).join('')}
-    </tr>`;
-  }
-  const qBody=document.getElementById('dayQtyBody');
-  if(qBody) qBody.innerHTML=qHtml||'<tr><td colspan="19" class="empty">입력된 데이터가 없습니다</td></tr>';
+  if(sorted.length>0) cHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tCr)}</td><td>₩${fmt(tCp)}</td><td>${tCr>0?((tCp/tCr)*100).toFixed(1)+'%':'-'}</td><td></td></tr>`;
+  document.getElementById('dayCafeBody').innerHTML=cHtml||'<tr><td colspan="5" class="empty">-</td></tr>';
+
+  // ── 매출 카드 - 네이버 ──
+  let nHtml=''; let tNr=0,tNp=0;
+  sorted.forEach(r=>{
+    const d=calcDay(r); tNr+=d.nRev; tNp+=d.nPrf;
+    const rate=d.nRev>0?((d.nPrf/d.nRev)*100).toFixed(1)+'%':'-';
+    nHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td><td>${rate}</td></tr>`;
+  });
+  if(sorted.length>0) nHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tNr)}</td><td>₩${fmt(tNp)}</td><td>${tNr>0?((tNp/tNr)*100).toFixed(1)+'%':'-'}</td></tr>`;
+  document.getElementById('dayNaverBody').innerHTML=nHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+
+  // ── 매출 카드 - 쿠팡 ──
+  let oHtml=''; let tOr=0,tOp=0;
+  sorted.forEach(r=>{
+    const d=calcDay(r); tOr+=d.oRev; tOp+=d.oPrf;
+    const rate=d.oRev>0?((d.oPrf/d.oRev)*100).toFixed(1)+'%':'-';
+    oHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td><td>${rate}</td></tr>`;
+  });
+  if(sorted.length>0) oHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tOr)}</td><td>₩${fmt(tOp)}</td><td>${tOr>0?((tOp/tOr)*100).toFixed(1)+'%':'-'}</td></tr>`;
+  document.getElementById('dayCoupangBody').innerHTML=oHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+
+  // ── 수량 카드 - 자사몰 ──
+  let qcHtml=''; let tcS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
+  sorted.forEach(r=>{
+    const c=r.cafe||{};
+    cSkus.forEach(k=>tcS[k]+=(c[k]||0));
+    const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
+    qcHtml+=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(c[k]||0)).join('')}</tr>`;
+  });
+  if(sorted.length>0) qcHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tcS[k]?`<td style="font-weight:700">${tcS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
+  document.getElementById('dayQtyCafeBody').innerHTML=qcHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
+
+  // ── 수량 카드 - 네이버 ──
+  let qnHtml=''; let tnS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
+  sorted.forEach(r=>{
+    const n=r.naver||{};
+    cSkus.forEach(k=>tnS[k]+=(n[k]||0));
+    const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
+    qnHtml+=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(n[k]||0)).join('')}</tr>`;
+  });
+  if(sorted.length>0) qnHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tnS[k]?`<td style="font-weight:700">${tnS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
+  document.getElementById('dayQtyNaverBody').innerHTML=qnHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
+
+  // ── 수량 카드 - 쿠팡 ──
+  let qoHtml=''; let toS={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  sorted.forEach(r=>{
+    const o=r.coupang||{};
+    oSkus.forEach(k=>toS[k]+=(o[k]||0));
+    const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
+    qoHtml+=`<tr>${dateCell(r.date)}${oSkus.map(k=>cell(o[k]||0)).join('')}</tr>`;
+  });
+  if(sorted.length>0) qoHtml+=`<tr class="total-row"><td>합계</td>${oSkus.map(k=>toS[k]?`<td style="font-weight:700">${toS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
+  document.getElementById('dayQtyCoupangBody').innerHTML=qoHtml||'<tr><td colspan="5" class="empty">-</td></tr>';
 }
 
 // ── 전월 마진율 기반 BEP 목표 자동 계산 ──────────────────────────────────
