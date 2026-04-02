@@ -135,10 +135,10 @@
   .kpi.total-card .kpi-label{color:#0369A1}
   .kpi.total-card .kpi-value{color:#0C4A6E;font-size:24px}
   .kpi.total-card .kpi-sub{color:#0284C7}
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
+  .toast{position:fixed;bottom:20px;left:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
 
   /* ── AI 어시스턴트 채팅 버튼 ── */
-  #anokChatBtn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform 0.2s,box-shadow 0.2s}
+  #anokChatBtn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform 0.2s,box-shadow 0.2s}
   #anokChatBtn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.65)}
   #anokChatPanel{position:fixed;bottom:88px;right:24px;width:360px;max-height:520px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:999;display:none;flex-direction:column;overflow:hidden;border:1px solid #E2EAF0}
   #anokChatPanel.open{display:flex}
@@ -1509,8 +1509,7 @@ function buildDataContext(){
   const dailyStr = mRecs.map(r=>{
     const d=calcDay(r);
     return `${r.date}: 자사몰 ₩${Math.round(d.cRev).toLocaleString()} / 네이버 ₩${Math.round(d.nRev).toLocaleString()} / 쿠팡 ₩${Math.round(d.oRev).toLocaleString()} / 합계 ₩${Math.round(d.total).toLocaleString()}`;
-  }).join('
-');
+  }).join(' | ');
 
   // SKU별 수량
   const skuNames={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
@@ -1520,33 +1519,35 @@ function buildDataContext(){
     for(const k in NAVER_PRICES) skuN[k]=(skuN[k]||0)+(r.naver?.[k]||0);
     ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>skuO[k]=(skuO[k]||0)+((r.coupang||{})[k]||0));
   });
-  const skuStr = Object.entries(skuNames).map(([k,n])=>`${n}: 자사몰 ${skuC[k]||0}개 / 네이버 ${skuN[k]||0}개 / 쿠팡 ${skuO[k]||0}개`).join('
-');
+  const skuStr = Object.entries(skuNames).map(([k,n])=>n+': 자사몰 '+(skuC[k]||0)+'개 / 네이버 '+(skuN[k]||0)+'개 / 쿠팡 '+(skuO[k]||0)+'개').join(' | ');
 
-  return `【아녹(ANOK) ${now.getMonth()+1}월 실시간 현황】
-브랜드: 뷰티 브랜드 아녹 (자사몰/네이버 스마트스토어/쿠팡)
-
-■ 매출 현황 (${days}일 / 총 ${daysInMonth}일 경과)
-- 채널 총매출: ₩${totRev.toLocaleString()} (자사몰 ₩${totC.toLocaleString()} / 네이버 ₩${totN.toLocaleString()} / 쿠팡 ₩${totO.toLocaleString()})
-- 총수익(마진): ₩${totPrf.toLocaleString()} (자사몰 ₩${totCprf.toLocaleString()} / 네이버 ₩${totNprf.toLocaleString()} / 쿠팡 ₩${totOprf.toLocaleString()})
-- 순수익(광고비 차감): ₩${netProfit.toLocaleString()}
-- 일평균 매출: ₩${avgDaily.toLocaleString()}
-- 예상 월매출: ₩${projTotal.toLocaleString()} (목표 ₩${TARGET_TOTAL.toLocaleString()} 대비 ${Math.round(projTotal/TARGET_TOTAL*100)}%)
-- 페이스 달성률: ${paceRate}% (현재 경과일 기준)
-
-■ 고정비 구조
-- 메타 광고비: 일 ₩${META_AD.toLocaleString()} × ${days}일 = ₩${metaAd.toLocaleString()}
-- 네이버 광고비: 일 ₩${NAVER_AD.toLocaleString()} × ${days}일 = ₩${naverAd.toLocaleString()}
-- 메타 대행료: 월 ₩${AGENCY_FEE.toLocaleString()} 일할 = ₩${agencyFee.toLocaleString()}
-
-■ 월 목표
-- BEP+순익 100만원 목표 매출: ₩${TARGET_TOTAL.toLocaleString()} (전월 마진율 ${Math.round(calcPrevMonthMargin()*100)}% 기준)
-
-■ 일별 매출 상세
-${dailyStr}
-
-■ SKU별 판매수량
-${skuStr}`;
+  const lines = [
+    '【아녹(ANOK) ' + (now.getMonth()+1) + '월 실시간 현황】',
+    '브랜드: 뷰티 브랜드 아녹 (자사몰/네이버 스마트스토어/쿠팡)',
+    '',
+    '■ 매출 현황 (' + days + '일 / 총 ' + daysInMonth + '일 경과)',
+    '- 채널 총매출: ₩' + totRev.toLocaleString() + ' (자사몰 ₩' + totC.toLocaleString() + ' / 네이버 ₩' + totN.toLocaleString() + ' / 쿠팡 ₩' + totO.toLocaleString() + ')',
+    '- 총수익(마진): ₩' + totPrf.toLocaleString() + ' (자사몰 ₩' + totCprf.toLocaleString() + ' / 네이버 ₩' + totNprf.toLocaleString() + ' / 쿠팡 ₩' + totOprf.toLocaleString() + ')',
+    '- 순수익(광고비 차감): ₩' + netProfit.toLocaleString(),
+    '- 일평균 매출: ₩' + avgDaily.toLocaleString(),
+    '- 예상 월매출: ₩' + projTotal.toLocaleString() + ' (목표 ₩' + TARGET_TOTAL.toLocaleString() + ' 대비 ' + Math.round(projTotal/TARGET_TOTAL*100) + '%)',
+    '- 페이스 달성률: ' + paceRate + '% (현재 경과일 기준)',
+    '',
+    '■ 고정비 구조',
+    '- 메타 광고비: 일 ₩' + META_AD.toLocaleString() + ' × ' + days + '일 = ₩' + metaAd.toLocaleString(),
+    '- 네이버 광고비: 일 ₩' + NAVER_AD.toLocaleString() + ' × ' + days + '일 = ₩' + naverAd.toLocaleString(),
+    '- 메타 대행료: 월 ₩' + AGENCY_FEE.toLocaleString() + ' 일할 = ₩' + agencyFee.toLocaleString(),
+    '',
+    '■ 월 목표',
+    '- BEP+순익 100만원 목표 매출: ₩' + TARGET_TOTAL.toLocaleString() + ' (전월 마진율 ' + Math.round(calcPrevMonthMargin()*100) + '% 기준)',
+    '',
+    '■ 일별 매출 상세',
+    dailyStr,
+    '',
+    '■ SKU별 판매수량',
+    skuStr
+  ];
+  return lines.join('\n');
 }
 
 async function sendChat(){
