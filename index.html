@@ -2002,9 +2002,12 @@ function renderStock(){
       const setTot=soldCnt[it.key].cafe+soldCnt[it.key].naver;
       if(setTot===0) return;
       const cP=soldCnt[it.key].cafe/setTot, nP=soldCnt[it.key].naver/setTot;
-      paths.push({label:it.name, ratio:totalConsumed>0?(setTot*it.parts[k])/totalConsumed:0,
-        pricePerSku: (CAFE_PRICES[it.key]*cP+NAVER_PRICES[it.key]*nP)*it.parts[k],
-        profitPerSku:(CAFE_PROFITS[it.key]*cP+NAVER_PROFITS[it.key]*nP)*it.parts[k]});
+      // 세트 구성 SKU 총 개수로 나눠서 이 SKU에 귀속되는 매출/수익 계산
+      const totalPartsQty = Object.values(it.parts).reduce((s,v)=>s+v, 0);
+      const myPartQty = it.parts[k]; // 이 SKU가 세트 1개에 들어가는 수량
+      paths.push({label:it.name, ratio:totalConsumed>0?(setTot*myPartQty)/totalConsumed:0,
+        pricePerSku: (CAFE_PRICES[it.key]*cP+NAVER_PRICES[it.key]*nP) * (myPartQty/totalPartsQty),
+        profitPerSku:(CAFE_PROFITS[it.key]*cP+NAVER_PROFITS[it.key]*nP) * (myPartQty/totalPartsQty)});
     });
 
     const totalRatio=paths.reduce((s,p)=>s+p.ratio,0);
