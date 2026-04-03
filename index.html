@@ -292,7 +292,6 @@
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div class="tabs" style="margin-bottom:0">
       <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-      <button class="tab" onclick="switchTab('insight')">월간 인사이트</button>
       <button class="tab" onclick="switchTab('daily')">일별 내역</button>
     </div>
     <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
@@ -300,6 +299,21 @@
 
   <!-- 대시보드 탭 -->
   <div id="tabDashboard">
+
+    <!-- 월간 성과 요약 배너 -->
+    <div style="background:linear-gradient(135deg,#1C3A2A 0%,#2E6347 100%);border-radius:14px;padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
+      <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(99,102,241,0.15);border-radius:50%"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📊</div>
+        <div>
+          <div style="color:#fff;font-size:15px;font-weight:700">월간 성과 요약</div>
+          <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">—</div>
+        </div>
+      </div>
+      <div style="color:#AEC6E8;font-size:12px;line-height:1.6" id="insightSummaryText">—</div>
+    </div>
+
     <div class="kpi-grid">
       <div class="kpi indigo total-card"><div class="kpi-label">채널 총매출</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub up" id="kpiRate">수익률 -</div></div>
       <div class="kpi purple"><div class="kpi-label">자사몰 매출</div><div class="kpi-value" id="kpiCafe">0</div><div class="kpi-sub">cafe24</div></div>
@@ -379,6 +393,13 @@
         </div>
       </div>
     </div>
+
+    <!-- KPI 4개 카드 -->
+    <div id="insightCards" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px"></div>
+
+    <!-- 전략 지표 3개 -->
+    <div id="insightChannelRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px"></div>
+
   </div>
 
   <!-- 일별 내역 탭 -->
@@ -470,30 +491,7 @@
     </div>
   </div>
 
-  <!-- 월간 인사이트 탭 -->
-  <div id="tabInsight" style="display:none">
 
-    <!-- 인사이트 헤더 요약 -->
-    <div style="background:linear-gradient(135deg,#1C3A2A 0%,#2E6347 100%);border-radius:14px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
-      <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(99,102,241,0.15);border-radius:50%"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📊</div>
-        <div>
-          <div style="color:#fff;font-size:15px;font-weight:700">월간 성과 요약</div>
-          <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">—</div>
-        </div>
-      </div>
-      <div style="color:#AEC6E8;font-size:12px;line-height:1.6" id="insightSummaryText">—</div>
-    </div>
-
-    <!-- KPI 카드 4개 -->
-    <div id="insightCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"></div>
-
-    <!-- 전략 지표 3개 -->
-    <div id="insightChannelRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px"></div>
-
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -634,6 +632,7 @@ function render(){
   document.getElementById('profitCoupangRate').textContent='수익률 '+fmtRt(totOprf,totO);
 
   renderDayTable(mRecs);
+  renderInsight();
 }
 
 function updateTrendChart(mRecs){
@@ -1018,13 +1017,11 @@ function saveDay(){
 function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
-  document.getElementById('tabInsight').style.display=tab==='insight'?'block':'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='insight'&&i===1)||(tab==='daily'&&i===2)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)
     );
   });
-  if(tab==='insight') renderInsight();
 }
 
 function renderInsight(){
