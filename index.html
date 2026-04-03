@@ -194,6 +194,9 @@
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 6px; }
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    /* ── 재고현황 ── */
+    #stockCards { grid-template-columns: repeat(2,1fr) !important; }
+
     /* ── 일별 내역: 모바일 1열 ── */
     .daily-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
     /* 매출 내역 — 4컬럼 가능, overflow 불필요 */
@@ -263,7 +266,30 @@
     } catch(e) { console.log('Firestore save error:', e); }
   }
 
-  window._firestore = { load: loadFromFirestore, save: saveToFirestore };
+  async function loadStockFromFirestore() {
+    try {
+      const docRef = doc(db, 'anok', 'stock');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+    } catch(e) { console.log('Firestore stock load error:', e); }
+    return null;
+  }
+
+  async function saveStockToFirestore(stockInit, manualOuts) {
+    try {
+      const docRef = doc(db, 'anok', 'stock');
+      await setDoc(docRef, { stockInit, manualOuts });
+    } catch(e) { console.log('Firestore stock save error:', e); }
+  }
+
+  window._firestore = {
+    load: loadFromFirestore,
+    save: saveToFirestore,
+    loadStock: loadStockFromFirestore,
+    saveStock: saveStockToFirestore
+  };
 </script>
 </head>
 <body>
@@ -366,6 +392,7 @@
     <div class="tabs" style="margin-bottom:0">
       <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
       <button class="tab" onclick="switchTab('daily')">일별 내역</button>
+      <button class="tab" onclick="switchTab('stock')">재고현황</button>
     </div>
     <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
   </div>
@@ -653,9 +680,117 @@
   </div>
 
 
+  <!-- 재고현황 탭 -->
+  <div id="tabStock" style="display:none">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:4px;height:18px;background:linear-gradient(#9B6DFF,#34D399);border-radius:2px"></div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">재고현황</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="openStockInitModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500">초기재고 설정</button>
+        <button onclick="openManualOutModal()" style="background:linear-gradient(135deg,#9B6DFF,#6366F1);border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">+ 수기 출고</button>
+      </div>
+    </div>
+
+    <!-- 재고 요약 카드 -->
+    <div id="stockCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+
+    <!-- 재고 상세 테이블 -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:3px;height:14px;background:linear-gradient(#9B6DFF,#34D399);border-radius:2px"></div>
+        <div class="card-title" style="margin-bottom:0">SKU별 재고 상세</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">SKU</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">초기재고</th>
+              <th style="text-align:right;padding:8px 10px;color:#9B6DFF;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">자사몰</th>
+              <th style="text-align:right;padding:8px 10px;color:#34D399;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">네이버</th>
+              <th style="text-align:right;padding:8px 10px;color:#FB923C;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">쿠팡</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">수기출고</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">총출고</th>
+              <th style="text-align:right;padding:8px 10px;color:#60A5FA;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">현재고</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 수기 출고 내역 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div style="width:3px;height:14px;background:linear-gradient(#FB923C,#F43F5E);border-radius:2px"></div>
+        <div class="card-title" style="margin-bottom:0">수기 출고 내역</div>
+      </div>
+      <div id="manualOutList">
+        <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- 초기재고 설정 모달 -->
+<div class="modal-bg" id="stockInitModalBg">
+  <div class="modal">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1A1528,#252840)">
+      <h2>초기재고 설정</h2>
+      <button class="modal-close" onclick="closeStockInitModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text3);margin-bottom:16px">SKU별 초기 재고 수량을 입력하세요 (단품 기준)</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="sku-input"><label>샴푸</label><input type="number" id="si_shampoo" value="0" min="0"></div>
+        <div class="sku-input"><label>트리트먼트</label><input type="number" id="si_treatment" value="0" min="0"></div>
+        <div class="sku-input"><label>바디워시</label><input type="number" id="si_bodywash" value="0" min="0"></div>
+        <div class="sku-input"><label>바디로션</label><input type="number" id="si_bodylotion" value="0" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeStockInitModal()">취소</button>
+      <button class="btn-save" onclick="saveStockInit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수기 출고 입력 모달 -->
+<div class="modal-bg" id="manualOutModalBg">
+  <div class="modal">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1A1528,#252840)">
+      <h2>수기 출고 입력</h2>
+      <button class="modal-close" onclick="closeManualOutModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>날짜</label>
+        <input type="date" id="mo_date">
+      </div>
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>출고 사유</label>
+        <input type="text" id="mo_reason" placeholder="예: 공구, 샘플, 파손 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 (단품 기준)</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="sku-input"><label>샴푸</label><input type="number" id="mo_shampoo" value="0" min="0"></div>
+        <div class="sku-input"><label>트리트먼트</label><input type="number" id="mo_treatment" value="0" min="0"></div>
+        <div class="sku-input"><label>바디워시</label><input type="number" id="mo_bodywash" value="0" min="0"></div>
+        <div class="sku-input"><label>바디로션</label><input type="number" id="mo_bodylotion" value="0" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeManualOutModal()">취소</button>
+      <button class="btn-save" onclick="saveManualOut()">저장</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const STORAGE_KEY = 'anok_data_v1';
@@ -1229,11 +1364,13 @@ function saveDay(){
 function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
+  document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)
     );
   });
+  if(tab==='stock') renderStock();
 }
 
 function renderInsight(){
@@ -1386,6 +1523,234 @@ function renderInsight(){
   `).join('');
 }
 
+// ══════════════════════════════════════════════════
+// 재고현황
+// ══════════════════════════════════════════════════
+const STOCK_KEY = 'anok_stock_v1';
+const MANUAL_OUT_KEY = 'anok_manual_out_v1';
+const STOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
+const STOCK_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
+const STOCK_COLORS = {shampoo:'#9B6DFF', treatment:'#34D399', bodywash:'#38BDF8', bodylotion:'#FB923C'};
+
+// 초기재고 (Firebase에서 로드, 없으면 localStorage)
+let stockInit = {shampoo:1000, treatment:1000, bodywash:1000, bodylotion:1000};
+let manualOuts = []; // [{date, reason, shampoo, treatment, bodywash, bodylotion}]
+
+async function loadStockData(){
+  // Firebase 우선
+  if(window._firestore){
+    try{
+      const data = await window._firestore.loadStock();
+      if(data){
+        if(data.stockInit) stockInit = data.stockInit;
+        if(data.manualOuts) manualOuts = data.manualOuts;
+        // localStorage 동기화
+        localStorage.setItem(STOCK_KEY, JSON.stringify(stockInit));
+        localStorage.setItem(MANUAL_OUT_KEY, JSON.stringify(manualOuts));
+        return;
+      }
+    }catch(e){ console.log('stock load error:', e); }
+  }
+  // Firebase 없으면 localStorage fallback
+  try{
+    const si = localStorage.getItem(STOCK_KEY);
+    if(si) stockInit = JSON.parse(si);
+    const mo = localStorage.getItem(MANUAL_OUT_KEY);
+    if(mo) manualOuts = JSON.parse(mo);
+  }catch(e){}
+}
+
+function saveStockData(){
+  // localStorage 동기화
+  try{
+    localStorage.setItem(STOCK_KEY, JSON.stringify(stockInit));
+    localStorage.setItem(MANUAL_OUT_KEY, JSON.stringify(manualOuts));
+  }catch(e){}
+  // Firebase 저장
+  if(window._firestore){
+    window._firestore.saveStock(stockInit, manualOuts);
+  }
+}
+
+// 판매 기록에서 단품 차감 수량 계산
+function calcSoldUnits(){
+  const sold = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
+  records.forEach(r=>{
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+    // 샴푸: 단품 + 헤어세트(샴푸+트리트 각1) + 워시세트(샴푸+바디워시 각1)
+    sold.shampoo   += (c.shampoo||0)+(c.hairset||0)+(c.washset||0)
+                    + (n.shampoo||0)+(n.hairset||0)+(n.washset||0)
+                    + (o.shampoo||0);
+    // 트리트먼트: 단품 + 헤어세트
+    sold.treatment += (c.treatment||0)+(c.hairset||0)
+                    + (n.treatment||0)+(n.hairset||0)
+                    + (o.treatment||0);
+    // 바디워시: 단품 + 바디세트 + 워시세트
+    sold.bodywash  += (c.bodywash||0)+(c.bodyset||0)+(c.washset||0)
+                    + (n.bodywash||0)+(n.bodyset||0)+(n.washset||0)
+                    + (o.bodywash||0);
+    // 바디로션: 단품 + 바디세트
+    sold.bodylotion+= (c.bodylotion||0)+(c.bodyset||0)
+                    + (n.bodylotion||0)+(n.bodyset||0)
+                    + (o.bodylotion||0);
+  });
+  return sold;
+}
+
+// 채널별 판매 수량 (테이블용)
+function calcSoldByChannel(){
+  const cafe={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  const naver={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  const coup={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  records.forEach(r=>{
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+    cafe.shampoo   +=(c.shampoo||0)+(c.hairset||0)+(c.washset||0);
+    cafe.treatment +=(c.treatment||0)+(c.hairset||0);
+    cafe.bodywash  +=(c.bodywash||0)+(c.bodyset||0)+(c.washset||0);
+    cafe.bodylotion+=(c.bodylotion||0)+(c.bodyset||0);
+    naver.shampoo  +=(n.shampoo||0)+(n.hairset||0)+(n.washset||0);
+    naver.treatment+=(n.treatment||0)+(n.hairset||0);
+    naver.bodywash +=(n.bodywash||0)+(n.bodyset||0)+(n.washset||0);
+    naver.bodylotion+=(n.bodylotion||0)+(n.bodyset||0);
+    coup.shampoo   +=(o.shampoo||0);
+    coup.treatment +=(o.treatment||0);
+    coup.bodywash  +=(o.bodywash||0);
+    coup.bodylotion+=(o.bodylotion||0);
+  });
+  return {cafe, naver, coup};
+}
+
+// 수기 출고 합계
+function calcManualOut(){
+  const mo={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  manualOuts.forEach(r=>{
+    STOCK_SKUS.forEach(k=>mo[k]+=(r[k]||0));
+  });
+  return mo;
+}
+
+function renderStock(){
+  const sold = calcSoldUnits();
+  const byChannel = calcSoldByChannel();
+  const mo = calcManualOut();
+
+  // 요약 카드 4개
+  const cards = STOCK_SKUS.map(k=>{
+    const init = stockInit[k]||0;
+    const totalOut = sold[k] + mo[k];
+    const remain = init - totalOut;
+    const pct = init>0 ? Math.round(remain/init*100) : 0;
+    const color = STOCK_COLORS[k];
+    const statusColor = pct>50?'#34D399':pct>20?'#FB923C':'#F43F5E';
+    const statusLabel = pct>50?'충분':pct>20?'주의':'부족';
+    return `<div class="card" style="border-left:3px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:0.4px">${STOCK_SKU_NAMES[k]}</div>
+        <div style="font-size:10px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel}</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:var(--text);margin:4px 0">${remain.toLocaleString()}<span style="font-size:12px;color:var(--text3);font-weight:400"> 개</span></div>
+      <div style="background:var(--border);border-radius:3px;height:4px;margin:8px 0">
+        <div style="height:4px;border-radius:3px;background:${statusColor};width:${Math.min(pct,100)}%;transition:width 0.4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">초기 ${init.toLocaleString()} → 출고 ${totalOut.toLocaleString()} (${100-pct}%)</div>
+    </div>`;
+  }).join('');
+  document.getElementById('stockCards').innerHTML = cards;
+
+  // 상세 테이블
+  let tbody = '';
+  STOCK_SKUS.forEach(k=>{
+    const init = stockInit[k]||0;
+    const c = byChannel.cafe[k]||0;
+    const n = byChannel.naver[k]||0;
+    const o = byChannel.coup[k]||0;
+    const m = mo[k]||0;
+    const total = c+n+o+m;
+    const remain = init - total;
+    const isLow = remain < init*0.2;
+    tbody += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px;font-weight:600;color:${STOCK_COLORS[k]}">${STOCK_SKU_NAMES[k]}</td>
+      <td style="padding:10px;text-align:right;color:var(--text2)">${init.toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;color:#9B6DFF">${c||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#34D399">${n||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#FB923C">${o||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text3)">${m||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text2);font-weight:600">${total.toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;font-weight:700;color:${isLow?'#F43F5E':'#60A5FA'}">${remain.toLocaleString()}</td>
+    </tr>`;
+  });
+  document.getElementById('stockTableBody').innerHTML = tbody;
+
+  // 수기 출고 내역
+  if(manualOuts.length===0){
+    document.getElementById('manualOutList').innerHTML=`<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>`;
+  } else {
+    const sorted = [...manualOuts].sort((a,b)=>b.date.localeCompare(a.date));
+    document.getElementById('manualOutList').innerHTML = sorted.map((r,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${r.date} · <span style="color:var(--text2)">${r.reason||'기타'}</span></div>
+          <div style="font-size:11px;color:var(--text3)">
+            ${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}
+          </div>
+        </div>
+        <button onclick="deleteManualOut(${i})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px" title="삭제">×</button>
+      </div>
+    `).join('');
+  }
+}
+
+// 초기재고 모달
+function openStockInitModal(){
+  STOCK_SKUS.forEach(k=>{
+    const el=document.getElementById('si_'+k);
+    if(el) el.value=stockInit[k]||0;
+  });
+  document.getElementById('stockInitModalBg').classList.add('open');
+}
+function closeStockInitModal(){ document.getElementById('stockInitModalBg').classList.remove('open'); }
+function saveStockInit(){
+  STOCK_SKUS.forEach(k=>{
+    const el=document.getElementById('si_'+k);
+    stockInit[k]=parseInt(el?.value)||0;
+  });
+  saveStockData();
+  closeStockInitModal();
+  renderStock();
+  showToast('초기재고가 저장되었습니다');
+}
+
+// 수기 출고 모달
+function openManualOutModal(){
+  document.getElementById('mo_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('mo_reason').value='';
+  STOCK_SKUS.forEach(k=>{ const el=document.getElementById('mo_'+k); if(el) el.value=0; });
+  document.getElementById('manualOutModalBg').classList.add('open');
+}
+function closeManualOutModal(){ document.getElementById('manualOutModalBg').classList.remove('open'); }
+function saveManualOut(){
+  const date=document.getElementById('mo_date').value;
+  const reason=document.getElementById('mo_reason').value.trim();
+  if(!date){ showToast('날짜를 입력해주세요'); return; }
+  const entry={date, reason};
+  STOCK_SKUS.forEach(k=>{ entry[k]=parseInt(document.getElementById('mo_'+k)?.value)||0; });
+  const hasQty=STOCK_SKUS.some(k=>entry[k]>0);
+  if(!hasQty){ showToast('출고 수량을 입력해주세요'); return; }
+  manualOuts.push(entry);
+  saveStockData();
+  closeManualOutModal();
+  renderStock();
+  showToast(`${date} 수기 출고가 저장되었습니다`);
+}
+function deleteManualOut(idx){
+  if(!confirm('이 출고 내역을 삭제할까요?')) return;
+  manualOuts.splice(idx,1);
+  saveStockData();
+  renderStock();
+  showToast('삭제되었습니다');
+}
+// ══════════════════════════════════════════════════
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;
@@ -1403,7 +1768,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); }, 500);
 </script>
 </body>
 </html>
