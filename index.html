@@ -1839,29 +1839,59 @@ function renderStock(){
       else if(isBlock)            { tag='B2C전용';  tagColor='#F97316'; }
       else if(dHalf!==null&&dHalf<=60){ tag=`${dHalf}일후불가`; tagColor='#EAB308'; }
       else                        { tag='납품가능';  tagColor='#6B7280'; }
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--text3)">유통 ${fmtDate(b.expiry)} · 제조 ${fmtDate(b.mfgDate)}</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:12px;font-weight:600;color:var(--text)">${b.remaining.toLocaleString()}개</span>
-          <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 6px;border-radius:4px;white-space:nowrap">${tag}</span>
+
+      // 유통기한 진행 Bar: 제조일~유통기한 중 오늘이 몇 %인지
+      let barHtml = '';
+      if(b.mfgDate && b.expiry){
+        const totalDays = Math.round((new Date(b.expiry)-new Date(b.mfgDate))/(864e5));
+        const elapsedDays = Math.round((new Date(today)-new Date(b.mfgDate))/(864e5));
+        const pct = Math.min(Math.max(Math.round(elapsedDays/totalDays*100),0),100);
+        const halfPct = b.halfLifeDate ? Math.round((new Date(b.halfLifeDate)-new Date(b.mfgDate))/(864e5)/totalDays*100) : 50;
+        // 바 색상: 50% 넘으면 오렌지, 80% 넘으면 빨강, 이하 초록
+        const barColor = pct>=80?'#EF4444':pct>=halfPct?'#F97316':'#34D399';
+        barHtml = `
+          <div style="margin-top:7px;margin-bottom:2px">
+            <div style="position:relative;height:6px;background:#2A2D3E;border-radius:3px;overflow:visible">
+              <!-- 채워진 바 -->
+              <div style="height:6px;border-radius:3px;background:${barColor};width:${pct}%;transition:width 0.4s"></div>
+              <!-- 50% 기준선 (B2B 납품 불가 기준) -->
+              <div style="position:absolute;top:-3px;left:${halfPct}%;width:2px;height:12px;background:#FB923C;border-radius:1px;transform:translateX(-50%)" title="B2B납품불가 기준일"></div>
+              <!-- 오늘 위치 포인터 -->
+              <div style="position:absolute;top:-4px;left:${pct}%;transform:translateX(-50%)">
+                <div style="width:8px;height:8px;border-radius:50%;background:${barColor};border:2px solid var(--card);box-shadow:0 0 0 1px ${barColor}"></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text3)">
+              <span>${fmtDate(b.mfgDate)} 제조</span>
+              <span style="color:${barColor};font-weight:600">${pct}% 경과</span>
+              <span>${fmtDate(b.expiry)} 만료</span>
+            </div>
+          </div>`;
+      }
+
+      return `<div style="padding:8px 0;border-top:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:11px;color:var(--text3)">제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${b.remaining.toLocaleString()}개</span>
+            <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 6px;border-radius:4px;white-space:nowrap">${tag}</span>
+          </div>
         </div>
+        ${barHtml}
       </div>`;
     }).join('');
 
     const sogin = dl!==null ? soginStr(dl) : '판매 데이터 집계 중';
 
     return `<div class="card" style="padding:14px 16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:3px;height:12px;background:${color};border-radius:2px"></div>
-            <div style="font-size:13px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</div>
-          </div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px;margin-left:9px">${sogin}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:3px;height:14px;background:${color};border-radius:2px"></div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text);margin-left:4px">${stock.toLocaleString()}<span style="font-size:10px;font-weight:400;color:var(--text3)">개</span></div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1">${stock.toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--text3)">일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</div>
+          <div style="font-size:10px;color:var(--text3)">일평균 ${avg>0?avg.toFixed(1)+'개 ·':''} ${sogin}</div>
         </div>
       </div>
       ${batchRows}
