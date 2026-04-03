@@ -8,43 +8,43 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --navy:#0B1F3A;--navy2:#162D4E;--navy3:#1E3D6B;
+    --navy:#E2E8F0;--navy2:#CBD5E1;--navy3:#94A3B8;
     --anok-green:#1C3A2A;--anok-green2:#254D38;--anok-green3:#2E6347;
-    --bg:#F4F6F9;--card:#fff;--border:#E2EAF0;
-    --text:#1A202C;--text2:#4A5568;--text3:#8898AA;
-    --purple:#7C3AED;--purple-l:#F5F0FF;
-    --green:#16A34A;--green-l:#F0FDF4;
-    --orange:#EA580C;--orange-l:#FEF3EC;
-    --indigo:#2563EB;--indigo-l:#EFF6FF;
-    --blue:#0EA5E9;--blue-l:#F0F9FF;
+    --bg:#0F1117;--card:#1A1D27;--border:#2A2D3E;
+    --text:#E2E8F0;--text2:#94A3B8;--text3:#4A5568;
+    --purple:#9B6DFF;--purple-l:#1E1A2E;
+    --green:#34D399;--green-l:#0D2318;
+    --orange:#FB923C;--orange-l:#2A1500;
+    --indigo:#60A5FA;--indigo-l:#0D1E3A;
+    --blue:#38BDF8;--blue-l:#0C1E2E;
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-  .header{background:linear-gradient(135deg,#0B1F3A 0%,#1E3A5F 100%);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.08)}
-  .month-badge{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.45);font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);font-family:monospace;letter-spacing:0.5px}
-  .btn-input{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.45);letter-spacing:0.2px;transition:all 0.15s}
-  .btn-input:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.6)}
+  .header{background:linear-gradient(135deg,#080C14 0%,#111827 100%);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .month-badge{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);font-family:monospace;letter-spacing:0.5px}
+  .btn-input{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.35);letter-spacing:0.2px;transition:all 0.15s}
+  .btn-input:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.5)}
 
-  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center}
   .modal-bg.open{display:flex}
-  .modal{background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
+  .modal{background:#1A1D27;border:1px solid var(--border);border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
   .modal-header{background:var(--anok-green);padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
   .modal-header h2{color:#fff;font-size:16px;font-weight:500}
   .modal-close{background:none;border:none;color:#8BA3C4;font-size:20px;cursor:pointer;line-height:1}
   .modal-body{padding:20px 24px}
   .modal-date{margin-bottom:16px}
   .modal-date label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:500}
-  .modal-date input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text)}
+  .modal-date input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F}
   .ch-section{margin-bottom:16px}
   .ch-title{font-size:12px;font-weight:600;color:#fff;padding:6px 12px;border-radius:6px;margin-bottom:10px;display:inline-block}
   .ch-title.cafe{background:var(--purple)}
-  .ch-title.naver{background:var(--green)}
+  .ch-title.naver{background:#059669}
   .ch-title.coupang{background:var(--orange)}
   .sku-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .sku-input{display:flex;flex-direction:column;gap:4px}
   .sku-input label{font-size:11px;color:var(--text3)}
-  .sku-input input{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;text-align:right;color:var(--text);width:100%}
-  .sku-input input:focus{outline:none;border-color:#2563EB;box-shadow:0 0 0 2px rgba(37,99,235,0.15)}
+  .sku-input input{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;text-align:right;color:var(--text);width:100%;background:#12151F}
+  .sku-input input:focus{outline:none;border-color:#6366F1;box-shadow:0 0 0 2px rgba(99,102,241,0.2)}
   .coup-extra{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
   .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
   .btn-cancel{background:none;border:1px solid var(--border);padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2)}
@@ -78,19 +78,19 @@
   .sku-tbl td{font-size:12px;padding:8px 8px;border-bottom:1px solid var(--border);color:var(--text)}
   .sku-tbl tr:last-child td{border-bottom:none}
   .sku-tbl .num{text-align:right;font-weight:500}
-  .sku-bar-bg{background:#F1F5F9;border-radius:2px;height:4px;margin-top:3px}
+  .sku-bar-bg{background:#1E2236;border-radius:2px;height:4px;margin-top:3px}
   .sku-bar{height:4px;border-radius:2px;background:var(--purple)}
 
   .roas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .roas-card{background:#F8FAFC;border-radius:8px;padding:12px 14px}
+  .roas-card{background:#12151F;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
   .roas-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
   .roas-val{font-size:20px;font-weight:600;color:var(--text)}
   .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
-  .profit-banner{background:var(--anok-green);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
-  .profit-label{font-size:12px;color:#8BA3C4;margin-bottom:4px}
+  .profit-banner{background:linear-gradient(135deg,#1C3A2A,#0D4A2E);border:1px solid #2E5A3A;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+  .profit-label{font-size:12px;color:#6EAB84;margin-bottom:4px}
   .profit-val{font-size:28px;font-weight:600;color:#fff}
-  .profit-sub{font-size:11px;color:#8BA3C4;margin-top:3px}
+  .profit-sub{font-size:11px;color:#6EAB84;margin-top:3px}
 
   .day-table-wrap{overflow-x:auto}
   .day-tbl{width:100%;border-collapse:collapse;font-size:12px}
@@ -99,29 +99,29 @@
   .day-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text)}
   .day-tbl td:first-child{text-align:left;font-weight:500;color:var(--text2)}
   .day-tbl tr:last-child td{border-bottom:none}
-  .day-tbl tr:hover td{background:#F8FAFC}
-  .day-tbl .total-row td{font-weight:600;background:transparent;color:var(--navy)}
+  .day-tbl tr:hover td{background:#1E2236}
+  .day-tbl .total-row td{font-weight:600;background:transparent;color:#60A5FA}
 
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 
-  .tabs{display:flex;gap:2px;background:#E2EAF0;border-radius:8px;padding:3px}
+  .tabs{display:flex;gap:2px;background:#12151F;border-radius:8px;padding:3px;border:1px solid var(--border)}
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
-  .tab.active{background:#fff;color:var(--anok-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+  .tab.active{background:#252840;color:#9B6DFF;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
 
   .ach-row{margin-bottom:20px}
   .ach-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
   .ach-label{font-size:12px;font-weight:600;color:var(--text)}
   .ach-nums{font-size:11px;color:var(--text3)}
   .ach-nums b{font-weight:600;color:var(--text2)}
-  .ach-track{height:32px;background:#EEF2F7;border-radius:8px;overflow:hidden;position:relative}
+  .ach-track{height:32px;background:#1E2236;border-radius:8px;overflow:hidden;position:relative}
   .ach-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:12px;min-width:2px}
   .ach-fill-label{font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
   .ach-pct-out{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700}
-  .kpi.total-card{background:#E0F2FE;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none}
-  .kpi.total-card .kpi-label{color:#0369A1}
-  .kpi.total-card .kpi-value{color:#0C4A6E;font-size:18px}
-  .kpi.total-card .kpi-sub{color:#0284C7}
-  .toast{position:fixed;bottom:20px;left:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
+  .kpi.total-card{background:#0D1E3A;border-left:3px solid #60A5FA;border-top:none;border-right:none;border-bottom:none}
+  .kpi.total-card .kpi-label{color:#60A5FA}
+  .kpi.total-card .kpi-value{color:#BAE6FD;font-size:18px}
+  .kpi.total-card .kpi-sub{color:#38BDF8}
+  .toast{position:fixed;bottom:20px;left:20px;background:#252840;border:1px solid var(--border);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
   @keyframes spin{to{transform:rotate(360deg)}}
   .toast.show{opacity:1}
 
@@ -198,7 +198,7 @@
     .strat3-grid .card [style*="font-size:20px"] { font-size:16px !important; }
 
     /* ── 섹션 패딩 줄이기 ── */
-    div[style*="background:#F8FAFC"] { padding:12px 12px !important; margin-bottom:10px !important; }
+    div[style*="background:#141720"] { padding:12px 12px !important; margin-bottom:10px !important; }
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 4px; }
     .day-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -467,7 +467,7 @@
     </div>
 
     <!-- ── 광고·손익 섹션 ── -->
-    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+    <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">광고 효율 &amp; 손익</span>
@@ -512,7 +512,7 @@
     </div>
 
     <!-- ── 성과 지표 섹션 ── -->
-    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+    <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <div style="width:3px;height:14px;background:linear-gradient(#0EA5E9,#6366F1);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">성과 지표</span>
@@ -522,7 +522,7 @@
     </div>
 
     <!-- ── 전략 지표 섹션 ── -->
-    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px">
+    <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <div style="width:3px;height:14px;background:linear-gradient(#16A34A,#0EA5E9);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">전략 지표</span>
@@ -540,7 +540,7 @@
       <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 매출 내역</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
+      <div style="background:#1A1528;border-radius:12px;padding:14px 16px;border:1px solid #3B2F5E">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
           <div style="font-size:13px;font-weight:700;color:#7C3AED">자사몰</div>
@@ -552,7 +552,7 @@
           </table>
         </div>
       </div>
-      <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
+      <div style="background:#0D1F14;border-radius:12px;padding:14px 16px;border:1px solid #1A4A2E">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
           <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
@@ -564,7 +564,7 @@
           </table>
         </div>
       </div>
-      <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
+      <div style="background:#1F1208;border-radius:12px;padding:14px 16px;border:1px solid #4A2A0D">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
           <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
@@ -583,7 +583,7 @@
       <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 채널별 판매수량</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-      <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
+      <div style="background:#1A1528;border-radius:12px;padding:14px 16px;border:1px solid #3B2F5E">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
           <div style="font-size:13px;font-weight:700;color:#7C3AED">자사몰</div>
@@ -595,7 +595,7 @@
           </table>
         </div>
       </div>
-      <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
+      <div style="background:#0D1F14;border-radius:12px;padding:14px 16px;border:1px solid #1A4A2E">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
           <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
@@ -607,7 +607,7 @@
           </table>
         </div>
       </div>
-      <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
+      <div style="background:#1F1208;border-radius:12px;padding:14px 16px;border:1px solid #4A2A0D">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
           <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
@@ -912,8 +912,8 @@ function renderAchieve(mRecs){
     {label:'쿠팡',                  actual:totO, target:TARGETS.coupang, proj:projO, color:'#EA580C'},
   ];
 
-  const projHtml=`<div style="background:#F1F5F9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
-    <span style="font-size:12px;color:#4A5568;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
+  const projHtml=`<div style="background:#1E2236;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
+    <span style="font-size:12px;color:#94A3B8;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
     <span style="display:flex;align-items:center;gap:10px">
       <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
       <span style="font-size:13px;font-weight:700;color:${projTotal>=TARGET_TOTAL?'#E24B4A':'#2563EB'}">(${Math.round(projTotal/TARGET_TOTAL*100)}%)</span>
@@ -975,7 +975,7 @@ function renderSkuTable(mRecs){
     const pct=Math.round(tot/maxTot*100);
     const uq=unitSkus.includes(k)?calcUnitQty(mRecs,k):null;
     const unitCell=uq!==null
-      ?`<td class="num" style="color:#2563EB;font-weight:600;background:#EFF6FF;border-radius:4px">${uq}</td>`
+      ?`<td class="num" style="color:#2563EB;font-weight:600;background:#1A1E35;border-radius:4px">${uq}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     html+=`<tr><td>${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#7C3AED">${c}</td><td class="num" style="color:#16A34A">${n}</td><td class="num" style="color:#EA580C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
   });
@@ -1104,9 +1104,9 @@ function initCharts(){
     data:{
       labels:[],
       datasets:[
-        {label:'자사몰',data:[],backgroundColor:'#7C3AED',stack:'sales'},
-        {label:'네이버',data:[],backgroundColor:'#16A34A',stack:'sales'},
-        {label:'쿠팡',data:[],backgroundColor:'#EA580C',stack:'sales'}
+        {label:'자사몰',data:[],backgroundColor:'#9B6DFF',stack:'sales'},
+        {label:'네이버',data:[],backgroundColor:'#34D399',stack:'sales'},
+        {label:'쿠팡',data:[],backgroundColor:'#FB923C',stack:'sales'}
       ]
     },
     options:{
@@ -1143,8 +1143,8 @@ function initCharts(){
         }
       },
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:10},color:'#8898AA'},stacked:true},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},color:'#8898AA',callback:v=>'₩'+Math.round(v).toLocaleString()},border:{display:false},stacked:true}
+        x:{grid:{display:false},ticks:{font:{size:10},color:'#4A5568'},stacked:true},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{font:{size:10},color:'#4A5568',callback:v=>'₩'+Math.round(v).toLocaleString()},border:{display:false},stacked:true}
       }
     }
   });
@@ -1153,7 +1153,7 @@ function initCharts(){
   });
   donutChart=new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
-    data:{labels:['자사몰','네이버','쿠팡'],datasets:[{data:[1,0,0],backgroundColor:['#7C3AED','#16A34A','#EA580C'],borderWidth:0}]},
+    data:{labels:['자사몰','네이버','쿠팡'],datasets:[{data:[1,0,0],backgroundColor:['#9B6DFF','#34D399','#FB923C'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': ₩'+Math.round(c.raw).toLocaleString()}}}}
   });
 }
