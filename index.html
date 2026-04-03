@@ -1532,77 +1532,94 @@ const STOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
 const STOCK_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
 const STOCK_COLORS = {shampoo:'#9B6DFF', treatment:'#34D399', bodywash:'#38BDF8', bodylotion:'#FB923C'};
 
-// 초기재고 (Firebase에서 로드, 없으면 localStorage)
-let stockInit = {shampoo:1000, treatment:1000, bodywash:1000, bodylotion:1000};
+// stockInitByMonth: { 'YYYY-MM': {shampoo, treatment, bodywash, bodylotion} }
+// 최초 설정월만 직접 입력, 이후 월은 전월 기말재고를 자동 이월
+let stockInitByMonth = { '2026-04': {shampoo:1000, treatment:1000, bodywash:1000, bodylotion:1000} };
 let manualOuts = []; // [{date, reason, shampoo, treatment, bodywash, bodylotion}]
 
 async function loadStockData(){
-  // Firebase 우선
   if(window._firestore){
     try{
       const data = await window._firestore.loadStock();
       if(data){
-        if(data.stockInit) stockInit = data.stockInit;
+        if(data.stockInitByMonth) stockInitByMonth = data.stockInitByMonth;
+        else if(data.stockInit) {
+          // 구버전 마이그레이션
+          const now = new Date();
+          const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+          stockInitByMonth = { [cur]: data.stockInit };
+        }
         if(data.manualOuts) manualOuts = data.manualOuts;
-        // localStorage 동기화
-        localStorage.setItem(STOCK_KEY, JSON.stringify(stockInit));
+        localStorage.setItem(STOCK_KEY, JSON.stringify(stockInitByMonth));
         localStorage.setItem(MANUAL_OUT_KEY, JSON.stringify(manualOuts));
         return;
       }
     }catch(e){ console.log('stock load error:', e); }
   }
-  // Firebase 없으면 localStorage fallback
   try{
     const si = localStorage.getItem(STOCK_KEY);
-    if(si) stockInit = JSON.parse(si);
+    if(si) stockInitByMonth = JSON.parse(si);
     const mo = localStorage.getItem(MANUAL_OUT_KEY);
     if(mo) manualOuts = JSON.parse(mo);
   }catch(e){}
 }
 
 function saveStockData(){
-  // localStorage 동기화
   try{
-    localStorage.setItem(STOCK_KEY, JSON.stringify(stockInit));
+    localStorage.setItem(STOCK_KEY, JSON.stringify(stockInitByMonth));
     localStorage.setItem(MANUAL_OUT_KEY, JSON.stringify(manualOuts));
   }catch(e){}
-  // Firebase 저장
   if(window._firestore){
-    window._firestore.saveStock(stockInit, manualOuts);
+    window._firestore.saveStock(stockInitByMonth, manualOuts);
   }
 }
 
-// 판매 기록에서 단품 차감 수량 계산
-function calcSoldUnits(){
+// 특정 월의 기초재고 계산
+// - 해당 월에 직접 설정값이 있으면 그것 사용
+// - 없으면 전월 기말재고를 자동 이월
+function getMonthOpeningStock(month){
+  if(stockInitByMonth[month]) return {...stockInitByMonth[month]};
+
+  // 전월 기말재고 계산해서 이월
+  const [y, m] = month.split('-').map(Number);
+  const prevYear = m===1 ? y-1 : y;
+  const prevMonth = m===1 ? 12 : m-1;
+  const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
+
+  const prevOpening = getMonthOpeningStock(prevKey);
+  const prevSold = calcSoldUnitsByMonth(prevKey);
+  const prevMO = calcManualOutByMonth(prevKey);
+
+  const closing = {};
+  STOCK_SKUS.forEach(k=>{
+    closing[k] = (prevOpening[k]||0) - (prevSold[k]||0) - (prevMO[k]||0);
+  });
+  return closing;
+}
+
+// 특정 월 판매 수량 (단품 기준)
+function calcSoldUnitsByMonth(month){
   const sold = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
-  records.forEach(r=>{
+  records.filter(r=>r.date.startsWith(month)).forEach(r=>{
     const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
-    // 샴푸: 단품 + 헤어세트(샴푸+트리트 각1) + 워시세트(샴푸+바디워시 각1)
     sold.shampoo   += (c.shampoo||0)+(c.hairset||0)+(c.washset||0)
-                    + (n.shampoo||0)+(n.hairset||0)+(n.washset||0)
-                    + (o.shampoo||0);
-    // 트리트먼트: 단품 + 헤어세트
+                    + (n.shampoo||0)+(n.hairset||0)+(n.washset||0)+(o.shampoo||0);
     sold.treatment += (c.treatment||0)+(c.hairset||0)
-                    + (n.treatment||0)+(n.hairset||0)
-                    + (o.treatment||0);
-    // 바디워시: 단품 + 바디세트 + 워시세트
+                    + (n.treatment||0)+(n.hairset||0)+(o.treatment||0);
     sold.bodywash  += (c.bodywash||0)+(c.bodyset||0)+(c.washset||0)
-                    + (n.bodywash||0)+(n.bodyset||0)+(n.washset||0)
-                    + (o.bodywash||0);
-    // 바디로션: 단품 + 바디세트
+                    + (n.bodywash||0)+(n.bodyset||0)+(n.washset||0)+(o.bodywash||0);
     sold.bodylotion+= (c.bodylotion||0)+(c.bodyset||0)
-                    + (n.bodylotion||0)+(n.bodyset||0)
-                    + (o.bodylotion||0);
+                    + (n.bodylotion||0)+(n.bodyset||0)+(o.bodylotion||0);
   });
   return sold;
 }
 
-// 채널별 판매 수량 (테이블용)
-function calcSoldByChannel(){
+// 특정 월 채널별 판매 수량
+function calcSoldByChannelByMonth(month){
   const cafe={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   const naver={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   const coup={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
-  records.forEach(r=>{
+  records.filter(r=>r.date.startsWith(month)).forEach(r=>{
     const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
     cafe.shampoo   +=(c.shampoo||0)+(c.hairset||0)+(c.washset||0);
     cafe.treatment +=(c.treatment||0)+(c.hairset||0);
@@ -1620,27 +1637,35 @@ function calcSoldByChannel(){
   return {cafe, naver, coup};
 }
 
-// 수기 출고 합계
-function calcManualOut(){
+// 특정 월 수기 출고 합계
+function calcManualOutByMonth(month){
   const mo={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
-  manualOuts.forEach(r=>{
+  manualOuts.filter(r=>r.date.startsWith(month)).forEach(r=>{
     STOCK_SKUS.forEach(k=>mo[k]+=(r[k]||0));
   });
   return mo;
 }
 
 function renderStock(){
-  const sold = calcSoldUnits();
-  const byChannel = calcSoldByChannel();
-  const mo = calcManualOut();
+  const month = selectedMonth;
+  const [y, m] = month.split('-').map(Number);
+  const isCurrentMonth = month === `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
 
-  // 요약 카드 4개
+  const opening = getMonthOpeningStock(month);
+  const sold    = calcSoldUnitsByMonth(month);
+  const byChannel = calcSoldByChannelByMonth(month);
+  const mo      = calcManualOutByMonth(month);
+
+  // 이 월에 직접 설정된 기초재고가 있는지
+  const hasDirectSetting = !!stockInitByMonth[month];
+
+  // 요약 카드
   const cards = STOCK_SKUS.map(k=>{
-    const init = stockInit[k]||0;
-    const totalOut = sold[k] + mo[k];
-    const remain = init - totalOut;
-    const pct = init>0 ? Math.round(remain/init*100) : 0;
-    const color = STOCK_COLORS[k];
+    const init    = opening[k]||0;
+    const totalOut= (sold[k]||0) + (mo[k]||0);
+    const remain  = init - totalOut;
+    const pct     = init>0 ? Math.round(remain/init*100) : 0;
+    const color   = STOCK_COLORS[k];
     const statusColor = pct>50?'#34D399':pct>20?'#FB923C':'#F43F5E';
     const statusLabel = pct>50?'충분':pct>20?'주의':'부족';
     return `<div class="card" style="border-left:3px solid ${color}">
@@ -1650,23 +1675,30 @@ function renderStock(){
       </div>
       <div style="font-size:22px;font-weight:700;color:var(--text);margin:4px 0">${remain.toLocaleString()}<span style="font-size:12px;color:var(--text3);font-weight:400"> 개</span></div>
       <div style="background:var(--border);border-radius:3px;height:4px;margin:8px 0">
-        <div style="height:4px;border-radius:3px;background:${statusColor};width:${Math.min(pct,100)}%;transition:width 0.4s"></div>
+        <div style="height:4px;border-radius:3px;background:${statusColor};width:${Math.min(Math.max(pct,0),100)}%;transition:width 0.4s"></div>
       </div>
-      <div style="font-size:11px;color:var(--text3)">초기 ${init.toLocaleString()} → 출고 ${totalOut.toLocaleString()} (${100-pct}%)</div>
+      <div style="font-size:11px;color:var(--text3)">기초 ${init.toLocaleString()} → 출고 ${totalOut.toLocaleString()} · 잔여 ${pct}%</div>
     </div>`;
   }).join('');
   document.getElementById('stockCards').innerHTML = cards;
 
-  // 상세 테이블
+  // 상세 테이블 — 기초재고 이월 안내 배너
+  const prevYear2 = m===1?y-1:y;
+  const prevMonth2 = m===1?12:m-1;
+  const prevKey2 = `${prevYear2}-${String(prevMonth2).padStart(2,'0')}`;
+  const sourceBadge = hasDirectSetting
+    ? `<span style="font-size:11px;color:#9B6DFF;background:#1A1528;padding:2px 8px;border-radius:20px;margin-left:8px">직접 설정</span>`
+    : `<span style="font-size:11px;color:#34D399;background:#0D2318;padding:2px 8px;border-radius:20px;margin-left:8px">← ${prevKey2} 기말재고 자동 이월</span>`;
+
   let tbody = '';
   STOCK_SKUS.forEach(k=>{
-    const init = stockInit[k]||0;
-    const c = byChannel.cafe[k]||0;
-    const n = byChannel.naver[k]||0;
-    const o = byChannel.coup[k]||0;
-    const m = mo[k]||0;
-    const total = c+n+o+m;
-    const remain = init - total;
+    const init  = opening[k]||0;
+    const c     = byChannel.cafe[k]||0;
+    const n     = byChannel.naver[k]||0;
+    const o     = byChannel.coup[k]||0;
+    const mv    = mo[k]||0;
+    const total = c+n+o+mv;
+    const remain= init - total;
     const isLow = remain < init*0.2;
     tbody += `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:10px;font-weight:600;color:${STOCK_COLORS[k]}">${STOCK_SKU_NAMES[k]}</td>
@@ -1674,55 +1706,68 @@ function renderStock(){
       <td style="padding:10px;text-align:right;color:#9B6DFF">${c||'-'}</td>
       <td style="padding:10px;text-align:right;color:#34D399">${n||'-'}</td>
       <td style="padding:10px;text-align:right;color:#FB923C">${o||'-'}</td>
-      <td style="padding:10px;text-align:right;color:var(--text3)">${m||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text3)">${mv||'-'}</td>
       <td style="padding:10px;text-align:right;color:var(--text2);font-weight:600">${total.toLocaleString()}</td>
       <td style="padding:10px;text-align:right;font-weight:700;color:${isLow?'#F43F5E':'#60A5FA'}">${remain.toLocaleString()}</td>
     </tr>`;
   });
+
+  // 테이블 헤더에 배지 추가
+  const tableSection = document.querySelector('#stockTableBody').closest('.card');
+  const titleEl = tableSection?.querySelector('.card-title');
+  if(titleEl && !titleEl.dataset.badged){
+    titleEl.dataset.badged='1';
+  }
+  if(titleEl){
+    titleEl.innerHTML = `SKU별 재고 상세${sourceBadge}`;
+  }
   document.getElementById('stockTableBody').innerHTML = tbody;
 
-  // 수기 출고 내역
-  if(manualOuts.length===0){
-    document.getElementById('manualOutList').innerHTML=`<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>`;
+  // 수기 출고 내역 (이 월 것만)
+  const monthOuts = manualOuts.filter(r=>r.date.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));
+  if(monthOuts.length===0){
+    document.getElementById('manualOutList').innerHTML=`<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이 달의 수기 출고 내역이 없습니다.</div>`;
   } else {
-    const sorted = [...manualOuts].sort((a,b)=>b.date.localeCompare(a.date));
-    document.getElementById('manualOutList').innerHTML = sorted.map((r,i)=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+    document.getElementById('manualOutList').innerHTML = monthOuts.map((r)=>{
+      const globalIdx = manualOuts.indexOf(r);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${r.date} · <span style="color:var(--text2)">${r.reason||'기타'}</span></div>
-          <div style="font-size:11px;color:var(--text3)">
-            ${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}
-          </div>
+          <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}</div>
         </div>
-        <button onclick="deleteManualOut(${i})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px" title="삭제">×</button>
-      </div>
-    `).join('');
+        <button onclick="deleteManualOut(${globalIdx})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px" title="삭제">×</button>
+      </div>`;
+    }).join('');
   }
 }
 
-// 초기재고 모달
+// 초기재고 모달 — 선택 월 기준
 function openStockInitModal(){
+  const opening = getMonthOpeningStock(selectedMonth);
   STOCK_SKUS.forEach(k=>{
     const el=document.getElementById('si_'+k);
-    if(el) el.value=stockInit[k]||0;
+    if(el) el.value = stockInitByMonth[selectedMonth]?.[k] ?? opening[k] ?? 0;
   });
   document.getElementById('stockInitModalBg').classList.add('open');
 }
 function closeStockInitModal(){ document.getElementById('stockInitModalBg').classList.remove('open'); }
 function saveStockInit(){
+  if(!stockInitByMonth[selectedMonth]) stockInitByMonth[selectedMonth]={};
   STOCK_SKUS.forEach(k=>{
     const el=document.getElementById('si_'+k);
-    stockInit[k]=parseInt(el?.value)||0;
+    stockInitByMonth[selectedMonth][k]=parseInt(el?.value)||0;
   });
   saveStockData();
   closeStockInitModal();
   renderStock();
-  showToast('초기재고가 저장되었습니다');
+  showToast(`${selectedMonth} 기초재고가 저장되었습니다`);
 }
 
 // 수기 출고 모달
 function openManualOutModal(){
-  document.getElementById('mo_date').value=new Date().toISOString().split('T')[0];
+  // 선택 월의 첫 날로 기본값
+  const [y,m] = selectedMonth.split('-');
+  document.getElementById('mo_date').value=`${y}-${m}-01`;
   document.getElementById('mo_reason').value='';
   STOCK_SKUS.forEach(k=>{ const el=document.getElementById('mo_'+k); if(el) el.value=0; });
   document.getElementById('manualOutModalBg').classList.add('open');
