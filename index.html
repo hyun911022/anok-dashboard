@@ -192,6 +192,10 @@
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 6px; }
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    /* ── 발주관리 ── */
+    #orderStatusCards { grid-template-columns: repeat(2,1fr) !important; }
+    #orderCalculator > div { grid-template-columns: 1fr !important; }
+
     /* ── 재고현황 ── */
     #stockCards { grid-template-columns: 1fr !important; }
     .stock-table-pc { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
@@ -2547,12 +2551,13 @@ function renderOrder(){
   // ── 1. 상태 요약 카드 4개 ──
   const cards = ORDER_SKUS.map(k=>{
     const qty = stock[k]||0;
-    const r   = rate[k]||0;
+    const r   = Math.round((rate[k]||0)*10)/10;
     const daysLeft = r>0 ? Math.round(qty/r) : null;
     const st  = getStatus(daysLeft);
     const target = r>0 ? Math.round(r*TARGET_DAYS) : null;
-    const needNow  = target ? Math.max(0, target-qty) : null;
-    const needProd = target && r>0 ? Math.max(0, target-qty+Math.round(r*LEAD_TIME_PROD)) : null;
+    const leadSogin2 = r>0 ? Math.round(r*LEAD_TIME_PROD) : 0;
+    const needNow2  = target ? Math.max(0, target-qty) : null;
+    const needProd2 = target && r>0 ? Math.max(0, target-qty+leadSogin2) : null;
 
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${ORDER_COLORS[k]};border-radius:14px 0 0 14px"></div>
@@ -2566,9 +2571,9 @@ function renderOrder(){
         <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
         <div style="font-size:10px;color:var(--text3)">3개월 목표 재고 <span style="color:var(--text2);font-weight:600">${target?target.toLocaleString()+'개':'-'}</span></div>
         <div style="font-size:10px;color:var(--text3);margin-top:3px">
-          즉시 <span style="color:${needNow===0?'#34D399':'#60A5FA'};font-weight:600">${needNow!==null?(needNow===0?'발주불필요':'+'+needNow.toLocaleString()+'개'):'-'}</span>
+          즉시 <span style="color:${needNow2===0?'#34D399':'#60A5FA'};font-weight:600">${needNow2!==null?(needNow2===0?'발주불필요':'+'+needNow2.toLocaleString()+'개'):'-'}</span>
           <span style="margin:0 4px;color:var(--border)">·</span>
-          생산 <span style="color:${needProd===0?'#34D399':'#F97316'};font-weight:600">${needProd!==null?(needProd===0?'발주불필요':'+'+needProd.toLocaleString()+'개'):'-'}</span>
+          생산 <span style="color:${needProd2===0?'#34D399':'#F97316'};font-weight:600">${needProd2!==null?(needProd2===0?'발주불필요':'+'+needProd2.toLocaleString()+'개'):'-'}</span>
         </div>
       </div>
     </div>`;
@@ -2578,23 +2583,24 @@ function renderOrder(){
   // ── 2. 발주 계산기 ──
   const calc = ORDER_SKUS.map(k=>{
     const qty = stock[k]||0;
-    const r   = rate[k]||0;
-    const ecomR = ecom[k]||0;
+    const r   = Math.round(rate[k]*10)/10 || 0;
+    const ecomR = Math.round((ecom[k]||0)*10)/10;
     const manualR = Math.round((r-ecomR)*10)/10;
     const daysLeft = r>0 ? Math.round(qty/r) : null;
     const soginDate = daysLeft!==null ? (()=>{ const d=new Date(today); d.setDate(d.getDate()+daysLeft); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; })() : null;
     const target = r>0 ? Math.round(r*TARGET_DAYS) : 0;
+    const leadSogin = r>0 ? Math.round(r*LEAD_TIME_PROD) : 0; // 리드타임 동안 소진량
     const needNow  = Math.max(0, target-qty);
-    const needProd = r>0 ? Math.max(0, target-qty+Math.round(r*LEAD_TIME_PROD)) : 0;
+    const needProd = r>0 ? Math.max(0, target-qty+leadSogin) : 0;
     const st = getStatus(daysLeft);
 
     // 발주 긴급도 바
     const urgencyPct = daysLeft!==null ? Math.min(100, Math.round((TARGET_DAYS-Math.min(daysLeft,TARGET_DAYS))/TARGET_DAYS*100)) : 0;
     const urgencyColor = daysLeft!==null?(daysLeft<=14?'#EF4444':daysLeft<=60?'#F97316':daysLeft<=90?'#EAB308':'#34D399'):'#4A5568';
 
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px">
       <!-- SKU 헤더 -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:4px;height:18px;background:${ORDER_COLORS[k]};border-radius:2px"></div>
           <span style="font-size:15px;font-weight:700;color:var(--text)">${ORDER_SKU_NAMES[k]}</span>
@@ -2603,64 +2609,68 @@ function renderOrder(){
         <div style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};padding:3px 10px;border-radius:20px">${st.label}</div>
       </div>
 
-      <!-- 소진 속도 분석 -->
-      <div style="background:#0D1117;border-radius:10px;padding:14px 16px;margin-bottom:14px">
-        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px">소진 속도 분석</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div>
-            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">이커머스</div>
-            <div style="font-size:16px;font-weight:700;color:var(--text)">${ecomR}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">B2B 수기출고</div>
-            <div style="font-size:16px;font-weight:700;color:var(--text)">${manualR}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">합산 소진</div>
-            <div style="font-size:16px;font-weight:700;color:${ORDER_COLORS[k]}">${r}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
-          </div>
-        </div>
-        ${r>0?`<div style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px">
-            <span>현재고 소진 예상</span>
-            <span style="color:${urgencyColor};font-weight:600">${daysLeft}일 후 (${soginDate})</span>
-          </div>
-          <div style="height:6px;background:#1A1D27;border-radius:3px;overflow:hidden">
-            <div style="height:6px;background:${urgencyColor};width:${urgencyPct}%;border-radius:3px;transition:width 0.4s"></div>
-          </div>
-        </div>`:''}
-      </div>
-
-      <!-- 발주 시나리오 -->
+      <!-- 소진 속도 + 시나리오 가로 배치 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <!-- 시나리오 A -->
-        <div style="background:${needNow===0?'#0D1E14':'#0D1117'};border:1px solid ${needNow===0?'#16A34A30':'var(--border)'};border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <div style="width:6px;height:6px;border-radius:50%;background:${needNow===0?'#34D399':'#60A5FA'}"></div>
-            <div style="font-size:10px;font-weight:700;color:${needNow===0?'#34D399':'#60A5FA'}">시나리오 A · 즉시 입고</div>
+
+        <!-- 소진 속도 -->
+        <div style="background:#0D1117;border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px">소진 속도</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:11px;color:var(--text3)">이커머스</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${ecomR}<span style="font-size:10px;color:var(--text3)">개/일</span></span>
           </div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">제조사 재고 있을 경우</div>
-          <div style="font-size:20px;font-weight:700;color:${needNow===0?'#34D399':'var(--text)'}">
-            ${needNow===0?'발주 불필요':needNow.toLocaleString()+'개'}
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:11px;color:var(--text3)">B2B 출고</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${manualR}<span style="font-size:10px;color:var(--text3)">개/일</span></span>
           </div>
-          ${needNow>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">3개월치 목표 ${target.toLocaleString()}개</div>`:''}
+          <div style="height:1px;background:var(--border);margin-bottom:8px"></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:11px;color:var(--text3)">합산</span>
+            <span style="font-size:14px;font-weight:700;color:${ORDER_COLORS[k]}">${r}<span style="font-size:10px;color:var(--text3)">개/일</span></span>
+          </div>
+          ${r>0?`<div style="font-size:10px;color:var(--text3);margin-bottom:5px">현재고 소진 예상 · <span style="color:${urgencyColor};font-weight:600">${daysLeft}일 후</span></div>
+          <div style="height:5px;background:#1A1D27;border-radius:3px;overflow:hidden">
+            <div style="height:5px;background:${urgencyColor};width:${urgencyPct}%;border-radius:3px"></div>
+          </div>`:'<div style="font-size:10px;color:var(--text3)">판매 데이터 없음</div>'}
         </div>
-        <!-- 시나리오 B -->
-        <div style="background:${needProd===0?'#0D1E14':'#1A0E08'};border:1px solid ${needProd===0?'#16A34A30':'#F9731630'};border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <div style="width:6px;height:6px;border-radius:50%;background:${needProd===0?'#34D399':'#F97316'}"></div>
-            <div style="font-size:10px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">시나리오 B · 생산 필요</div>
+
+        <!-- 발주 시나리오 -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <!-- 시나리오 A -->
+          <div style="background:${needNow===0?'#0D1E14':'#0D1117'};border:1px solid ${needNow===0?'#16A34A30':'var(--border)'};border-radius:10px;padding:12px 14px;flex:1">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+              <div style="width:5px;height:5px;border-radius:50%;background:${needNow===0?'#34D399':'#60A5FA'}"></div>
+              <span style="font-size:10px;font-weight:700;color:${needNow===0?'#34D399':'#60A5FA'}">즉시 입고 가능</span>
+            </div>
+            <div style="font-size:18px;font-weight:700;color:${needNow===0?'#34D399':'var(--text)'}">
+              ${needNow===0?'발주 불필요':needNow.toLocaleString()+'개'}
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">
+              ${needNow===0?`현재고(${qty})가 목표(${target})를 충족`:`목표 ${target}개 − 현재고 ${qty}개`}
+            </div>
           </div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">리드타임 2달 감안</div>
-          <div style="font-size:20px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">
-            ${needProd===0?'발주 불필요':needProd.toLocaleString()+'개'}
+          <!-- 시나리오 B -->
+          <div style="background:${needProd===0?'#0D1E14':'#120A04'};border:1px solid ${needProd===0?'#16A34A30':'#F9731630'};border-radius:10px;padding:12px 14px;flex:1">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+              <div style="width:5px;height:5px;border-radius:50%;background:${needProd===0?'#34D399':'#F97316'}"></div>
+              <span style="font-size:10px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">생산 필요 (2달 리드타임)</span>
+            </div>
+            <div style="font-size:18px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">
+              ${needProd===0?'발주 불필요':needProd.toLocaleString()+'개'}
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">
+              ${needProd===0?`입고 대기 60일간 소진(${leadSogin}개)도 충족`
+                :needNow===0
+                  ?`지금은 충분하나 입고 대기 60일간 ${leadSogin}개 소진 → ${leadSogin-(target-qty+leadSogin-needProd)}개 부족 예상`
+                  :`목표 ${target}개 + 대기 소진 ${leadSogin}개 − 현재고 ${qty}개`}
+            </div>
           </div>
-          ${needProd>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">생산중 소진 ${r>0?Math.round(r*LEAD_TIME_PROD).toLocaleString()+'개 추가':'-'}</div>`:''}
         </div>
       </div>
     </div>`;
   }).join('');
-  document.getElementById('orderCalculator').innerHTML = calc;
+  document.getElementById('orderCalculator').innerHTML =
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${calc}</div>`;
 
   // ── 3. 발주 이력 ──
   const histEl = document.getElementById('orderHistory');
