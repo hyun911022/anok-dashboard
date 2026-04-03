@@ -1758,261 +1758,178 @@ function renderStock(){
   const batchState = calcFIFOBatchState();
   const today = new Date().toISOString().split('T')[0];
 
-  // ── 유틸: 날짜 포맷 ──
   function fmtDate(d){ return d ? d.slice(2).replace(/-/g,'/') : '-'; }
-  function daysFromNow(dateStr){ return dateStr ? Math.round((new Date(dateStr)-new Date(today))/(1000*60*60*24)) : null; }
-  function soginDate(days){
-    if(days===null) return '-';
-    const d=new Date(today); d.setDate(d.getDate()+days);
-    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-  }
+  function daysFromNow(s){ return s ? Math.round((new Date(s)-new Date(today))/(864e5)) : null; }
+  function soginStr(dl){ if(dl===null) return '판매 데이터 집계 중'; const d=new Date(today); d.setDate(d.getDate()+dl); return `${dl}일 후 소진 (${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()})`; }
 
-  // ── 1. 액션 알림 (경고 배너) ──
-  const alerts = [];
+  // ── 1. 알림 + 인사이트 통합 (중복 없이 한 곳만) ──
+  const notices = [];
   STOCK_SKUS.forEach(k=>{
+    const avg = avgSales[k]||0;
+    const totalStock = currentStock[k]||0;
+    const dl = avg>0 ? Math.round(totalStock/avg) : null;
+
     batchState[k].batches.forEach(b=>{
-      if(b.remaining<=0 || !b.expiry) return;
+      if(b.remaining<=0) return;
       const dExp  = daysFromNow(b.expiry);
       const dHalf = daysFromNow(b.halfLifeDate);
-      const totalStock = currentStock[k]||0;
+      const isBlock = b.halfLifeDate && today >= b.halfLifeDate;
       const expShort = fmtDate(b.expiry);
-      if(dExp<=180){
-        alerts.push({ priority:3, icon:'⛔', color:'#EF4444', bg:'#EF444415', border:'#EF444430',
-          label:'판매 위험',
-          text:`${STOCK_SKU_NAMES[k]}(${expShort}) — 유통기한 <strong>${dExp}일</strong> 남은 <strong>${b.remaining}개</strong>는 소비자 수령 거부 가능. 즉시 소진 필요.` });
-      } else if(dHalf!==null && dHalf<=0){
-        alerts.push({ priority:2, icon:'🚫', color:'#F97316', bg:'#F9731610', border:'#F9731628',
-          label:'B2B 납품 불가',
-          text:`${STOCK_SKU_NAMES[k]}(${expShort}) — 총 ${totalStock.toLocaleString()}개 중 B2C 전용 <strong>${b.remaining.toLocaleString()}개</strong>. 이커머스 채널 집중 판매를 권장합니다.` });
+
+      if(dExp!==null && dExp<=180){
+        notices.push({ p:3, icon:'⛔', color:'#EF4444', border:'#EF444430', bg:'#EF444410',
+          title:`${STOCK_SKU_NAMES[k]}(${expShort}) 유통기한 ${dExp}일`,
+          body:`${b.remaining.toLocaleString()}개 — 소비자 수령 거부 가능. 프로모션으로 즉시 소진하세요.` });
+      } else if(isBlock){
+        const daysNeed = avg>0 ? Math.round(b.remaining/avg) : null;
+        notices.push({ p:2, icon:'🚫', color:'#F97316', border:'#F9731630', bg:'#F9731610',
+          title:`${STOCK_SKU_NAMES[k]}(${expShort}) B2B 납품 불가`,
+          body:`총 ${totalStock.toLocaleString()}개 중 ${b.remaining.toLocaleString()}개 B2C 전용.${avg>0?` 현 속도로 약 ${daysNeed}일 소요.`:''} 이커머스 채널에 집중하세요.` });
       } else if(dHalf!==null && dHalf<=60){
-        alerts.push({ priority:1, icon:'⚠', color:'#EAB308', bg:'#EAB30810', border:'#EAB30828',
-          label:'B2B 납품 임박',
-          text:`${STOCK_SKU_NAMES[k]}(${expShort}) — <strong>${dHalf}일 후</strong> B2B 납품 불가 전환. ${b.remaining}개를 우선 거래처 소진하세요.` });
+        notices.push({ p:1, icon:'⚠', color:'#EAB308', border:'#EAB30830', bg:'#EAB30810',
+          title:`${STOCK_SKU_NAMES[k]}(${expShort}) ${dHalf}일 후 B2B 납품 불가`,
+          body:`${b.remaining.toLocaleString()}개를 기한 전 거래처 납품 또는 특가로 소진하세요.` });
       }
     });
+
+    // 재발주
+    const latestB = batchState[k].batches.slice().reverse().find(b=>b.remaining>0&&b.expiry);
+    const dLastExp = daysFromNow(latestB?.expiry);
+    if((dLastExp!==null && dLastExp<=60)||(dl!==null && dl<=14)){
+      const reason = (dLastExp!==null && dLastExp<=60) ? `잔여 유통기한 ${dLastExp}일` : `재고 ${dl}일치`;
+      notices.push({ p:1, icon:'🔄', color:'#60A5FA', border:'#60A5FA30', bg:'#60A5FA08',
+        title:`${STOCK_SKU_NAMES[k]} 재발주 검토`,
+        body:`${reason} — 생산 리드타임 2달 감안 시 즉시 발주 필요.` });
+    }
   });
 
   const warnEl = document.getElementById('stockExpiryWarning');
+  const insightEl = document.getElementById('stockInsightCard');
+  if(insightEl) insightEl.style.display='none';
   if(warnEl){
-    if(alerts.length>0){
-      alerts.sort((a,b)=>b.priority-a.priority);
+    if(notices.length>0){
+      notices.sort((a,b)=>b.p-a.p);
       warnEl.style.display='block';
-      warnEl.innerHTML = alerts.map(a=>`
-        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;margin-bottom:8px;background:${a.bg};border:1px solid ${a.border};border-radius:10px">
-          <div style="font-size:16px;line-height:1;margin-top:1px;flex-shrink:0">${a.icon}</div>
-          <div style="flex:1">
-            <div style="font-size:10px;font-weight:700;color:${a.color};letter-spacing:0.5px;margin-bottom:3px">${a.label}</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.6">${a.text}</div>
+      warnEl.innerHTML = notices.map(n=>`
+        <div style="display:flex;gap:10px;padding:11px 14px;margin-bottom:8px;background:${n.bg};border:1px solid ${n.border};border-radius:10px;align-items:flex-start">
+          <div style="font-size:15px;flex-shrink:0;margin-top:1px">${n.icon}</div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${n.color};margin-bottom:2px">${n.title}</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.55">${n.body}</div>
           </div>
         </div>`).join('');
     } else { warnEl.style.display='none'; }
   }
 
-  // ── 2. 인사이트 ──
-  const insights = [];
-  STOCK_SKUS.forEach(k=>{
-    const totalStock = currentStock[k]||0;
-    const avg = avgSales[k]||0;
-    const name = STOCK_SKU_NAMES[k];
-    batchState[k].batches.forEach((b,bi)=>{
-      if(b.remaining<=0) return;
-      const dHalf = daysFromNow(b.halfLifeDate);
-      const dExp  = daysFromNow(b.expiry);
-      const expShort = fmtDate(b.expiry);
-      const isB2bBlock = b.halfLifeDate && today >= b.halfLifeDate;
-      if(isB2bBlock && dExp>180){
-        const daysNeed = avg>0?Math.round(b.remaining/avg):null;
-        insights.push({ priority:2, icon:'📦',
-          title:`${name}(${expShort}) B2C 전용 ${b.remaining.toLocaleString()}개`,
-          body: avg>0 ? `현 속도(일평균 ${avg.toFixed(1)}개) 기준 약 ${daysNeed}일 소요. 이커머스 채널 집중 판매로 조기 소진하세요.`
-                      : `B2B 납품이 불가한 수량을 자사몰·네이버·쿠팡에서 우선 소진하세요.` });
-      } else if(dHalf!==null && dHalf>0 && dHalf<=60){
-        insights.push({ priority:1, icon:'🏃',
-          title:`${name}(${expShort}) ${dHalf}일 후 B2B 납품 불가`,
-          body:`${b.remaining.toLocaleString()}개를 기한 전 거래처 발주로 처리하거나 특가로 소진하세요.` });
-      } else if(dExp!==null && dExp<=180){
-        insights.push({ priority:3, icon:'🔥',
-          title:`${name}(${expShort}) 유통기한 ${dExp}일`,
-          body:`${b.remaining}개를 프로모션·할인 판매로 즉시 소진하세요.` });
-      }
-    });
-    // 재발주
-    if(avg>0){
-      const dl = Math.round(totalStock/avg);
-      const latestB = batchState[k].batches.slice().reverse().find(b=>b.remaining>0&&b.expiry);
-      const dLastExp = daysFromNow(latestB?.expiry);
-      if((dLastExp!==null && dLastExp<=60) || dl<=14){
-        const reason = (dLastExp!==null && dLastExp<=60) ? `잔여 유통기한 ${dLastExp}일` : `재고 ${dl}일치`;
-        insights.push({ priority:1, icon:'🔄',
-          title:`${name} 재발주 검토`,
-          body:`${reason} — 리드타임 2달 감안 시 즉시 신규 발주가 필요합니다.` });
-      }
-    }
-  });
-
-  const insightEl = document.getElementById('stockInsightCard');
-  if(insightEl){
-    if(insights.length>0){
-      insights.sort((a,b)=>b.priority-a.priority);
-      insightEl.style.display='block';
-      insightEl.innerHTML = `
-        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:10px">운영 인사이트</div>` +
-        insights.map(ins=>`
-          <div style="display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)">
-            <div style="font-size:16px;flex-shrink:0">${ins.icon}</div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">${ins.title}</div>
-              <div style="font-size:12px;color:var(--text3);line-height:1.6">${ins.body}</div>
-            </div>
-          </div>`).join('');
-    } else { insightEl.style.display='none'; }
-  }
-
-  // ── 3. SKU 재고 현황 카드 ──
-  // 각 SKU별: 상단에 전체 수량/소진정보, 하단에 배치별 2열 구분
-  const skuCards = STOCK_SKUS.map(k=>{
+  // ── 2. SKU 카드 — 2열 그리드, compact ──
+  const skuHtml = STOCK_SKUS.map(k=>{
     const stock = currentStock[k]||0;
     const avg   = avgSales[k]||0;
     const dl    = avg>0?Math.round(stock/avg):null;
     const batches = batchState[k].batches.filter(b=>b.originalQty>0);
+    const color = STOCK_COLORS[k];
 
-    // 배치를 B2C전용 / 납품가능으로 분류
-    const b2cOnly=[], b2bOk=[];
-    batches.forEach((b,bi)=>{
-      const dHalf = daysFromNow(b.halfLifeDate);
+    // 배치 행 (한 줄씩 compact)
+    const batchRows = batches.map(b=>{
       const dExp  = daysFromNow(b.expiry);
-      const isBlock = b.halfLifeDate && today>=b.halfLifeDate;
-      const isDanger = dExp!==null && dExp<=180;
-      const isSoon   = dHalf!==null && dHalf<=60 && dHalf>0;
-      const obj = { ...b, bi, dHalf, dExp, isBlock, isDanger, isSoon };
-      if(isDanger || isBlock) b2cOnly.push(obj);
-      else b2bOk.push(obj);
-    });
-
-    const hasAlert = b2cOnly.length>0;
-
-    // 소진 예상일
-    const sogin = dl!==null ? `${dl}일치 · ${soginDate(dl)} 소진 예상` : '판매데이터 집계 중';
-
-    const renderBatch = (b) => {
-      const expShort = fmtDate(b.expiry);
-      const halfShort = fmtDate(b.halfLifeDate);
-      let alertLine='';
-      if(b.isDanger) alertLine=`<div style="font-size:10px;color:#EF4444;font-weight:600;margin-top:3px">⛔ 유통기한 ${b.dExp}일 남음</div>`;
-      else if(b.isBlock) alertLine=`<div style="font-size:10px;color:#F97316;font-weight:600;margin-top:3px">🚫 B2C 전용 (기준일 ${halfShort} 경과)</div>`;
-      else if(b.isSoon) alertLine=`<div style="font-size:10px;color:#EAB308;font-weight:600;margin-top:3px">⚠ ${b.dHalf}일 후 납품 불가</div>`;
-      else alertLine=`<div style="font-size:10px;color:var(--text3);margin-top:3px">B2B 납품 가능 · 기준일 ${halfShort}</div>`;
-
-      const bgColor = b.isDanger?'#EF444408':b.isBlock?'#F9731608':b.isSoon?'#EAB30808':'transparent';
-      const borderColor = b.isDanger?'#EF444430':b.isBlock?'#F9731630':b.isSoon?'#EAB30830':'var(--border)';
-
-      return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:10px 12px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-          <div style="font-size:10px;color:var(--text3);font-weight:500">유통기한 ${expShort}</div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}<span style="font-size:10px;font-weight:400;color:var(--text3)"> 개</span></div>
+      const dHalf = daysFromNow(b.halfLifeDate);
+      const isBlock = b.halfLifeDate && today >= b.halfLifeDate;
+      let tag, tagColor;
+      if(dExp!==null && dExp<=180){ tag='판매위험'; tagColor='#EF4444'; }
+      else if(isBlock)            { tag='B2C전용';  tagColor='#F97316'; }
+      else if(dHalf!==null&&dHalf<=60){ tag=`${dHalf}일후불가`; tagColor='#EAB308'; }
+      else                        { tag='납품가능';  tagColor='#6B7280'; }
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3)">유통 ${fmtDate(b.expiry)} · 제조 ${fmtDate(b.mfgDate)}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${b.remaining.toLocaleString()}개</span>
+          <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 6px;border-radius:4px;white-space:nowrap">${tag}</span>
         </div>
-        <div style="font-size:10px;color:var(--text3)">제조 ${fmtDate(b.mfgDate)}</div>
-        ${alertLine}
       </div>`;
-    };
+    }).join('');
 
-    const b2cHtml = b2cOnly.length>0 ? `
-      <div>
-        <div style="font-size:9px;font-weight:700;color:#F97316;letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase">B2C 전용</div>
-        <div style="display:flex;flex-direction:column;gap:6px">${b2cOnly.map(renderBatch).join('')}</div>
-      </div>` : '';
+    const sogin = dl!==null ? soginStr(dl) : '판매 데이터 집계 중';
 
-    const b2bHtml = b2bOk.length>0 ? `
-      <div>
-        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase">B2B + B2C</div>
-        <div style="display:flex;flex-direction:column;gap:6px">${b2bOk.map(renderBatch).join('')}</div>
-      </div>` : '';
-
-    const divider = b2cOnly.length>0 && b2bOk.length>0
-      ? '<div style="width:1px;background:var(--border);margin:0 4px;flex-shrink:0"></div>'
-      : '';
-
-    return `<div class="card" style="margin-bottom:12px;padding:16px">
-      <!-- SKU 헤더 -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    return `<div class="card" style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">${STOCK_SKU_NAMES[k]}</div>
-          <div style="font-size:11px;color:var(--text3)">${sogin}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:3px;height:12px;background:${color};border-radius:2px"></div>
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;margin-left:9px">${sogin}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:22px;font-weight:700;color:var(--text);line-height:1">${stock.toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:1px">총 재고 · 일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1">${stock.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text3)">일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</div>
         </div>
       </div>
-      <!-- 배치 구분 -->
-      <div style="display:flex;gap:8px">
-        ${b2cHtml}${divider}${b2bHtml}
-      </div>
+      ${batchRows}
     </div>`;
   }).join('');
 
-  document.getElementById('stockCards').innerHTML = skuCards;
+  const cardsEl = document.getElementById('stockCards');
+  if(cardsEl){
+    cardsEl.style.display='grid';
+    cardsEl.style.gridTemplateColumns='repeat(2,1fr)';
+    cardsEl.style.gap='12px';
+    cardsEl.innerHTML = skuHtml;
+  }
 
-  // ── 4. 출고 현황 테이블 ──
-  const byCh = calcSoldByChannelAll();
-  const moAll = calcManualOutAll();
+  // ── 3. 출고 현황 ──
+  const byCh=calcSoldByChannelAll(), moAll=calcManualOutAll();
   let outTbody='';
   STOCK_SKUS.forEach(k=>{
     const c=byCh.cafe[k]||0,n=byCh.naver[k]||0,o=byCh.coup[k]||0,m=moAll[k]||0,total=c+n+o+m;
     outTbody+=`<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:10px;font-weight:600;color:var(--text);white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
-      <td style="padding:10px;text-align:right;color:#9B6DFF;white-space:nowrap">${c||'—'}</td>
-      <td style="padding:10px;text-align:right;color:#34D399;white-space:nowrap">${n||'—'}</td>
-      <td style="padding:10px;text-align:right;color:#FB923C;white-space:nowrap">${o||'—'}</td>
-      <td style="padding:10px;text-align:right;color:var(--text3);white-space:nowrap">${m||'—'}</td>
-      <td style="padding:10px;text-align:right;font-weight:700;color:var(--text2);white-space:nowrap">${total||'—'}</td>
+      <td style="padding:9px 10px;font-weight:600;color:var(--text);white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
+      <td style="padding:9px 10px;text-align:right;color:#9B6DFF;white-space:nowrap">${c||'—'}</td>
+      <td style="padding:9px 10px;text-align:right;color:#34D399;white-space:nowrap">${n||'—'}</td>
+      <td style="padding:9px 10px;text-align:right;color:#FB923C;white-space:nowrap">${o||'—'}</td>
+      <td style="padding:9px 10px;text-align:right;color:var(--text3);white-space:nowrap">${m||'—'}</td>
+      <td style="padding:9px 10px;text-align:right;font-weight:700;color:var(--text2);white-space:nowrap">${total||'—'}</td>
     </tr>`;
   });
   const outEl=document.getElementById('stockOutTableBody');
   if(outEl) outEl.innerHTML=outTbody;
 
-  // ── 5. 입고 내역 ──
+  // ── 4. 입고 내역 ──
   const inBatches=[...stockBatches].filter(b=>!b.isInitial).sort((a,b)=>b.date.localeCompare(a.date));
   const inEl=document.getElementById('stockInList');
   if(inEl){
-    if(inBatches.length===0){
-      inEl.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">입고 내역이 없습니다.</div>';
-    } else {
-      inEl.innerHTML=inBatches.map(batch=>{
-        const gi=stockBatches.indexOf(batch);
-        const items=batch.items.map(it=>`${STOCK_SKU_NAMES[it.sku]} ${it.qty}개${it.expiry?' (유통 '+fmtDate(it.expiry)+')':''}`).join(' · ');
-        return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${batch.date} · <span style="color:var(--text3)">${batch.reason||'정기 입고'}</span></div>
-            <div style="font-size:11px;color:var(--text3)">${items}</div>
-          </div>
-          <button onclick="deleteBatch(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;flex-shrink:0">×</button>
-        </div>`;
-      }).join('');
-    }
+    inEl.innerHTML=inBatches.length===0
+      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">입고 내역이 없습니다.</div>'
+      : inBatches.map(batch=>{
+          const gi=stockBatches.indexOf(batch);
+          const items=batch.items.map(it=>`${STOCK_SKU_NAMES[it.sku]} ${it.qty}개${it.expiry?' (유통 '+fmtDate(it.expiry)+')':''}`).join(' · ');
+          return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${batch.date} · <span style="color:var(--text3)">${batch.reason||'정기 입고'}</span></div>
+              <div style="font-size:11px;color:var(--text3)">${items}</div>
+            </div>
+            <button onclick="deleteBatch(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;flex-shrink:0">×</button>
+          </div>`;
+        }).join('');
   }
 
-  // ── 6. 수기 출고 내역 ──
+  // ── 5. 수기 출고 내역 ──
   const moSorted=[...manualOuts].sort((a,b)=>b.date.localeCompare(a.date));
   const moEl=document.getElementById('manualOutList');
   if(moEl){
-    if(moSorted.length===0){
-      moEl.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>';
-    } else {
-      moEl.innerHTML=moSorted.map(r=>{
-        const gi=manualOuts.indexOf(r);
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${r.date} · <span style="color:var(--text3)">${r.reason||'기타'}</span></div>
-            <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}</div>
-          </div>
-          <button onclick="deleteManualOut(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px">×</button>
-        </div>`;
-      }).join('');
-    }
+    moEl.innerHTML=moSorted.length===0
+      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>'
+      : moSorted.map(r=>{
+          const gi=manualOuts.indexOf(r);
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${r.date} · <span style="color:var(--text3)">${r.reason||'기타'}</span></div>
+              <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}</div>
+            </div>
+            <button onclick="deleteManualOut(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px">×</button>
+          </div>`;
+        }).join('');
   }
 }
-
 
 // ── 모달 함수 ──────────────────────────────────────
 function openStockInitModal(){
