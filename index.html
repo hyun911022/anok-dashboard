@@ -379,7 +379,7 @@
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📊</div>
         <div>
-          <div style="color:#fff;font-size:15px;font-weight:700">월간 성과 요약</div>
+          <div style="color:#fff;font-size:15px;font-weight:700" id="insightTitle">월간 성과 요약</div>
           <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">—</div>
         </div>
       </div>
@@ -1239,21 +1239,56 @@ function renderInsight(){
   const netMargin=totRev>0?Math.round(netProfit/totRev*100):0;
   const targetTotal=TARGET_TOTAL;
   const achRate=Math.round(totRev/targetTotal*100);
-  const daysLeft=daysInMonth-days;
 
-  document.getElementById('insightSubtitle').textContent=`${_im}월 ${days}일 기준`;
-  document.getElementById('insightSummaryText').textContent=
-    `누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
+  // 현재 월인지 과거 월인지 판단
+  const _today = new Date();
+  const _curMonth = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}`;
+  const isPastMonth = selectedMonth < _curMonth;
+
+  // 과거 월: 남은 일수 0, 예상 = 실적 그대로
+  const daysLeft = isPastMonth ? 0 : Math.max(0, daysInMonth - days);
+  const effectiveProjTotal = isPastMonth ? totRev : projTotal;
+  const effectiveProjAchRate = Math.round(effectiveProjTotal / targetTotal * 100);
+
+  document.getElementById('insightTitle').textContent = isPastMonth ? `${_im}월 최종 리포트` : '월간 성과 요약';
+  document.getElementById('insightSubtitle').textContent = isPastMonth
+    ? `${_im}월 최종 실적`
+    : `${_im}월 ${days}일 기준`;
+  document.getElementById('insightSummaryText').textContent = isPastMonth
+    ? `최종 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 목표 달성률 ${achRate}%`
+    : `누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
 
   const targetDailyAvg = Math.round(targetTotal/daysInMonth);
   const dailyAchRate = targetDailyAvg>0 ? Math.round(avgDaily/targetDailyAvg*100) : 0;
 
-  const projAchRate=Math.round(projTotal/targetTotal*100);
+  const projAchRate = effectiveProjAchRate;
   const kpiItems=[
     {label:'순수익 (률)',val:'₩'+fmt(netProfit),sub2:netMargin+'%',sub:`총수익 ₩${fmt(totPrf)} − 퍼포광고 ₩${fmt(metaAd+naverAdTotal)} − 대행료 ₩${fmt(agencyFee)}`,color:'#6366F1',icon:'💰',positive:netProfit>=0},
-    {label:'예상 목표 달성률',val:projAchRate+'%',sub:`예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,color:'#0EA5E9',icon:'🎯',positive:projAchRate>=100},
+    {
+      label: isPastMonth ? '목표 달성률 (최종)' : '예상 목표 달성률',
+      val: projAchRate+'%',
+      sub: isPastMonth
+        ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)}`
+        : `예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,
+      color:'#0EA5E9', icon:'🎯', positive: projAchRate>=100
+    },
     {label:'일평균 매출',val:'₩'+fmt(avgDaily),sub2:dailyAchRate+'%',sub:`목표일평균 ₩${fmt(targetDailyAvg)}`,color:'#16A34A',icon:'📈',positive:avgDaily>=targetDailyAvg},
-    {label:'잔여 목표',val:'₩'+fmt(Math.max(0,targetTotal-totRev)),sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,color:'#EA580C',icon:'🎯',positive:totRev>=targetTotal},
+    isPastMonth
+      ? {
+          label:'월 마감',
+          val: totRev>=targetTotal ? '목표 달성 ✓' : '미달성',
+          sub: totRev>=targetTotal
+            ? `목표 대비 +₩${fmt(totRev-targetTotal)} 초과`
+            : `목표 대비 −₩${fmt(targetTotal-totRev)} 부족`,
+          color:'#EA580C', icon: totRev>=targetTotal ? '🏆' : '📋',
+          positive: totRev>=targetTotal
+        }
+      : {
+          label:'잔여 목표',
+          val:'₩'+fmt(Math.max(0,targetTotal-totRev)),
+          sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,
+          color:'#EA580C', icon:'🎯', positive: totRev>=targetTotal
+        },
   ];
   document.getElementById('insightCards').innerHTML=kpiItems.map(k=>`
     <div class="card" style="padding:16px 18px">
