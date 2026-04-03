@@ -1667,7 +1667,7 @@ function renderSkuProfit(mRecs){
 
   // 헤더 요약
   const summaryHtml = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;max-width:600px">
       <div style="background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
         <div style="font-size:10px;color:var(--text3);margin-bottom:4px">총 매출</div>
         <div style="font-size:16px;font-weight:700;color:var(--text)">${fmtW(Math.round(totalRev))}</div>
@@ -1688,38 +1688,39 @@ function renderSkuProfit(mRecs){
     const barW = Math.round(s.prf/maxPrf*100);
     const isSet = SETS.some(x=>x.key===s.key);
 
-    // 채널 구성 배지
     const chBadges = [
-      s.cafe  ? `<span style="font-size:9px;color:#9B6DFF;background:#9B6DFF18;padding:1px 5px;border-radius:3px">${s.cafe}개</span>` : '',
-      s.naver ? `<span style="font-size:9px;color:#34D399;background:#34D39918;padding:1px 5px;border-radius:3px">${s.naver}개</span>` : '',
-      s.coup  ? `<span style="font-size:9px;color:#FB923C;background:#FB923C18;padding:1px 5px;border-radius:3px">${s.coup}개</span>` : '',
+      s.cafe  ? `<span style="font-size:9px;color:#9B6DFF;background:#9B6DFF18;padding:1px 5px;border-radius:3px">자사몰 ${s.cafe}개</span>` : '',
+      s.naver ? `<span style="font-size:9px;color:#34D399;background:#34D39918;padding:1px 5px;border-radius:3px">네이버 ${s.naver}개</span>` : '',
+      s.coup  ? `<span style="font-size:9px;color:#FB923C;background:#FB923C18;padding:1px 5px;border-radius:3px">쿠팡 ${s.coup}개</span>` : '',
     ].filter(Boolean).join(' ');
 
     return `
-      <div style="padding:11px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:11px;color:var(--text3);width:14px;text-align:center">${i+1}</div>
-            <div style="width:3px;height:14px;background:${s.color};border-radius:2px;flex-shrink:0"></div>
+      <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <!-- 왼쪽: 순위 + SKU명 + 채널배지 -->
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <div style="font-size:11px;color:var(--text3);width:14px;margin-top:2px">${i+1}</div>
+            <div style="width:3px;height:14px;background:${s.color};border-radius:2px;flex-shrink:0;margin-top:2px"></div>
             <div>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                 <span style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</span>
                 ${isSet?'<span style="font-size:9px;color:#A78BFA;background:#A78BFA18;padding:1px 5px;border-radius:3px">세트</span>':''}
               </div>
-              <div style="display:flex;align-items:center;gap:5px;margin-top:3px">${chBadges}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">${chBadges}</div>
             </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:13px;font-weight:700;color:${s.prf>=0?'var(--text)':'#F43F5E'}">${fmtW(Math.round(s.prf))}</div>
-            <div style="font-size:10px;color:var(--text3)">${s.qty}개 · 마진 ${s.margin}%</div>
+          <!-- 오른쪽: 수익 + 수량/마진 -->
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:14px;font-weight:700;color:${s.prf>=0?'var(--text)':'#F43F5E'}">${fmtW(Math.round(s.prf))}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${s.qty}개 · 마진 ${s.margin}%</div>
           </div>
         </div>
-        <!-- 수익 기여도 바 -->
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+        <!-- 수익 기여도 바 — 최대 너비 제한 -->
+        <div style="display:flex;align-items:center;gap:10px;padding-left:22px">
+          <div style="flex:1;max-width:400px;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
             <div style="height:5px;background:${s.color};width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
           </div>
-          <div style="font-size:10px;color:var(--text3);white-space:nowrap;width:32px;text-align:right">${contribPct}%</div>
+          <div style="font-size:10px;color:var(--text3);white-space:nowrap">${contribPct}% 기여</div>
         </div>
       </div>`;
   }).join('');
