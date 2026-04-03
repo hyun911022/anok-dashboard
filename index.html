@@ -711,7 +711,8 @@
     <!-- 인사이트 -->
     <div id="stockInsightCard" style="display:none;margin-bottom:20px"></div>
 
-    <!-- SKU 재고 현황 (메인) -->
+    <!-- 재고 전환 가치 -->
+    <div id="stockValueCard" style="margin-bottom:20px"></div>
     <div id="stockCards" style="margin-bottom:20px"></div>
 
     <!-- SKU별 출고 현황 -->
@@ -852,6 +853,9 @@ const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:187
 const NAVER_PROFITS  = {shampoo:8683.09,treatment:8983.09,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
 const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
 const COUP_PROFITS   = {shampoo:13767.87,treatment:14067.87,bodywash:13854.78,bodylotion:13654.78};
+
+// 단품 원가 (제조원가)
+const UNIT_COSTS = {shampoo:5200, treatment:4900, bodywash:4300, bodylotion:4500};
 
 const SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
 
@@ -1939,6 +1943,143 @@ function renderStock(){
   function fmtDate(d){ return d ? d.slice(2).replace(/-/g,'/') : '-'; }
   function daysFromNow(s){ return s ? Math.round((new Date(s)-new Date(today))/(864e5)) : null; }
   function soginStr(dl){ if(dl===null) return '판매 데이터 집계 중'; const d=new Date(today); d.setDate(d.getDate()+dl); return `${dl}일 후 소진 (${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()})`; }
+  function fmtV(n){ return n>=100000000?`${(n/100000000).toFixed(1)}억`:(n>=10000?`${Math.round(n/10000).toLocaleString()}만`:`₩${n.toLocaleString()}`); }
+
+  // ── 0. 재고 전환 가치 계산 (세트 포함 + 원가) ──
+  const CH_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
+  const ALL_ITEMS = [
+    {key:'shampoo',   name:'샴푸',      color:'#9B6DFF', type:'single'},
+    {key:'treatment', name:'트리트먼트', color:'#34D399', type:'single'},
+    {key:'bodywash',  name:'바디워시',   color:'#38BDF8', type:'single'},
+    {key:'bodylotion',name:'바디로션',   color:'#FB923C', type:'single'},
+    {key:'hairset',  name:'헤어세트', color:'#A78BFA', type:'set', parts:{shampoo:1,treatment:1}},
+    {key:'bodyset',  name:'바디세트', color:'#FBBF24', type:'set', parts:{bodywash:1,bodylotion:1}},
+    {key:'washset',  name:'워시세트', color:'#60A5FA', type:'set', parts:{shampoo:1,bodywash:1}},
+  ];
+
+  // 채널별·아이템별 판매량 집계
+  const soldCnt = {};
+  ALL_ITEMS.forEach(it=>{ soldCnt[it.key]={cafe:0,naver:0,coup:0}; });
+  records.forEach(r=>{
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+    ALL_ITEMS.forEach(it=>{
+      soldCnt[it.key].cafe  += (c[it.key]||0);
+      soldCnt[it.key].naver += (n[it.key]||0);
+      if(it.type==='single') soldCnt[it.key].coup += (o[it.key]||0);
+    });
+  });
+
+  // SKU별 총 소진량 (단품+세트 합산)
+  const skuTotalSold = {};
+  CH_SKUS.forEach(k=>{ skuTotalSold[k]=0; });
+  ALL_ITEMS.forEach(it=>{
+    const tot = soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup;
+    if(it.type==='single'){ skuTotalSold[it.key]+=tot; }
+    else { Object.keys(it.parts).forEach(sk=>{ skuTotalSold[sk]+=tot*it.parts[sk]; }); }
+  });
+
+  // 단품:세트 비중 반영해서 SKU별 예상 매출/수익/원가
+  let grandRev=0, grandPrf=0, grandCost=0;
+  const skuValue={};
+  const SKU_NAMES2  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+  const SKU_COLORS2 = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#FB923C'};
+
+  CH_SKUS.forEach(k=>{
+    const stockQty = currentStock[k]||0;
+    const totalConsumed = skuTotalSold[k]||0;
+    if(stockQty===0){ skuValue[k]={qty:0,rev:0,prf:0,cost:null,mix:[]}; return; }
+
+    // 소진 경로별 (단품 + 각 세트)
+    const paths=[];
+    const singleTot = soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup;
+    if(singleTot>0){
+      const cP=singleTot>0?soldCnt[k].cafe/singleTot:0, nP=soldCnt[k].naver/singleTot, oP=soldCnt[k].coup/singleTot;
+      paths.push({label:'단품', ratio:totalConsumed>0?singleTot/totalConsumed:1,
+        pricePerSku: CAFE_PRICES[k]*cP+NAVER_PRICES[k]*nP+(COUP_PRICES[k]||0)*oP,
+        profitPerSku:CAFE_PROFITS[k]*cP+NAVER_PROFITS[k]*nP+(COUP_PROFITS[k]||0)*oP});
+    }
+    ALL_ITEMS.filter(it=>it.type==='set'&&it.parts[k]).forEach(it=>{
+      const setTot=soldCnt[it.key].cafe+soldCnt[it.key].naver;
+      if(setTot===0) return;
+      const cP=soldCnt[it.key].cafe/setTot, nP=soldCnt[it.key].naver/setTot;
+      paths.push({label:it.name, ratio:totalConsumed>0?(setTot*it.parts[k])/totalConsumed:0,
+        pricePerSku: (CAFE_PRICES[it.key]*cP+NAVER_PRICES[it.key]*nP)*it.parts[k],
+        profitPerSku:(CAFE_PROFITS[it.key]*cP+NAVER_PROFITS[it.key]*nP)*it.parts[k]});
+    });
+
+    const totalRatio=paths.reduce((s,p)=>s+p.ratio,0);
+    if(totalRatio===0||paths.length===0){
+      const rev=Math.round(stockQty*CAFE_PRICES[k]), prf=Math.round(stockQty*CAFE_PROFITS[k]);
+      const cost=UNIT_COSTS[k]>0?Math.round(stockQty*UNIT_COSTS[k]):null;
+      skuValue[k]={qty:stockQty,rev,prf,cost,mix:[]};
+      grandRev+=rev; grandPrf+=prf; if(cost) grandCost+=cost; return;
+    }
+    let skuRev=0,skuPrf=0; const mix=[];
+    paths.forEach(p=>{
+      const w=p.ratio/totalRatio, qty=stockQty*w;
+      skuRev+=qty*p.pricePerSku; skuPrf+=qty*p.profitPerSku;
+      if(p.ratio>0.01) mix.push({label:p.label,pct:Math.round(w*100)});
+    });
+    skuRev=Math.round(skuRev); skuPrf=Math.round(skuPrf);
+    const cost=UNIT_COSTS[k]>0?Math.round(stockQty*UNIT_COSTS[k]):null;
+    grandRev+=skuRev; grandPrf+=skuPrf; if(cost) grandCost+=cost;
+    skuValue[k]={qty:stockQty,rev:skuRev,prf:skuPrf,cost,mix};
+  });
+
+  const grandMargin=grandRev>0?Math.round(grandPrf/grandRev*100):0;
+  const hasCostData=CH_SKUS.some(k=>UNIT_COSTS[k]>0);
+
+  // 단품/세트 비중 요약
+  const totalSoldAll=ALL_ITEMS.reduce((s,it)=>s+soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup,0);
+  const singleAll=CH_SKUS.reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup,0);
+  const setAll=['hairset','bodyset','washset'].reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver,0);
+  const singlePct=totalSoldAll>0?Math.round(singleAll/totalSoldAll*100):0;
+  const setPct=totalSoldAll>0?Math.round(setAll/totalSoldAll*100):0;
+
+  const valueEl=document.getElementById('stockValueCard');
+  if(valueEl && records.length>0){
+    const colCount = hasCostData ? '1fr 1fr 1fr' : '1fr 1fr';
+    valueEl.innerHTML=`
+      <div style="background:linear-gradient(135deg,#0D1E3A,#13203B);border:1px solid #1E3A5F;border-radius:14px;padding:18px 20px">
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;color:#60A5FA;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:3px">현 재고 전환 가치</div>
+          <div style="font-size:11px;color:#4A6580">판매 추이 기반 · 단품 ${singlePct}% · 세트 ${setPct}% 비중 적용</div>
+        </div>
+        <div style="display:grid;grid-template-columns:${colCount};gap:10px;margin-bottom:14px">
+          <div style="background:#0A1628;border-radius:10px;padding:14px 16px">
+            <div style="font-size:10px;color:#60A5FA;margin-bottom:4px">예상 총매출</div>
+            <div style="font-size:22px;font-weight:700;color:#BAE6FD">${fmtV(grandRev)}</div>
+            <div style="font-size:10px;color:#4A6580;margin-top:2px">&#8361;${grandRev.toLocaleString()}</div>
+          </div>
+          <div style="background:#0A1628;border-radius:10px;padding:14px 16px">
+            <div style="font-size:10px;color:#34D399;margin-bottom:4px">예상 총수익 (상품)</div>
+            <div style="font-size:22px;font-weight:700;color:#34D399">${fmtV(grandPrf)}</div>
+            <div style="font-size:10px;color:#4A6580;margin-top:2px">마진율 ${grandMargin}%</div>
+          </div>
+          ${hasCostData?`<div style="background:#0A1628;border-radius:10px;padding:14px 16px">
+            <div style="font-size:10px;color:#FB923C;margin-bottom:4px">재고 원가 가치</div>
+            <div style="font-size:22px;font-weight:700;color:#FB923C">${fmtV(grandCost)}</div>
+            <div style="font-size:10px;color:#4A6580;margin-top:2px">&#8361;${grandCost.toLocaleString()}</div>
+          </div>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${CH_SKUS.map(k=>{
+            const v=skuValue[k]; if(!v||v.qty===0) return '';
+            return `<div style="background:#0C1A2E;border:1px solid #1A2E44;border-left:3px solid ${SKU_COLORS2[k]};border-radius:8px;padding:10px 12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:11px;font-weight:600;color:var(--text2)">${SKU_NAMES2[k]}</span>
+                <span style="font-size:10px;color:var(--text3)">${v.qty.toLocaleString()}개</span>
+              </div>
+              <div style="font-size:15px;font-weight:700;color:#BAE6FD">${fmtV(v.rev)}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">수익 ${fmtV(v.prf)}${v.cost?` · 원가 ${fmtV(v.cost)}`:''}</div>
+              ${v.mix.length>1?`<div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap">${v.mix.map(m=>`<span style="font-size:9px;color:var(--text3);background:#1A2E44;padding:1px 5px;border-radius:3px">${m.label} ${m.pct}%</span>`).join('')}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:10px;color:#3A5070;margin-top:10px;text-align:right">* 쿠팡 fulfillment·광고비 미포함 / 실제와 차이 있을 수 있음</div>
+      </div>`;
+  } else if(valueEl){ valueEl.innerHTML=''; }
+
 
   // ── 1. 알림 + 인사이트 통합 (중복 없이 한 곳만) ──
   const notices = [];
@@ -2004,30 +2145,28 @@ function renderStock(){
       else if(dHalf!==null&&dHalf<=60){ tag=`${dHalf}일후불가`; tagColor='#EAB308'; }
       else                        { tag='납품가능';  tagColor='#34D399'; }
 
-      // 유통기한 진행 Bar: 제조일~유통기한 중 오늘이 몇 %인지
+      // 유통기한 진행 Bar
       let barHtml = '';
+      let pctBadge = '';
       if(b.mfgDate && b.expiry){
         const totalDays = Math.round((new Date(b.expiry)-new Date(b.mfgDate))/(864e5));
         const elapsedDays = Math.round((new Date(today)-new Date(b.mfgDate))/(864e5));
         const pct = Math.min(Math.max(Math.round(elapsedDays/totalDays*100),0),100);
         const halfPct = b.halfLifeDate ? Math.round((new Date(b.halfLifeDate)-new Date(b.mfgDate))/(864e5)/totalDays*100) : 50;
-        // 바 색상: 50% 넘으면 오렌지, 80% 넘으면 빨강, 이하 초록
         const barColor = pct>=80?'#EF4444':pct>=halfPct?'#F97316':'#34D399';
+        // 퍼센트 배지 (유통기한 옆에 표시)
+        pctBadge = `<span style="font-size:9px;font-weight:700;color:${barColor};margin-left:4px">${pct}%</span>`;
         barHtml = `
           <div style="margin-top:7px;margin-bottom:2px">
             <div style="position:relative;height:6px;background:#2A2D3E;border-radius:3px;overflow:visible">
-              <!-- 채워진 바 -->
               <div style="height:6px;border-radius:3px;background:${barColor};width:${pct}%;transition:width 0.4s"></div>
-              <!-- 50% 기준선 (B2B 납품 불가 기준) -->
               <div style="position:absolute;top:-3px;left:${halfPct}%;width:2px;height:12px;background:#FB923C;border-radius:1px;transform:translateX(-50%)" title="B2B납품불가 기준일"></div>
-              <!-- 오늘 위치 포인터 -->
               <div style="position:absolute;top:-4px;left:${pct}%;transform:translateX(-50%)">
                 <div style="width:8px;height:8px;border-radius:50%;background:${barColor};border:2px solid var(--card);box-shadow:0 0 0 1px ${barColor}"></div>
               </div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text3)">
               <span style="white-space:nowrap">${fmtDate(b.mfgDate)}</span>
-              <span style="color:${barColor};font-weight:600">${pct}% 경과</span>
               <span style="white-space:nowrap">${fmtDate(b.expiry)} 만료</span>
             </div>
           </div>`;
@@ -2036,7 +2175,7 @@ function renderStock(){
       return `<div style="padding:8px 0;border-top:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
           <div style="font-size:11px;color:var(--text3);line-height:1.5">
-            제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}
+            제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}${pctBadge}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
             <span style="font-size:13px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</span>
