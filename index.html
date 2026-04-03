@@ -20,17 +20,11 @@
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-  /* 헤더 */
   .header{background:linear-gradient(135deg,#0B1F3A 0%,#1E3A5F 100%);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.08)}
-  .header-brand{display:flex;align-items:baseline;gap:12px}
-  .header-brand h1{font-size:22px;font-weight:300;color:#fff;letter-spacing:4px;font-family:Georgia,'Times New Roman',serif}
-  .header-brand span{font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.5px}
-  .header-right{display:flex;align-items:center;gap:10px}
   .month-badge{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.45);font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);font-family:monospace;letter-spacing:0.5px}
   .btn-input{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(99,102,241,0.45);letter-spacing:0.2px;transition:all 0.15s}
   .btn-input:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.6)}
 
-  /* 입력 모달 */
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
   .modal-bg.open{display:flex}
   .modal{background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
@@ -57,10 +51,8 @@
   .btn-save{background:var(--anok-green);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
   .btn-save:hover{background:var(--anok-green2)}
 
-  /* 메인 레이아웃 */
   .main{padding:20px 24px;max-width:1400px;margin:0 auto}
 
-  /* KPI 카드 */
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
   .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;border-left:3px solid}
   .kpi.purple{border-left-color:var(--purple)}
@@ -72,7 +64,6 @@
   .kpi-sub{font-size:11px;margin-top:3px;color:var(--text3)}
   .kpi-sub.up{color:var(--green)}
 
-  /* 차트 그리드 */
   .chart-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
   .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px}
@@ -82,7 +73,6 @@
 
   .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 
-  /* SKU 테이블 */
   .sku-tbl{width:100%;border-collapse:collapse}
   .sku-tbl th{font-size:10px;color:var(--text3);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.4px}
   .sku-tbl td{font-size:12px;padding:8px 8px;border-bottom:1px solid var(--border);color:var(--text)}
@@ -91,20 +81,17 @@
   .sku-bar-bg{background:#F1F5F9;border-radius:2px;height:4px;margin-top:3px}
   .sku-bar{height:4px;border-radius:2px;background:var(--purple)}
 
-  /* ROAS 카드 */
   .roas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .roas-card{background:#F8FAFC;border-radius:8px;padding:12px 14px}
   .roas-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
   .roas-val{font-size:20px;font-weight:600;color:var(--text)}
   .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
-  /* 손익 배너 */
   .profit-banner{background:var(--anok-green);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
   .profit-label{font-size:12px;color:#8BA3C4;margin-bottom:4px}
   .profit-val{font-size:28px;font-weight:600;color:#fff}
   .profit-sub{font-size:11px;color:#8BA3C4;margin-top:3px}
 
-  /* 일별 데이터 테이블 */
   .day-table-wrap{overflow-x:auto}
   .day-tbl{width:100%;border-collapse:collapse;font-size:12px}
   .day-tbl th{font-size:10px;color:var(--text3);font-weight:500;text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -115,10 +102,8 @@
   .day-tbl tr:hover td{background:#F8FAFC}
   .day-tbl .total-row td{font-weight:600;background:transparent;color:var(--navy)}
 
-  /* 데이터 없음 */
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 
-  /* 탭 */
   .tabs{display:flex;gap:2px;background:#E2EAF0;border-radius:8px;padding:3px}
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
   .tab.active{background:#fff;color:var(--anok-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
@@ -137,96 +122,43 @@
   .kpi.total-card .kpi-value{color:#0C4A6E;font-size:24px}
   .kpi.total-card .kpi-sub{color:#0284C7}
   .toast{position:fixed;bottom:20px;left:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
-
-  /* ── AI 어시스턴트 채팅 버튼 ── */
-  #anokChatBtn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform 0.2s,box-shadow 0.2s}
-  #anokChatBtn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.65)}
-  #anokChatPanel{position:fixed;bottom:88px;right:24px;width:360px;max-height:520px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:999;display:none;flex-direction:column;overflow:hidden;border:1px solid #E2EAF0}
-  #anokChatPanel.open{display:flex}
-  #anokChatHeader{background:linear-gradient(135deg,#1B2F7E,#2A45A8);padding:14px 16px;display:flex;align-items:center;gap:10px}
-  #anokChatHeader .icon{width:28px;height:28px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-  #anokChatHeader .title{color:#fff;font-size:13px;font-weight:700}
-  #anokChatHeader .sub{color:#7B96B2;font-size:11px}
-  #anokChatClose{margin-left:auto;background:none;border:none;color:#7B96B2;cursor:pointer;font-size:18px;line-height:1;padding:2px}
-  #anokChatMessages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:200px}
-  .chat-msg{max-width:85%;font-size:12px;line-height:1.65;padding:9px 12px;border-radius:10px}
-  .chat-msg.user{align-self:flex-end;background:#6366F1;color:#fff;border-radius:10px 10px 2px 10px}
-  .chat-msg.ai{align-self:flex-start;background:#F4F6F9;color:#1E293B;border-radius:10px 10px 10px 2px}
-  .chat-msg.ai.loading{color:#8898AA}
-  #anokChatInputRow{padding:10px 12px;border-top:1px solid #E2EAF0;display:flex;gap:8px;align-items:center}
-  #anokChatInput{flex:1;border:1px solid #E2EAF0;border-radius:8px;padding:8px 10px;font-size:12px;outline:none;resize:none;font-family:inherit;color:var(--navy)}
-  #anokChatInput:focus{border-color:#6366F1}
-  #anokChatSend{width:34px;height:34px;border-radius:8px;background:#6366F1;border:none;color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  #anokChatSend:hover{background:#4F46E5}
   @keyframes spin{to{transform:rotate(360deg)}}
   .toast.show{opacity:1}
 
-  /* ===== 모바일 반응형 ===== */
   @media (max-width: 768px) {
     body { overflow-x: hidden; }
     .main { padding: 10px 12px; }
-
-    /* 헤더 */
     .header { padding: 0 12px; height: 50px; }
-    .header-brand h1 { font-size: 15px; }
-    .header-brand span { display: none; }
     .month-badge { display: none; }
     .btn-input { padding: 6px 10px; font-size: 12px; }
-
-    /* KPI 카드: 2열 */
     .kpi-grid { grid-template-columns: repeat(2,1fr) !important; gap: 8px; margin-bottom: 10px; }
     .kpi-value { font-size: 17px; }
     .kpi.total-card .kpi-value { font-size: 19px; }
     .kpi { padding: 12px 12px; }
-
-    /* 차트: 1열 */
     .chart-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
-
-    /* 달성률 + SKU: 1열 */
     .bottom-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
-
-    /* 채널별 수익 카드: 1열 */
     .profit-grid { grid-template-columns: 1fr !important; gap: 8px; }
-
-    /* inline style 그리드 오버라이드 */
     div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
-
-    /* 달성률 */
     .ach-nums { font-size: 10px; }
     .ach-header { flex-direction: column; gap: 2px; }
     .ach-label { font-size: 11px; }
-
-    /* SKU 테이블 */
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 4px; }
-
-    /* 일별 테이블: 가로 스크롤 */
     .day-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .day-tbl { font-size: 11px; min-width: 600px; }
     .day-tbl th, .day-tbl td { padding: 5px 6px; white-space: nowrap; }
-
-    /* 모달: 하단 시트 */
     .modal { width: 100% !important; max-width: 100vw !important; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; max-height: 88vh; }
     .modal-bg.open { align-items: flex-end; }
     .sku-grid { grid-template-columns: repeat(2,1fr) !important; }
     .coup-extra { grid-template-columns: repeat(2,1fr) !important; }
-
-    /* 탭 */
     .tabs { margin-bottom: 10px; }
     .tab { font-size: 12px; padding: 6px 12px; }
-
-    /* 카드 */
     .card { padding: 12px 12px; }
     .card-title { font-size: 12px; }
     .profit-banner { padding: 12px 14px; }
     .profit-val { font-size: 20px; }
-
-    /* 달성률 행 */
     .ach-row { margin-bottom: 14px; }
-
-    /* ROAS 카드 */
     .roas-grid { grid-template-columns: 1fr 1fr !important; }
-    /* 광고비 3열 유지 */
     .roas-grid[style*="repeat(3"] { grid-template-columns: repeat(3,1fr) !important; }
   }
 </style>
@@ -247,7 +179,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Firestore에서 데이터 로드
   async function loadFromFirestore() {
     try {
       const docRef = doc(db, 'anok', 'records');
@@ -259,7 +190,6 @@
     return null;
   }
 
-  // Firestore에 데이터 저장
   async function saveToFirestore(records) {
     try {
       const docRef = doc(db, 'anok', 'records');
@@ -267,23 +197,19 @@
     } catch(e) { console.log('Firestore save error:', e); }
   }
 
-  // 전역으로 노출
   window._firestore = { load: loadFromFirestore, save: saveToFirestore };
 </script>
 </head>
 <body>
 
 <div class="header">
-  <!-- 배경 장식 -->
   <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
     <div style="position:absolute;top:-60px;right:80px;width:200px;height:200px;background:rgba(99,102,241,0.08);border-radius:50%;filter:blur(40px)"></div>
     <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
     <div style="position:absolute;bottom:-20px;right:200px;width:80px;height:80px;background:rgba(99,102,241,0.06);border-radius:50%"></div>
   </div>
-  <!-- 상단 미세 라인 -->
   <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(99,102,241,0.5) 30%,rgba(255,255,255,0.15) 50%,rgba(99,102,241,0.3) 70%,transparent 100%)"></div>
 
-  <!-- 왼쪽 (홈버튼) -->
   <div style="display:flex;align-items:center;gap:12px;z-index:1">
     <div onclick="switchTab('dashboard');window.scrollTo({top:0,behavior:'smooth'})" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(99,102,241,0.45);flex-shrink:0;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 18px rgba(99,102,241,0.65)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 12px rgba(99,102,241,0.45)'" title="홈으로">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -298,12 +224,9 @@
     </div>
   </div>
 
-  <!-- 오른쪽: 날짜만 -->
   <div style="z-index:1">
     <span class="month-badge" id="todayBadge">--</span>
   </div>
-
-  <!-- headerMonth 숨김 (JS 호환용) -->
   <span id="headerMonth" style="display:none"></span>
 </div>
 
@@ -366,7 +289,6 @@
 </div>
 
 <div class="main">
-  <!-- 탭 -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div class="tabs" style="margin-bottom:0">
       <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
@@ -415,7 +337,6 @@
       </div>
     </div>
 
-    <!-- 채널별 수익 카드 -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
       <div class="card" style="border-top:3px solid #7C3AED">
         <div style="font-size:11px;font-weight:600;color:#7C3AED;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">자사몰 수익</div>
@@ -462,15 +383,11 @@
 
   <!-- 일별 내역 탭 -->
   <div id="tabDaily" style="display:none">
-
-    <!-- ── 일별 매출 내역 ── -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
       <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 매출 내역</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-
-      <!-- 자사몰 매출 카드 -->
       <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
@@ -478,15 +395,11 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
             <tbody id="dayCafeBody"></tbody>
           </table>
         </div>
       </div>
-
-      <!-- 네이버 매출 카드 -->
       <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
@@ -494,15 +407,11 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
             <tbody id="dayNaverBody"></tbody>
           </table>
         </div>
       </div>
-
-      <!-- 쿠팡 매출 카드 -->
       <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
@@ -510,23 +419,18 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>매출</th><th>수익</th><th>수익률</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
             <tbody id="dayCoupangBody"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ── 일별 채널별 판매수량 ── -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
       <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 채널별 판매수량</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-
-      <!-- 자사몰 수량 카드 -->
       <div style="background:#F5F3FF;border-radius:12px;padding:14px 16px;border:1px solid #DDD6FE">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
@@ -534,15 +438,11 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th></tr></thead>
             <tbody id="dayQtyCafeBody"></tbody>
           </table>
         </div>
       </div>
-
-      <!-- 네이버 수량 카드 -->
       <div style="background:#F0FDF4;border-radius:12px;padding:14px 16px;border:1px solid #BBF7D0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
@@ -550,15 +450,11 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>헤어<br>세트</th><th>바디<br>워시</th><th>바디<br>로션</th><th>바디<br>세트</th><th>워시<br>세트</th></tr></thead>
             <tbody id="dayQtyNaverBody"></tbody>
           </table>
         </div>
       </div>
-
-      <!-- 쿠팡 수량 카드 -->
       <div style="background:#FFF7ED;border-radius:12px;padding:14px 16px;border:1px solid #FED7AA">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
           <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
@@ -566,9 +462,7 @@
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
-            <thead><tr>
-              <th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>바디<br>워시</th><th>바디<br>로션</th>
-            </tr></thead>
+            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트<br>먼트</th><th>바디<br>워시</th><th>바디<br>로션</th></tr></thead>
             <tbody id="dayQtyCoupangBody"></tbody>
           </table>
         </div>
@@ -579,78 +473,36 @@
   <!-- 월간 인사이트 탭 -->
   <div id="tabInsight" style="display:none">
 
-    <!-- AI 분석 헤더 -->
+    <!-- 인사이트 헤더 요약 -->
     <div style="background:linear-gradient(135deg,#1C3A2A 0%,#2E6347 100%);border-radius:14px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">
       <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
       <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(99,102,241,0.15);border-radius:50%"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">✦</div>
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📊</div>
         <div>
-          <div style="color:#fff;font-size:15px;font-weight:700">AI 월간 전략 브리핑</div>
-          <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">데이터 분석 중...</div>
+          <div style="color:#fff;font-size:15px;font-weight:700">월간 성과 요약</div>
+          <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">—</div>
         </div>
       </div>
       <div style="color:#AEC6E8;font-size:12px;line-height:1.6" id="insightSummaryText">—</div>
     </div>
 
-    <!-- 인사이트 카드 그리드 -->
+    <!-- KPI 카드 4개 -->
     <div id="insightCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"></div>
 
-    <!-- AI 분석 본문 -->
-    <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-        <div style="width:4px;height:18px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
-        <div class="card-title" style="margin-bottom:0">전략 분석 리포트</div>
-        <div id="insightLoadingBadge" style="margin-left:auto;font-size:11px;color:#6366F1;background:#EEF2FF;padding:3px 10px;border-radius:20px;display:none">분석 중...</div>
-      </div>
-      <div id="insightReport" style="color:#4A5568;font-size:13px;line-height:1.85;max-height:520px;overflow-y:auto;padding-right:4px">
-        <div style="color:#8898AA;text-align:center;padding:30px 0">탭을 클릭하면 AI가 이번 달 데이터를 분석합니다.</div>
-      </div>
-    </div>
-
-    <!-- 채널별 퍼포먼스 -->
+    <!-- 전략 지표 3개 -->
     <div id="insightChannelRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px"></div>
-
-    <!-- 액션 아이템 -->
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-        <div style="width:4px;height:18px;background:linear-gradient(#E24B4A,#F97316);border-radius:2px"></div>
-        <div class="card-title" style="margin-bottom:0">이번 달 액션 아이템</div>
-      </div>
-      <div id="insightActions" style="color:#8898AA;font-size:13px">—</div>
-    </div>
 
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ── AI 어시스턴트 ── -->
-<button id="anokChatBtn" onclick="toggleChat()" title="AI 어시스턴트">✦</button>
-
-<div id="anokChatPanel">
-  <div id="anokChatHeader">
-    <div class="icon">✦</div>
-    <div>
-      <div class="title">ANOK AI 어시스턴트</div>
-      <div class="sub">데이터 기반 전략 질문</div>
-    </div>
-    <button id="anokChatClose" onclick="toggleChat()">×</button>
-  </div>
-  <div id="anokChatMessages">
-    <div class="chat-msg ai">안녕하세요! 아녹 대시보드 AI예요.<br>매출, 수익, 전략에 대해 질문해보세요 😊</div>
-  </div>
-  <div id="anokChatInputRow">
-    <textarea id="anokChatInput" rows="1" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();sendChat()}"></textarea>
-    <button id="anokChatSend" onclick="sendChat()">↑</button>
-  </div>
-</div>
-
 <script>
 const STORAGE_KEY = 'anok_data_v1';
 const META_AD = 80000;
 const NAVER_AD = 10000;
-const AGENCY_FEE = 700000; // 메타 대행료 월 70만원
+const AGENCY_FEE = 700000;
 
 const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
 const CAFE_PROFITS   = {shampoo:8766,treatment:9066,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
@@ -665,7 +517,6 @@ let records = [];
 let trendChart, donutChart;
 
 async function loadData(){
-  // Firestore에서 먼저 로드 시도
   if(window._firestore) {
     const fsData = await window._firestore.load();
     if(fsData && fsData.length > 0) {
@@ -677,7 +528,6 @@ async function loadData(){
       return;
     }
   }
-  // Firestore 없거나 비어있으면 localStorage
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) records = JSON.parse(raw);
@@ -705,7 +555,6 @@ async function loadData(){
 
 function saveData(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
-  // Firestore에도 저장
   if(window._firestore) {
     window._firestore.save(records);
   }
@@ -714,7 +563,7 @@ function saveData(){
 function calcDay(rec){
   let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0;
   const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{};
-  for(const k in CAFE_PRICES){ cRev+=( c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
+  for(const k in CAFE_PRICES){ cRev+=(c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
   for(const k in NAVER_PRICES){ nRev+=(n[k]||0)*NAVER_PRICES[k]; nPrf+=(n[k]||0)*NAVER_PROFITS[k]; }
   for(const k in COUP_PRICES){ oRev+=(o[k]||0)*COUP_PRICES[k]; }
   const fulfil=(o.fulfil||0)/1.1;
@@ -725,7 +574,6 @@ function calcDay(rec){
 }
 
 function fmt(n){ return Math.round(n).toLocaleString(); }
-function fmtK(n){ return n>=10000?(Math.round(n/1000)+'K'):Math.round(n).toLocaleString(); }
 
 function render(){
   const now = new Date();
@@ -773,7 +621,6 @@ function render(){
   renderAchieve(mRecs);
   renderSkuTable(mRecs);
 
-  // 채널별 수익 카드 업데이트
   const fmtPrf=v=>(v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   const fmtRt=(p,r)=>r>0?(p/r*100).toFixed(1)+'%':'-';
   document.getElementById('profitCafeVal').textContent=fmtPrf(totCprf);
@@ -797,9 +644,7 @@ function updateTrendChart(mRecs){
   const cData=Array(daysInMonth).fill(null);
   const nData=Array(daysInMonth).fill(null);
   const oData=Array(daysInMonth).fill(null);
-  // 날짜별 손익분기 색상
   const tickColors=Array(daysInMonth).fill('#8898AA');
-  const _prevMargin=calcPrevMonthMargin();
   const _dailyBEP=Math.round(TARGET_TOTAL/daysInMonth);
   mRecs.forEach(r=>{
     const day=parseInt(r.date.slice(8,10))-1;
@@ -819,59 +664,33 @@ function updateTrendChart(mRecs){
   trendChart.update();
 }
 
-// ── DOM 기반 툴팁 (canvas 잘림 문제 완전 해결) ──────────────────────────
 (function(){
-  // 툴팁 엘리먼트 생성 (body에 붙여서 overflow 영향 없음)
   const el = document.createElement('div');
   el.id = 'chartTooltip';
-  el.style.cssText = `
-    position:fixed; pointer-events:none; z-index:9999;
-    background:rgba(10,18,36,0.95); color:#fff;
-    border-radius:10px; padding:10px 14px;
-    font-family:-apple-system,sans-serif; font-size:13px; line-height:1.7;
-    box-shadow:0 4px 20px rgba(0,0,0,0.35);
-    border:1px solid rgba(255,255,255,0.08);
-    min-width:160px; transition:opacity 0.12s;
-    opacity:0;
-  `;
+  el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;background:rgba(10,18,36,0.95);color:#fff;border-radius:10px;padding:10px 14px;font-family:-apple-system,sans-serif;font-size:13px;line-height:1.7;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);min-width:160px;transition:opacity 0.12s;opacity:0;`;
   document.body.appendChild(el);
 
-  window._showChartTooltip = function(items, profitInfo, canvasEl) {
+  window._showChartTooltip = function(items, profitInfo) {
     if (!items || !items.length) { el.style.opacity = '0'; return; }
-
-    // 내용 구성
     const total = items.reduce((s,c)=>s+(c.raw||0),0);
-    const dayLabel = items[0].label.replace('일',''); // '1일' → '1'
+    const dayLabel = items[0].label.replace('일','');
     const colorMap = {'자사몰':'#A78BFA','네이버':'#4ADE80','쿠팡':'#FB923C'};
-
-    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;color:#fff">
-      ${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span>
-    </div>`;
-
+    let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;color:#fff">${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span></div>`;
     items.forEach(c => {
       if (!c.raw) return;
       const col = colorMap[c.dataset.label] || '#A78BFA';
-      html += `<div style="display:flex;align-items:center;gap:6px">
-        <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span>
-        <span style="color:#CBD5E1">${c.dataset.label}</span>
-        <span style="margin-left:auto;font-weight:600;color:#fff">₩${Math.round(c.raw).toLocaleString()}</span>
-      </div>`;
+      html += `<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="color:#CBD5E1">${c.dataset.label}</span><span style="margin-left:auto;font-weight:600;color:#fff">₩${Math.round(c.raw).toLocaleString()}</span></div>`;
     });
-
     if (profitInfo && profitInfo.line2) {
       const pc = profitInfo.profit ? '#F87171' : '#60A5FA';
       html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.12);font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
     }
-
     el.innerHTML = html;
     el.style.opacity = '1';
   };
 
-  window._hideChartTooltip = function() {
-    el.style.opacity = '0';
-  };
+  window._hideChartTooltip = function() { el.style.opacity = '0'; };
 
-  // 마우스 위치 추적해서 툴팁 위치 스마트하게 결정
   document.addEventListener('mousemove', function(e) {
     if (el.style.opacity === '0') return;
     const TW = el.offsetWidth + 16;
@@ -880,16 +699,13 @@ function updateTrendChart(mRecs){
     const VH = window.innerHeight;
     let x = e.clientX + 14;
     let y = e.clientY - TH / 2;
-    // 오른쪽 벗어나면 왼쪽에
     if (x + TW > VW) x = e.clientX - TW;
-    // 위아래 경계
     if (y < 8) y = 8;
     if (y + TH > VH) y = VH - TH - 8;
     el.style.left = x + 'px';
     el.style.top  = y + 'px';
   });
 })();
-// ────────────────────────────────────────────────────────────────────────
 
 function updateDonutChart(c,n,o){
   if(donutChart){
@@ -904,7 +720,6 @@ function renderAchieve(mRecs){
   let totC=0,totN=0,totO=0;
   mRecs.forEach(r=>{const d=calcDay(r);totC+=d.cRev;totN+=d.nRev;totO+=d.oRev;});
 
-  // 예상 매출: 일평균 × 당월 총 일수
   const now=new Date();
   const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const enteredDays=mRecs.length||1;
@@ -919,13 +734,12 @@ function renderAchieve(mRecs){
     {label:'쿠팡',                  actual:totO, target:TARGETS.coupang, proj:projO, color:'#EA580C'},
   ];
 
-  const prevTotal = TARGET_TOTAL;
   const projHtml=`<div style="background:#F1F5F9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
     <span style="font-size:12px;color:#4A5568;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:400">(일평균 × ${daysInMonth}일)</span></span>
     <span style="display:flex;align-items:center;gap:10px">
       <span style="font-size:16px;font-weight:700;color:#0B1F3A">₩${projTotal.toLocaleString()}</span>
-      <span style="font-size:13px;font-weight:700;color:${projTotal>=prevTotal?'#E24B4A':'#2563EB'}">(${Math.round(projTotal/prevTotal*100)}%)</span>
-      <span style="font-size:11px;color:#8898AA;font-weight:400">월 목표 ₩${prevTotal.toLocaleString()}</span>
+      <span style="font-size:13px;font-weight:700;color:${projTotal>=TARGET_TOTAL?'#E24B4A':'#2563EB'}">(${Math.round(projTotal/TARGET_TOTAL*100)}%)</span>
+      <span style="font-size:11px;color:#8898AA;font-weight:400">월 목표 ₩${TARGET_TOTAL.toLocaleString()}</span>
     </span>
   </div>`;
 
@@ -996,7 +810,6 @@ function renderDayTable(mRecs){
   const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
   const oSkus=['shampoo','treatment','bodywash','bodylotion'];
 
-  // 날짜 셀 공통 함수
   const dateCell=(date)=>{
     const _dt=new Date(date+'T00:00:00+09:00');
     const _di=_dt.getDay();
@@ -1005,18 +818,15 @@ function renderDayTable(mRecs){
     return `<td>${day}일 <span style="color:${_dc};font-weight:600">(${_dow[_di]})</span></td>`;
   };
 
-  // ── 매출 카드 - 자사몰 ──
   let cHtml=''; let tCr=0,tCp=0;
   sorted.forEach(r=>{
     const d=calcDay(r); tCr+=d.cRev; tCp+=d.cPrf;
     const rate=d.cRev>0?((d.cPrf/d.cRev)*100).toFixed(1)+'%':'-';
-    cHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td><td>${rate}</td>
-    </tr>`;
+    cHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td><td>${rate}</td></tr>`;
   });
   if(sorted.length>0) cHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tCr)}</td><td>₩${fmt(tCp)}</td><td>${tCr>0?((tCp/tCr)*100).toFixed(1)+'%':'-'}</td></tr>`;
-  document.getElementById('dayCafeBody').innerHTML=cHtml||'<tr><td colspan="5" class="empty">-</td></tr>';
+  document.getElementById('dayCafeBody').innerHTML=cHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
 
-  // ── 매출 카드 - 네이버 ──
   let nHtml=''; let tNr=0,tNp=0;
   sorted.forEach(r=>{
     const d=calcDay(r); tNr+=d.nRev; tNp+=d.nPrf;
@@ -1026,7 +836,6 @@ function renderDayTable(mRecs){
   if(sorted.length>0) nHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tNr)}</td><td>₩${fmt(tNp)}</td><td>${tNr>0?((tNp/tNr)*100).toFixed(1)+'%':'-'}</td></tr>`;
   document.getElementById('dayNaverBody').innerHTML=nHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
 
-  // ── 매출 카드 - 쿠팡 ──
   let oHtml=''; let tOr=0,tOp=0;
   sorted.forEach(r=>{
     const d=calcDay(r); tOr+=d.oRev; tOp+=d.oPrf;
@@ -1036,7 +845,6 @@ function renderDayTable(mRecs){
   if(sorted.length>0) oHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tOr)}</td><td>₩${fmt(tOp)}</td><td>${tOr>0?((tOp/tOr)*100).toFixed(1)+'%':'-'}</td></tr>`;
   document.getElementById('dayCoupangBody').innerHTML=oHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
 
-  // ── 수량 카드 - 자사몰 ──
   let qcHtml=''; let tcS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
   sorted.forEach(r=>{
     const c=r.cafe||{};
@@ -1047,7 +855,6 @@ function renderDayTable(mRecs){
   if(sorted.length>0) qcHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tcS[k]?`<td style="font-weight:700">${tcS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
   document.getElementById('dayQtyCafeBody').innerHTML=qcHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
 
-  // ── 수량 카드 - 네이버 ──
   let qnHtml=''; let tnS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
   sorted.forEach(r=>{
     const n=r.naver||{};
@@ -1058,7 +865,6 @@ function renderDayTable(mRecs){
   if(sorted.length>0) qnHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tnS[k]?`<td style="font-weight:700">${tnS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
   document.getElementById('dayQtyNaverBody').innerHTML=qnHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
 
-  // ── 수량 카드 - 쿠팡 ──
   let qoHtml=''; let toS={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   sorted.forEach(r=>{
     const o=r.coupang||{};
@@ -1070,24 +876,17 @@ function renderDayTable(mRecs){
   document.getElementById('dayQtyCoupangBody').innerHTML=qoHtml||'<tr><td colspan="5" class="empty">-</td></tr>';
 }
 
-// ── 전월 마진율 기반 BEP 목표 자동 계산 ──────────────────────────────────
 function calcPrevMonthMargin(){
   const now = new Date();
   const prevYear = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
   const prevMonth = now.getMonth()===0 ? 12 : now.getMonth();
   const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
-
   if(prevRecs.length > 0){
-    // 전월 실제 데이터로 마진율 계산
     let totRev=0, totPrf=0;
-    prevRecs.forEach(r=>{
-      const d=calcDay(r);
-      totRev+=d.total; totPrf+=d.profit;
-    });
+    prevRecs.forEach(r=>{ const d=calcDay(r); totRev+=d.total; totPrf+=d.profit; });
     return totRev>0 ? totPrf/totRev : 0.44;
   }
-  // 전월 데이터 없으면 fallback (3월 실적 기준 44%)
   return 0.44;
 }
 
@@ -1097,7 +896,6 @@ function calcTargetTotal(){
   return Math.round((monthlyFixed + 1000000) / margin);
 }
 
-// 채널 비중은 전월 실적 기반으로 동적 계산, 없으면 고정 비중
 function calcChannelShares(){
   const now = new Date();
   const prevYear = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
@@ -1113,7 +911,6 @@ function calcChannelShares(){
   return {c:0.66, n:0.29, o:0.05};
 }
 
-// records 로드 전 임시 fallback — loadData() 완료 후 refreshTargets()로 갱신
 let TARGET_TOTAL = Math.round((META_AD*30+NAVER_AD*30+AGENCY_FEE+1000000)/0.44);
 let TARGETS={cafe:Math.round(TARGET_TOTAL*0.66),naver:Math.round(TARGET_TOTAL*0.29),coupang:Math.round(TARGET_TOTAL*0.05)};
 
@@ -1124,7 +921,6 @@ function refreshTargets(){
 }
 
 function initCharts(){
-  const skus=['샴푸','트리트먼트','헤어세트','바디워시','바디로션','바디세트','워시세트'];
   trendChart=new Chart(document.getElementById('trendChart'),{
     type:'bar',
     data:{
@@ -1161,7 +957,7 @@ function initCharts(){
               if(gap>=0){ profitInfo={line2:'₩'+gap.toLocaleString()+' 이익',profit:true}; }
               else{ profitInfo={line2:'₩'+Math.abs(gap).toLocaleString()+' 더 필요',profit:false}; }
             }
-            window._showChartTooltip && window._showChartTooltip(items, profitInfo, chart.canvas);
+            window._showChartTooltip && window._showChartTooltip(items, profitInfo);
           }
         }
       },
@@ -1171,7 +967,6 @@ function initCharts(){
       }
     }
   });
-  // 차트 영역 벗어나면 툴팁 숨기기
   document.getElementById('trendChart').addEventListener('mouseleave', ()=>{
     window._hideChartTooltip && window._hideChartTooltip();
   });
@@ -1180,10 +975,6 @@ function initCharts(){
     data:{labels:['자사몰','네이버','쿠팡'],datasets:[{data:[1,0,0],backgroundColor:['#7C3AED','#16A34A','#EA580C'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': ₩'+Math.round(c.raw).toLocaleString()}}}}
   });
-  // 전월(3월) 매출 기준 목표
-  const DAYS_IN_MONTH = 30;
-
-
 }
 
 function openModal(){
@@ -1224,30 +1015,19 @@ function saveDay(){
   showToast(`${date} 실적이 저장되었습니다`);
 }
 
-function deleteDay(date){
-  if(!confirm(`${date} 데이터를 삭제할까요?`)) return;
-  records=records.filter(r=>r.date!==date);
-  saveData();
-  render();
-  showToast('삭제되었습니다');
-}
-
 function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
   document.getElementById('tabInsight').style.display=tab==='insight'?'block':'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||
-      (tab==='insight'&&i===1)||
-      (tab==='daily'&&i===2)
+      (tab==='dashboard'&&i===0)||(tab==='insight'&&i===1)||(tab==='daily'&&i===2)
     );
   });
   if(tab==='insight') renderInsight();
 }
 
-// ── 월간 인사이트 렌더 ─────────────────────────────────────────────────────
-async function renderInsight(){
+function renderInsight(){
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const mRecs = records.filter(r=>r.date.startsWith(month));
@@ -1255,20 +1035,18 @@ async function renderInsight(){
   const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
 
   if(!days){
-    document.getElementById('insightReport').innerHTML=`<div style="color:#8898AA;text-align:center;padding:30px 0">이번 달 입력된 데이터가 없습니다.</div>`;
+    document.getElementById('insightSubtitle').textContent='데이터 없음';
+    document.getElementById('insightSummaryText').textContent='이번 달 입력된 데이터가 없습니다.';
+    document.getElementById('insightCards').innerHTML='';
+    document.getElementById('insightChannelRow').innerHTML='';
     return;
   }
 
-  // ── 데이터 집계 ──
   let totC=0,totN=0,totO=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0;
-  let bestDay=null,bestDayRev=0;
-  const dailyRevs=[];
   mRecs.forEach(r=>{
     const d=calcDay(r);
     totC+=d.cRev; totN+=d.nRev; totO+=d.oRev;
     totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
-    dailyRevs.push({date:r.date,total:d.total,cRev:d.cRev,nRev:d.nRev,oRev:d.oRev});
-    if(d.total>bestDayRev){bestDayRev=d.total;bestDay=r.date;}
   });
   const totRev=totC+totN+totO;
   const metaAd=days*META_AD, naverAdTotal=days*NAVER_AD;
@@ -1279,20 +1057,15 @@ async function renderInsight(){
   const cShare=totRev>0?Math.round(totC/totRev*100):0;
   const nShare=totRev>0?Math.round(totN/totRev*100):0;
   const oShare=totRev>0?Math.round(totO/totRev*100):0;
-  const cMargin=totC>0?Math.round(totCprf/totC*100):0;
-  const nMargin=totN>0?Math.round(totNprf/totN*100):0;
-  const oMarginVal=totO>0?Math.round(totOprf/totO*100):0;
   const netMargin=totRev>0?Math.round(netProfit/totRev*100):0;
   const targetTotal=TARGET_TOTAL;
   const achRate=Math.round(totRev/targetTotal*100);
   const daysLeft=daysInMonth-days;
 
-  // ── 요약 헤더 업데이트 ──
-  document.getElementById('insightSubtitle').textContent=`${now.getMonth()+1}월 ${days}일 기준 · AI 분석`;
+  document.getElementById('insightSubtitle').textContent=`${now.getMonth()+1}월 ${days}일 기준`;
   document.getElementById('insightSummaryText').textContent=
-    `현재 ${days}일 누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
+    `누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
 
-  // ── KPI 카드 4개 ──
   const projAchRate=Math.round(projTotal/targetTotal*100);
   const kpiItems=[
     {label:'순수익 (률)',val:'₩'+fmt(netProfit),sub2:netMargin+'%',sub:`광고비·대행료 제외`,color:'#6366F1',icon:'💰',positive:netProfit>=0},
@@ -1315,68 +1088,42 @@ async function renderInsight(){
     </div>
   `).join('');
 
-  // ── AI 전략 지표 3개 ──
-  const daysElapsed=days; const daysLeft2=daysInMonth-days;
-  // 1. 손익분기 돌파까지 남은 매출
-  const bepGap=Math.max(0,targetTotal-totRev);
-  const bepDailyNeed=daysLeft2>0?Math.round(bepGap/daysLeft2):0;
-  const onPace=avgDaily>=Math.round(targetTotal/daysInMonth);
-  // 2. 광고비 효율 (ROAS: 전체 매출 / 총 광고비)
+  // 전략 지표 3개 (AI 없이 직접 계산)
+  const setSkus=['hairset','bodyset','washset'];
+  let setQty=0,singleQty=0,setRev=0;
+  mRecs.forEach(r=>{
+    setSkus.forEach(k=>{setQty+=(r.cafe[k]||0)+(r.naver[k]||0); setRev+=((r.cafe[k]||0)*CAFE_PRICES[k])||0;});
+    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0));});
+  });
+  const totalQty=setQty+singleQty;
+  const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
+
   const totalAdSpend=metaAd+naverAdTotal;
   const roas=totalAdSpend>0?(totRev/totalAdSpend).toFixed(1):'-';
   const roasGood=parseFloat(roas)>=3;
-  // 3. 수익 개선 여력: 현재 마진율 vs 전월 마진율
+
   const prevMarginPct=Math.round(calcPrevMonthMargin()*100);
   const currentMarginPct=totRev>0?Math.round(totPrf/totRev*100):0;
   const marginDiff=currentMarginPct-prevMarginPct;
 
   const stratCards=[
-    (()=>{
-      // 세트 구성 비율 — 세트 비중 높을수록 객단가·마진 개선
-      const setKeys=['hairset','bodyset','washset'];
-      const singleKeys=['shampoo','treatment','bodywash','bodylotion'];
-      let setQty=0, singleQty=0, setRev=0, totalQty=0;
-      mRecs.forEach(r=>{
-        setKeys.forEach(k=>{
-          const q=(r.cafe[k]||0)+(r.naver[k]||0);
-          setQty+=q;
-          setRev+=q*(CAFE_PRICES[k]||0);
-        });
-        singleKeys.forEach(k=>{
-          singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang||{})[k]||0);
-        });
-      });
-      totalQty=setQty+singleQty;
-      const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
-      const setRevRatio=totRev>0?Math.round(setRev/totRev*100):0;
-      // 헤어 vs 바디 카테고리 매출
-      let hairRev=0, bodyRev=0;
-      mRecs.forEach(r=>{
-        hairRev+=(r.cafe.shampoo||0)*CAFE_PRICES.shampoo+(r.cafe.treatment||0)*CAFE_PRICES.treatment+(r.cafe.hairset||0)*CAFE_PRICES.hairset
-                +(r.naver.shampoo||0)*NAVER_PRICES.shampoo+(r.naver.treatment||0)*NAVER_PRICES.treatment+(r.naver.hairset||0)*NAVER_PRICES.hairset;
-        bodyRev+=(r.cafe.bodywash||0)*CAFE_PRICES.bodywash+(r.cafe.bodylotion||0)*CAFE_PRICES.bodylotion+(r.cafe.bodyset||0)*CAFE_PRICES.bodyset
-                +(r.naver.bodywash||0)*NAVER_PRICES.bodywash+(r.naver.bodylotion||0)*NAVER_PRICES.bodylotion+(r.naver.bodyset||0)*NAVER_PRICES.bodyset;
-      });
-      const hairPct=totRev>0?Math.round(hairRev/(hairRev+bodyRev)*100):0;
-      const bodyPct=100-hairPct;
-      return {
-        icon:'📦', label:'세트 구성 비율',
-        val: setRatio+'%',
-        sub:`세트 ${setQty}개(${setRevRatio}% 매출) · 단품 ${singleQty}개 · 헤어 ${hairPct}% / 바디 ${bodyPct}%`,
-        color:'#8B5CF6', positive: setRatio>=30
-      };
-    })(),
+    {
+      icon:'📦', label:'세트 구성 비율',
+      val:setRatio+'%',
+      sub:`세트 ${setQty}개 · 단품 ${singleQty}개 · 세트매출 ₩${fmt(setRev)}`,
+      positive:setRatio>=30
+    },
     {
       icon:'📡', label:'광고 ROAS',
-      val: roas+'x',
+      val:roas+'x',
       sub:`광고비 ₩${fmt(totalAdSpend)} → 전체 매출 ₩${fmt(totRev)} · ${roasGood?'효율 양호':'효율 점검 필요'}`,
-      color:'#0EA5E9', positive: roasGood
+      positive:roasGood
     },
     {
       icon:'📐', label:'마진율 추이',
-      val: currentMarginPct+'%',
+      val:currentMarginPct+'%',
       sub:`전월 ${prevMarginPct}% 대비 ${marginDiff>=0?'+':''}${marginDiff}%p · ${marginDiff>=0?'개선':'하락'}`,
-      color: marginDiff>=0?'#16A34A':'#EA580C', positive: marginDiff>=0
+      positive:marginDiff>=0
     },
   ];
   document.getElementById('insightChannelRow').innerHTML=stratCards.map(c=>`
@@ -1390,390 +1137,7 @@ async function renderInsight(){
       <div style="font-size:11px;color:#8898AA;line-height:1.5">${c.sub}</div>
     </div>
   `).join('');
-
-  // ── Claude API 호출 ──
-  document.getElementById('insightLoadingBadge').style.display='block';
-  document.getElementById('insightReport').innerHTML=`
-    <div style="display:flex;align-items:center;gap:10px;color:#8898AA;padding:20px 0">
-      <div style="width:16px;height:16px;border:2px solid #6366F1;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
-      AI가 이번 달 성과를 분석하고 있습니다...
-    </div>`;
-
-  // SKU별 집계
-  const skuC={},skuN={},skuO={};
-  mRecs.forEach(r=>{
-    for(const k in CAFE_PRICES){skuC[k]=(skuC[k]||0)+(r.cafe?.[k]||0);}
-    for(const k in NAVER_PRICES){skuN[k]=(skuN[k]||0)+(r.naver?.[k]||0);}
-    for(const k in COUP_PRICES){skuO[k]=(skuO[k]||0)+(r.coupang?.[k]||0);}
-  });
-
-  const skuNames={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
-  const skuSummary=[
-    '자사몰: '+Object.entries(skuC).filter(([,v])=>v>0).map(([k,v])=>`${skuNames[k]||k} ${v}개`).join(', ')||'없음',
-    '네이버: '+Object.entries(skuN).filter(([,v])=>v>0).map(([k,v])=>`${skuNames[k]||k} ${v}개`).join(', ')||'없음',
-    '쿠팡: '+Object.entries(skuO).filter(([,v])=>v>0).map(([k,v])=>`${skuNames[k]||k} ${v}개`).join(', ')||'없음',
-  ].join('\n');
-
-  // SKU별 실제 마진율 (엑셀 실측 기준)
-  const SKU_MARGINS = {
-    cafe: {shampoo:44.3,treatment:45.8,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1},
-    naver:{shampoo:44.1,treatment:45.6,hairset:44.4,bodywash:46.8,bodylotion:45.7,bodyset:46.0,washset:45.1}
-    // 쿠팡은 풀필비(매일 변동)+할인쿠폰(판매시 발생)+수수료 모두 차감해야 실질 마진 산정 가능
-    // calcDay()에서 입력된 fulfil/coupon 실측값으로 계산됨
-  };
-
-  // SKU별 판매수량 × 마진율로 실질 공헌마진 계산 (쿠팡 제외 — 실측 비용 별도 입력)
-  let skuContrib = [];
-  mRecs.forEach(r=>{
-    for(const k in CAFE_PRICES) if((r.cafe[k]||0)>0) skuContrib.push({ch:'자사몰',sku:k,qty:r.cafe[k],margin:SKU_MARGINS.cafe[k]||45,rev:(r.cafe[k]||0)*CAFE_PRICES[k]});
-    for(const k in NAVER_PRICES) if((r.naver[k]||0)>0) skuContrib.push({ch:'네이버',sku:k,qty:r.naver[k],margin:SKU_MARGINS.naver[k]||45,rev:(r.naver[k]||0)*NAVER_PRICES[k]});
-  });
-  const skuNames2={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
-  const skuLine = skuContrib.map(s=>`${s.ch} ${skuNames2[s.sku]} ${s.qty}개 (마진${s.margin}%, 공헌마진 ₩${Math.round(s.rev*s.margin/100).toLocaleString()})`).join(' | ') || '없음';
-
-  // 세트 vs 단품 분석
-  const setSkus=['hairset','bodyset','washset'];
-  let setQty=0,singleQty=0,setRev=0;
-  mRecs.forEach(r=>{
-    setSkus.forEach(k=>{setQty+=(r.cafe[k]||0)+(r.naver[k]||0); setRev+=((r.cafe[k]||0)*CAFE_PRICES[k])||0;});
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0));});
-  });
-  const totalQty=setQty+singleQty;
-  const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
-
-  // 전월 실적 동적 계산
-  const pYear=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
-  const pMonth=now.getMonth()===0?12:now.getMonth();
-  const pKey2=pYear+'-'+String(pMonth).padStart(2,'0');
-  const pRecs=records.filter(r=>r.date.startsWith(pKey2));
-  let prevSection='';
-  if(pRecs.length===0){
-    prevSection='【전월 실적 (참고 — Firebase 데이터 없음)】\n- 3월 초기값: 총매출 ₩6,289,700 / 마진율 44% / 손익 ₩176,118\n- 메타 ROAS 0.895 (광고비 > 매출 적자 구조)';
-  } else {
-    let pC2=0,pN2=0,pO2=0,pPrf2=0;
-    pRecs.forEach(r=>{const d=calcDay(r);pC2+=d.cRev;pN2+=d.nRev;pO2+=d.oRev;pPrf2+=d.profit;});
-    const pTotal2=pC2+pN2+pO2;
-    const pDays2=pRecs.length;
-    const pMargin2=pTotal2>0?Math.round(pPrf2/pTotal2*100):0;
-    const pMetaAd2=pDays2*META_AD,pNaverAd2=pDays2*NAVER_AD,pAgency2=Math.round(AGENCY_FEE/30*pDays2);
-    const pNet2=pPrf2-pMetaAd2-pNaverAd2-pAgency2;
-    const pRoas2=pMetaAd2>0?(pC2/pMetaAd2).toFixed(2):'N/A';
-    prevSection='【전월 실적 ('+pYear+'년 '+pMonth+'월 — Firebase 실측)】\n- 자사몰 ₩'+fmt(pC2)+' / 네이버 ₩'+fmt(pN2)+' / 쿠팡 ₩'+fmt(pO2)+'\n- 전월 총매출 ₩'+fmt(pTotal2)+' / 마진율 '+pMargin2+'% / 순손익 ₩'+fmt(pNet2)+'\n- 메타 ROAS '+pRoas2+' (자사몰 매출 ÷ 메타광고비)';
-  }
-
-  const coupangFixed=mRecs.reduce(function(s,r){return s+(r.coupang&&r.coupang.fulfil?r.coupang.fulfil:0)+(r.coupang&&r.coupang.coupon?r.coupang.coupon:0);},0);
-
-  const promptLines = [
-    '당신은 뷰티 D2C 브랜드 아녹(ANOK)의 COO·CSO입니다. 아래 실측 데이터를 기반으로 경영진 수준의 전략 분석을 제시하세요.',
-    '',
-    '【브랜드 컨텍스트】',
-    '- 뷰티 D2C 브랜드 / 운영사: (주)퍼펙트드라이브',
-    '- 채널: 자사몰(cafe24), 네이버 스마트스토어, 쿠팡',
-    '- 주력 라인: 샴푸/트리트먼트(헤어), 바디워시/로션(바디) + 각 세트 상품',
-    '- 포지셔닝: 프리미엄 비건 클린뷰티 (정상가 대비 할인 구조, 단가 3~6만원대)',
-    '',
-    prevSection,
-    '',
-    '【SKU 실제 마진율 (엑셀 실측)】',
-    '- 자사몰: 샴푸 44.3% / 트리트먼트 45.8% / 헤어세트 44.4% / 바디워시 46.8% / 바디로션 45.7% / 바디세트 46.0% / 워시세트 45.1%',
-    '- 쿠팡 수익구조: 판매가에서 부가세+제품가+포장+판매수수료(9.6%) 차감 후 수익 — 여기서 추가로 풀필비(매일 청구)와 판매자할인쿠폰(판매 발생 시)을 빼야 실질 이익',
-    '- 쿠팡 3월 실측 마진율: 35.6% (총매출 ₩809,500 / 수익 ₩288,393 기준 — 풀필비+할인쿠폰+수수료 9.6% 모두 차감)',
-    '- 쿠팡 풀필비: 매일 다르게 발생 → 사용자가 매일 입력. 할인쿠폰: 쿠폰 적용 상품 판매 시에만 발생 → 매일 입력',
-    '- 쿠팡 실질 마진 = (판매가 - 수수료 9.6% - 원가 - 풀필비 - 할인쿠폰). 입력된 실측 비용 기준 이번달 쿠팡 실질수익: ₩'+fmt(totOprf),
-    '- 쿠팡 비용(변동): 풀필비(매일 청구, 입력값 기준)+판매자할인쿠폰(판매시 발생, 입력값 기준) = 이번달 누계 ₩'+fmt(coupangFixed)+' (고정비 아님 — 매일/판매건별 발생)',
-    '',
-    '【이번 달 실적 (' + (now.getMonth()+1) + '월, ' + daysInMonth + '일 중 ' + days + '일 경과 / ' + Math.round(days/daysInMonth*100) + '%)】',
-    '- 채널 총매출: ₩' + fmt(totRev) + ' (자사몰 ₩' + fmt(totC) + ' / 네이버 ₩' + fmt(totN) + ' / 쿠팡 ₩' + fmt(totO) + ')',
-    '- 채널 비중: 자사몰 ' + cShare + '% / 네이버 ' + nShare + '% / 쿠팡 ' + oShare + '%',
-    '- 순수익(광고비 차감): ₩' + fmt(netProfit) + ' (' + netMargin + '%)',
-    '- 일평균 매출: ₩' + fmt(avgDaily) + ' (전월 일평균: Firebase 전월 데이터 기준 자동 계산)',
-    '- 예상 월매출: ₩' + fmt(projTotal) + ' (BEP 목표 ₩' + fmt(targetTotal) + ' 대비 ' + Math.round(projTotal/targetTotal*100) + '%)',
-    '- 페이스 달성률: ' + Math.round(totRev/(targetTotal*days/daysInMonth)*100) + '% (경과일 기준)',
-    '- 잔여: ' + daysLeft + '일 / 목표까지 ₩' + fmt(Math.max(0,targetTotal-totRev)) + ' 필요',
-    '',
-    '【SKU별 공헌마진 분석】',
-    skuLine,
-    '- 세트 구성비: ' + setRatio + '% (' + setQty + '개 세트 / ' + singleQty + '개 단품)',
-    '- 세트 매출: ₩' + fmt(setRev) + ' (' + (totRev>0?Math.round(setRev/totRev*100):0) + '%)',
-    '',
-    '【고정비 구조】',
-    '- 메타 광고비: 일 ₩' + META_AD.toLocaleString() + ' (전월 실제 지출 기준 월 ₩2,471,679 — ROAS 0.895로 적자)',
-    '- 네이버 광고비: 일 ₩' + NAVER_AD.toLocaleString(),
-    '- 메타 대행료: 월 ₩' + AGENCY_FEE.toLocaleString(),
-    '- 쿠팡: 풀필비(매일 다르게 청구, 변동) + 할인쿠폰(쿠폰 적용 상품 판매 시만 발생) → 사용자가 매일 직접 입력한 실측값만 사용',
-    '',
-    '⚠️ 분석 필수 지침:',
-    '1. 페이스 달성률(' + Math.round(totRev/(targetTotal*days/daysInMonth)*100) + '%)과 예상 월매출로 성과 판단 — 누적 달성률(' + achRate + '%)은 월초라 당연히 낮음',
-    '2. 3월 메타 ROAS 0.895는 매출<광고비 구조 — 광고 효율 개선이 이번 달 핵심 과제',
-    '3. 쿠팡 실질 마진 = 판매수수료+풀필비+쿠폰 모두 차감 후 수익. 풀필비는 판매 없어도 매일 발생하므로 소량 판매일수록 손실 위험. 입력된 비용 기준 이번달 쿠팡 실질수익: ₩'+fmt(totOprf)+'(마진율 '+(totO>0?Math.round(totOprf/totO*100):0)+'%)',
-    '4. 세트 상품(헤어세트·바디세트·워시세트)이 단품보다 마진율 비슷하지만 객단가 2배 — 세트 전환이 핵심 레버',
-    '5. 바디워시·바디로션이 마진율 최상위 (46.8%) — 바디라인 집중 마케팅 검토',
-  ];
-
-  const promptInstructions = [
-    '',
-    '다음 형식으로 응답하세요. HTML 구조를 반드시 지켜주세요:',
-    '',
-    '<section><h4>📊 성과 진단</h4><p>전월 대비, 페이스 달성률, 채널별 추이를 수치 근거로 3~4문장 명확하게.</p></section>',
-    '<section><h4>💡 수익성 개선 포인트</h4><p>SKU 마진율, 세트 전환율, 채널별 공헌마진 데이터를 근거로 즉시 개선 가능한 수익 레버 분석.</p></section>',
-    '<section><h4>📣 광고 효율 진단</h4><p>전월 메타 ROAS 적자 구조를 짚고, 이번 달 광고비 집행 방향 구체적으로 제시.</p></section>',
-    '<section><h4>⚡ 즉시 실행 액션 (우선순위 순)</h4><ul><li>[반드시 4개의 실행 액션을 li 태그로 각각 작성. 채널명·SKU·예상효과 포함]</li></ul></section>',
-    '<section><h4>🎯 잔여 ' + daysLeft + '일 마감 전략</h4><p>채널별·SKU별 집중 전술. 목표 달성 가능성 판단과 현실적 대안 포함.</p></section>',
-    '',
-    'COO/CSO 톤으로 — 단호하고 수치 기반. 뷰티 D2C 업계 특성 반영. 반말 금지.',
-  ];
-  const prompt = promptLines.concat(promptInstructions).join('\n');
-
-  try{
-    // AI 분석 비활성화
-    throw new Error('AI 분석 기능이 비활성화되어 있습니다.');
-    const resp=await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const data=await resp.json();
-    const raw=data.content?.find(b=>b.type==='text')?.text||'분석 결과를 가져올 수 없습니다.';
-
-    // HTML 파싱 후 스타일 적용
-    const styled=raw
-      .replace(/<section>/g,'<div style="margin-bottom:20px">')
-      .replace(/<\/section>/g,'</div>')
-      .replace(/<h4>/g,'<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:6px">')
-      .replace(/<\/h4>/g,'</div>')
-      .replace(/<p>/g,'<p style="color:#4A5568;font-size:13px;line-height:1.85;margin:0 0 6px">')
-      .replace(/<ul>/g,'<ul style="margin:0;padding-left:18px;color:#4A5568;font-size:13px;line-height:2">')
-      .replace(/<li>/g,'<li style="color:#4A5568">');
-
-    document.getElementById('insightReport').innerHTML=styled;
-
-    // 액션 아이템 추출 - li 태그 또는 번호 목록 파싱
-    // 액션 아이템 추출
-    let actionItems = [];
-    const liRaw = [...raw.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1].replace(/<[^>]+>/g,"").trim()).filter(t=>t.length>5);
-    if(liRaw.length>0) actionItems = liRaw;
-    if(actionItems.length===0){
-      actionItems = raw.split("\n").filter(l=>/^\s*(\d+[.):] |[-])/.test(l)).map(l=>l.replace(/^\s*(\d+[.): ]|[-])\s*/,"").replace(/<[^>]+>/g,"").trim()).filter(t=>t.length>5);
-    }
-    actionItems = actionItems.slice(0,5);
-    if(actionItems.length>0){
-      document.getElementById('insightActions').innerHTML=actionItems.map((item,i)=>`
-        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${['#EEF2FF','#FFF7ED','#F0FDF4','#FFF1F2','#F0F9FF'][i%5]};border-radius:8px;margin-bottom:8px">
-          <div style="width:22px;height:22px;border-radius:6px;background:${['#6366F1','#EA580C','#16A34A','#E24B4A','#0EA5E9'][i%5]};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-          <div style="font-size:13px;color:#374151;line-height:1.6">${item}</div>
-        </div>
-      `).join('');
-    } else {
-      document.getElementById('insightActions').innerHTML='<div style="color:#8898AA;font-size:13px">전략 분석 리포트에서 액션 아이템을 확인하세요.</div>';
-    }
-  }catch(e){
-    document.getElementById('insightReport').innerHTML=`<div style="color:#E24B4A;font-size:13px">분석 중 오류가 발생했습니다: ${e.message}</div>`;
-  }finally{
-    document.getElementById('insightLoadingBadge').style.display='none';
-  }
 }
-
-// ── AI 어시스턴트 채팅 ──────────────────────────────────────────────────────
-const _chatHistory = [];
-
-function toggleChat(){
-  const panel = document.getElementById('anokChatPanel');
-  panel.classList.toggle('open');
-  if(panel.classList.contains('open')){
-    document.getElementById('anokChatInput').focus();
-  }
-}
-
-function buildDataContext(){
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const mRecs = records.filter(r=>r.date.startsWith(month));
-  const days = mRecs.length;
-  const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-
-  let totC=0,totN=0,totO=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0;
-  mRecs.forEach(r=>{ const d=calcDay(r); totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; });
-  const totRev=totC+totN+totO;
-  const metaAd=days*META_AD, naverAd=days*NAVER_AD, agencyFee=Math.round(AGENCY_FEE/30*days);
-  const netProfit=totPrf-metaAd-naverAd-agencyFee;
-  const avgDaily=days>0?Math.round(totRev/days):0;
-  const projTotal=Math.round(avgDaily*daysInMonth);
-  const pacedTarget=Math.round(TARGET_TOTAL*days/daysInMonth);
-  const paceRate=pacedTarget>0?Math.round(totRev/pacedTarget*100):0;
-
-  // 일별 내역
-  const dailyStr = mRecs.map(r=>{
-    const d=calcDay(r);
-    return `${r.date}: 자사몰 ₩${Math.round(d.cRev).toLocaleString()} / 네이버 ₩${Math.round(d.nRev).toLocaleString()} / 쿠팡 ₩${Math.round(d.oRev).toLocaleString()} / 합계 ₩${Math.round(d.total).toLocaleString()}`;
-  }).join(' | ');
-
-  // SKU별 수량
-  const skuNames={shampoo:'샴푸',treatment:'트리트먼트',hairset:'헤어세트',bodywash:'바디워시',bodylotion:'바디로션',bodyset:'바디세트',washset:'워시세트'};
-  const skuC={},skuN={},skuO={};
-  mRecs.forEach(r=>{
-    for(const k in CAFE_PRICES) skuC[k]=(skuC[k]||0)+(r.cafe?.[k]||0);
-    for(const k in NAVER_PRICES) skuN[k]=(skuN[k]||0)+(r.naver?.[k]||0);
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>skuO[k]=(skuO[k]||0)+((r.coupang||{})[k]||0));
-  });
-  const skuStr = Object.entries(skuNames).map(([k,n])=>n+': 자사몰 '+(skuC[k]||0)+'개 / 네이버 '+(skuN[k]||0)+'개 / 쿠팡 '+(skuO[k]||0)+'개').join(' | ');
-
-  // 전월 데이터 계산
-  const pYr=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
-  const pMo=now.getMonth()===0?12:now.getMonth();
-  const pK=pYr+'-'+String(pMo).padStart(2,'0');
-  const pR=records.filter(r=>r.date.startsWith(pK));
-  let ctxPrevSection='';
-  if(pR.length===0){
-    ctxPrevSection='전월 Firebase 데이터 없음 / 3월 참고: 총매출₩6,289,700 / 마진44% / ROAS 0.895';
-  } else {
-    let pC3=0,pN3=0,pO3=0,pP3=0;
-    pR.forEach(r=>{const d=calcDay(r);pC3+=d.cRev;pN3+=d.nRev;pO3+=d.oRev;pP3+=d.profit;});
-    const pT3=pC3+pN3+pO3;
-    ctxPrevSection=pYr+'년 '+pMo+'월 실측: 자사몰₩'+fmt(pC3)+' / 네이버₩'+fmt(pN3)+' / 쿠팡₩'+fmt(pO3)+' / 총₩'+fmt(pT3)+' / 마진율'+(pT3>0?Math.round(pP3/pT3*100):0)+'%';
-  }
-
-  const lines = [
-    '【아녹(ANOK) ' + (now.getMonth()+1) + '월 실시간 현황】',
-    '브랜드: 뷰티 브랜드 아녹 (자사몰/네이버 스마트스토어/쿠팡)',
-    '',
-    '■ 매출 현황 (' + days + '일 / 총 ' + daysInMonth + '일 경과)',
-    '- 채널 총매출: ₩' + totRev.toLocaleString() + ' (자사몰 ₩' + totC.toLocaleString() + ' / 네이버 ₩' + totN.toLocaleString() + ' / 쿠팡 ₩' + totO.toLocaleString() + ')',
-    '- 총수익(마진): ₩' + totPrf.toLocaleString() + ' (자사몰 ₩' + totCprf.toLocaleString() + ' / 네이버 ₩' + totNprf.toLocaleString() + ' / 쿠팡 ₩' + totOprf.toLocaleString() + ')',
-    '- 순수익(광고비 차감): ₩' + netProfit.toLocaleString(),
-    '- 일평균 매출: ₩' + avgDaily.toLocaleString(),
-    '- 예상 월매출: ₩' + projTotal.toLocaleString() + ' (목표 ₩' + TARGET_TOTAL.toLocaleString() + ' 대비 ' + Math.round(projTotal/TARGET_TOTAL*100) + '%)',
-    '- 페이스 달성률: ' + paceRate + '% (현재 경과일 기준)',
-    '',
-    '■ 고정비 구조',
-    '- 메타 광고비: 일 ₩' + META_AD.toLocaleString() + ' × ' + days + '일 = ₩' + metaAd.toLocaleString(),
-    '- 네이버 광고비: 일 ₩' + NAVER_AD.toLocaleString() + ' × ' + days + '일 = ₩' + naverAd.toLocaleString(),
-    '- 메타 대행료: 월 ₩' + AGENCY_FEE.toLocaleString() + ' 일할 = ₩' + agencyFee.toLocaleString(),
-    '',
-    '■ 월 목표',
-    '- BEP+순익 100만원 목표 매출: ₩' + TARGET_TOTAL.toLocaleString() + ' (전월 마진율 ' + Math.round(calcPrevMonthMargin()*100) + '% 기준)',
-    '',
-    '■ 일별 매출 상세',
-    dailyStr,
-    '',
-    '■ SKU별 판매수량',
-    skuStr,
-    '',
-    '■ 전월 실적',
-    ctxPrevSection
-  ];
-  return lines.join('\n');
-}
-
-async function sendChat(){
-  const input = document.getElementById('anokChatInput');
-  const msg = input.value.trim();
-  if(!msg) return;
-  input.value = '';
-  input.style.height = 'auto';
-
-  // 사용자 메시지 추가
-  appendChatMsg(msg, 'user');
-  _chatHistory.push({role:'user', content: msg});
-
-  // 로딩
-  const loadingEl = appendChatMsg('분석 중...', 'ai loading');
-
-  try {
-    const ctx = buildDataContext();
-    const systemPrompt = [
-      '당신은 뷰티 D2C 브랜드 아녹(ANOK)의 전담 AI 전략 어드바이저입니다.',
-      '운영사: (주)퍼펙트드라이브 / 채널: 자사몰(cafe24), 네이버 스마트스토어, 쿠팡',
-      '',
-      '【브랜드 & 상품 구조】',
-      '헤어라인: 샴푸(₩19,800), 트리트먼트(₩19,800), 헤어세트(₩38,700)',
-      '바디라인: 바디워시(₩18,700), 바디로션(₩18,700), 바디세트(₩36,800), 워시세트(₩37,800)',
-      '쿠팡: 샴푸(₩23,900), 트리트먼트(₩23,900), 바디워시(₩22,900), 바디로션(₩22,900)',
-      '',
-      '【실제 SKU 마진율】',
-      '자사몰: 샴푸44.3% / 트리트먼트45.8% / 헤어세트44.4% / 바디워시46.8% / 바디로션45.7% / 바디세트46.0% / 워시세트45.1%',
-      '쿠팡 3월 실측 마진율 35.6% (풀필비+할인쿠폰+수수료 9.6% 모두 차감 후 기준)',
-      '쿠팡 풀필비: 판매 없어도 매일 발생(금액 매일 다름) / 할인쿠폰: 쿠폰 적용 상품 판매 시만 발생 → 둘 다 사용자가 매일 직접 입력',
-      '쿠팡 비용: 풀필비(매일 다르게 청구되는 변동비) + 할인쿠폰(판매 시에만 발생) — 절대 고정비 아님. 매일 사용자가 직접 입력한 값만 사용',
-      '',
-      '【고정비 구조】',
-      '메타광고: 일₩80,000 / 네이버광고: 일₩10,000 / 메타대행료: 월₩700,000',
-      'BEP+순익100만원 목표매출: ₩10,000,000 (전월마진율 44% 기준)',
-      '',
-      '【현재 실시간 데이터】',
-      ctx,
-      '',
-      '답변 원칙: 한국어, 수치 근거 명확히, 뷰티 D2C 업계 실무 관점, 300자 이내 핵심만. 반말 금지.'
-    ].join('\n');
-
-    const messages = _chatHistory.length > 1
-      ? _chatHistory
-      : [{role:'user', content: msg}];
-
-    // AI 채팅 비활성화
-    throw new Error('AI 기능이 비활성화되어 있습니다.');
-    const resp = await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:400,
-        system: systemPrompt,
-        messages: messages
-      })
-    });
-    const data = await resp.json();
-    const answer = data.content?.find(b=>b.type==='text')?.text || '응답을 가져올 수 없습니다.';
-
-    loadingEl.remove();
-    appendChatMsg(answer, 'ai');
-    _chatHistory.push({role:'assistant', content: answer});
-
-    // 히스토리 최대 10턴 유지
-    if(_chatHistory.length > 20) _chatHistory.splice(0, 2);
-
-  } catch(e) {
-    loadingEl.remove();
-    appendChatMsg('오류가 발생했습니다: ' + e.message, 'ai');
-  }
-}
-
-function markdownToHtml(text){
-  return text
-    // **굵게**
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // 줄바꿈
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    // - 리스트
-    .replace(/(^|<br>)\s*[-•] (.+?)(?=<br>|<\/p>|$)/g, '$1<li>$2</li>')
-    // 숫자 리스트
-    .replace(/(^|<br>)\s*(\d+[.)]) (.+?)(?=<br>|<\/p>|$)/g, '$1<li>$3</li>')
-    // li 감싸기
-    .replace(/(<li>.*<\/li>)/gs, '<ul style="margin:6px 0 6px 16px;padding:0">$1</ul>')
-    // p 감싸기
-    .replace(/^(.)/,'<p>$1')
-    .replace(/(.)$/, '$1</p>');
-}
-
-function appendChatMsg(text, cls){
-  const msgs = document.getElementById('anokChatMessages');
-  const el = document.createElement('div');
-  el.className = 'chat-msg ' + cls;
-  if(cls.includes('ai') && !cls.includes('loading')){
-    el.innerHTML = markdownToHtml(text);
-    el.style.lineHeight = '1.7';
-  } else {
-    el.textContent = text;
-  }
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
-  return el;
-}
-// ─────────────────────────────────────────────────────────────────────────────
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -1792,7 +1156,6 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-// Firebase 모듈 로딩 대기 후 실행
 setTimeout(function(){ loadData(); }, 500);
 </script>
 </body>
