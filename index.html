@@ -289,7 +289,14 @@
     </div>
   </div>
 
-  <div style="z-index:1">
+  <div style="z-index:1;display:flex;align-items:center;gap:8px">
+    <!-- 월 선택 드롭다운 -->
+    <div style="position:relative">
+      <select id="monthSelect" onchange="onMonthChange()"
+        style="appearance:none;-webkit-appearance:none;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.75);font-size:11px;padding:4px 28px 4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);font-family:monospace;letter-spacing:0.5px;cursor:pointer;outline:none">
+      </select>
+      <div style="position:absolute;right:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:rgba(255,255,255,0.4);font-size:9px">▼</div>
+    </div>
     <span class="month-badge" id="todayBadge">--</span>
   </div>
   <span id="headerMonth" style="display:none"></span>
@@ -697,12 +704,49 @@ function calcDay(rec){
 
 function fmt(n){ return Math.round(n).toLocaleString(); }
 
+// ── 선택 월 관리 ──────────────────────────────────────────────
+let selectedMonth = ''; // 'YYYY-MM'
+
+function getAvailableMonths(){
+  const months = [...new Set(records.map(r=>r.date.slice(0,7)))].sort();
+  // 현재 월도 항상 포함
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if(!months.includes(cur)) months.push(cur);
+  months.sort();
+  return months;
+}
+
+function initMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  const months = getAvailableMonths();
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // selectedMonth 미설정이면 현재 월로
+  if(!selectedMonth || !months.includes(selectedMonth)) selectedMonth = cur;
+  sel.innerHTML = months.map(m=>{
+    const [y,mo] = m.split('-');
+    return `<option value="${m}" ${m===selectedMonth?'selected':''}>${y}년 ${parseInt(mo)}월</option>`;
+  }).join('');
+}
+
+function onMonthChange(){
+  selectedMonth = document.getElementById('monthSelect').value;
+  render();
+}
+// ──────────────────────────────────────────────────────────────
+
 function render(){
   const now = new Date();
-  document.getElementById('headerMonth').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 성과 현황`;
+  // todayBadge는 항상 오늘 기준
   document.getElementById('todayBadge').textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} 기준`;
+  document.getElementById('headerMonth').textContent = `${now.getFullYear()}년 ${now.getMonth()+1}월 성과 현황`;
 
-  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // 드롭다운 재구성
+  initMonthSelect();
+
+  const month = selectedMonth;
+  const [selYear, selMonthNum] = month.split('-').map(Number);
   const mRecs = records.filter(r=>r.date.startsWith(month));
   const days = mRecs.length;
 
@@ -772,8 +816,8 @@ function render(){
 
 function updateTrendChart(mRecs){
   if(!trendChart) return;
-  const now=new Date();
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const [sy, sm] = selectedMonth.split('-').map(Number);
+  const daysInMonth=new Date(sy, sm, 0).getDate();
   const labels=Array.from({length:daysInMonth},(_,i)=>(i+1)+'일');
   const cData=Array(daysInMonth).fill(null);
   const nData=Array(daysInMonth).fill(null);
@@ -854,8 +898,8 @@ function renderAchieve(mRecs){
   let totC=0,totN=0,totO=0;
   mRecs.forEach(r=>{const d=calcDay(r);totC+=d.cRev;totN+=d.nRev;totO+=d.oRev;});
 
-  const now=new Date();
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const [_ry,_rm]=selectedMonth.split('-').map(Number);
+  const daysInMonth=new Date(_ry,_rm,0).getDate();
   const enteredDays=mRecs.length||1;
   const projC=Math.round(totC/enteredDays*daysInMonth);
   const projN=Math.round(totN/enteredDays*daysInMonth);
@@ -1011,9 +1055,9 @@ function renderDayTable(mRecs){
 }
 
 function calcPrevMonthMargin(){
-  const now = new Date();
-  const prevYear = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
-  const prevMonth = now.getMonth()===0 ? 12 : now.getMonth();
+  const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
+  const prevYear = sm===1 ? sy-1 : sy;
+  const prevMonth = sm===1 ? 12 : sm-1;
   const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
   if(prevRecs.length > 0){
@@ -1031,9 +1075,9 @@ function calcTargetTotal(){
 }
 
 function calcChannelShares(){
-  const now = new Date();
-  const prevYear = now.getMonth()===0 ? now.getFullYear()-1 : now.getFullYear();
-  const prevMonth = now.getMonth()===0 ? 12 : now.getMonth();
+  const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
+  const prevYear = sm===1 ? sy-1 : sy;
+  const prevMonth = sm===1 ? 12 : sm-1;
   const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
   if(prevRecs.length > 0){
@@ -1078,11 +1122,14 @@ function initCharts(){
             if(tooltip.opacity===0){ window._hideChartTooltip && window._hideChartTooltip(); return; }
             const items=tooltip.dataPoints||[];
             if(!items.length) return;
+            // 매출이 하나도 없는 날이면 툴팁 숨김
+            const hasData = items.some(i=>i.raw!=null && i.raw>0);
+            if(!hasData){ window._hideChartTooltip && window._hideChartTooltip(); return; }
             const dayNum=parseInt(items[0].label);
-            const now=new Date();
-            const daysInMo=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+            const [sy,sm]=selectedMonth.split('-').map(Number);
+            const daysInMo=new Date(sy,sm,0).getDate();
             const dailyBEP=Math.round(TARGET_TOTAL/daysInMo);
-            const dateStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+            const dateStr=`${String(sy)}-${String(sm).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
             const rec=records.find(r=>r.date===dateStr);
             let profitInfo={line2:'',profit:null};
             if(rec){
@@ -1160,11 +1207,11 @@ function switchTab(tab){
 }
 
 function renderInsight(){
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const month = selectedMonth;
+  const [_iy, _im] = month.split('-').map(Number);
   const mRecs = records.filter(r=>r.date.startsWith(month));
   const days = mRecs.length;
-  const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const daysInMonth = new Date(_iy, _im, 0).getDate();
 
   if(!days){
     document.getElementById('insightSubtitle').textContent='데이터 없음';
@@ -1194,7 +1241,7 @@ function renderInsight(){
   const achRate=Math.round(totRev/targetTotal*100);
   const daysLeft=daysInMonth-days;
 
-  document.getElementById('insightSubtitle').textContent=`${now.getMonth()+1}월 ${days}일 기준`;
+  document.getElementById('insightSubtitle').textContent=`${_im}월 ${days}일 기준`;
   document.getElementById('insightSummaryText').textContent=
     `누적 매출 ₩${fmt(totRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} · 목표 달성률 ${achRate}%`;
 
