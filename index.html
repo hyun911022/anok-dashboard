@@ -594,9 +594,16 @@
       <div id="insightChannelRow" class="strat3-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
     </div>
 
-  </div>
+    <!-- ── SKU별 수익성 분석 ── -->
+    <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:3px;height:14px;background:linear-gradient(#9B6DFF,#FB923C);border-radius:2px"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">SKU별 수익성 분석</span>
+      </div>
+      <div id="skuProfitSection"></div>
+    </div>
 
-  <!-- 일별 내역 탭 -->
+  </div>
   <div id="tabDaily" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
@@ -1562,10 +1569,172 @@ function renderInsight(){
       <div style="font-size:11px;color:#8898AA;line-height:1.5">${c.sub}</div>
     </div>
   `).join('');
+
+  renderSkuProfit(mRecs);
 }
 
-// ══════════════════════════════════════════════════
-// 재고현황 — 배치 기반 FIFO + 유통기한 관리
+function renderSkuProfit(mRecs){
+  const el = document.getElementById('skuProfitSection');
+  if(!el) return;
+  if(!mRecs || mRecs.length===0){
+    el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이번 달 판매 데이터가 없습니다.</div>';
+    return;
+  }
+
+  // SKU별 판매량·매출·수익 집계
+  // 단품 SKU 정의
+  const SKUS = [
+    { key:'shampoo',    name:'샴푸',      color:'#9B6DFF' },
+    { key:'treatment',  name:'트리트먼트', color:'#34D399' },
+    { key:'bodywash',   name:'바디워시',   color:'#38BDF8' },
+    { key:'bodylotion', name:'바디로션',   color:'#FB923C' },
+  ];
+  const SETS = [
+    { key:'hairset',  name:'헤어세트',   color:'#A78BFA',
+      parts:{ shampoo:1, treatment:1 } },
+    { key:'bodyset',  name:'바디세트',   color:'#FBBF24',
+      parts:{ bodywash:1, bodylotion:1 } },
+    { key:'washset',  name:'워시세트',   color:'#60A5FA',
+      parts:{ shampoo:1, bodywash:1 } },
+  ];
+
+  // 전체 SKU 목록 (단품 + 세트)
+  const allItems = [...SKUS, ...SETS];
+
+  // 집계
+  const stats = {};
+  allItems.forEach(s=>{ stats[s.key]={ qty:0, rev:0, prf:0, cafe:0, naver:0, coup:0 }; });
+
+  mRecs.forEach(r=>{
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+
+    // 자사몰 단품
+    SKUS.forEach(s=>{
+      const q = c[s.key]||0;
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (CAFE_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (CAFE_PROFITS[s.key]||0);
+      stats[s.key].cafe += q;
+    });
+    // 자사몰 세트
+    SETS.forEach(s=>{
+      const q = c[s.key]||0;
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (CAFE_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (CAFE_PROFITS[s.key]||0);
+      stats[s.key].cafe += q;
+    });
+
+    // 네이버 단품
+    SKUS.forEach(s=>{
+      const q = n[s.key]||0;
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (NAVER_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (NAVER_PROFITS[s.key]||0);
+      stats[s.key].naver+= q;
+    });
+    // 네이버 세트
+    SETS.forEach(s=>{
+      const q = n[s.key]||0;
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (NAVER_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (NAVER_PROFITS[s.key]||0);
+      stats[s.key].naver+= q;
+    });
+
+    // 쿠팡 단품 (세트 없음)
+    SKUS.forEach(s=>{
+      const q = o[s.key]||0;
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (COUP_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (COUP_PROFITS[s.key]||0);
+      stats[s.key].coup += q;
+    });
+  });
+
+  // 수익 기여도 기준 정렬
+  const sorted = allItems
+    .map(s=>({ ...s, ...stats[s.key], margin: stats[s.key].rev>0 ? Math.round(stats[s.key].prf/stats[s.key].rev*100) : 0 }))
+    .filter(s=>s.qty>0)
+    .sort((a,b)=>b.prf-a.prf);
+
+  const totalPrf = sorted.reduce((s,x)=>s+x.prf, 0);
+  const totalRev = sorted.reduce((s,x)=>s+x.rev, 0);
+  const maxPrf = sorted[0]?.prf || 1;
+
+  const fmt = n => Math.abs(n)>=10000 ? Math.round(n/1000).toLocaleString()+'천' : n.toLocaleString();
+  const fmtW = n => '₩'+n.toLocaleString();
+
+  // 헤더 요약
+  const summaryHtml = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+      <div style="background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">총 매출</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">${fmtW(Math.round(totalRev))}</div>
+      </div>
+      <div style="background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">총 수익 (상품)</div>
+        <div style="font-size:16px;font-weight:700;color:${totalPrf>=0?'#34D399':'#F43F5E'}">${fmtW(Math.round(totalPrf))}</div>
+      </div>
+      <div style="background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">평균 마진율</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">${totalRev>0?Math.round(totalPrf/totalRev*100):0}%</div>
+      </div>
+    </div>`;
+
+  // SKU 행 테이블
+  const rowsHtml = sorted.map((s,i)=>{
+    const contribPct = totalPrf>0 ? Math.round(s.prf/totalPrf*100) : 0;
+    const barW = Math.round(s.prf/maxPrf*100);
+    const isSet = SETS.some(x=>x.key===s.key);
+
+    // 채널 구성 배지
+    const chBadges = [
+      s.cafe  ? `<span style="font-size:9px;color:#9B6DFF;background:#9B6DFF18;padding:1px 5px;border-radius:3px">${s.cafe}개</span>` : '',
+      s.naver ? `<span style="font-size:9px;color:#34D399;background:#34D39918;padding:1px 5px;border-radius:3px">${s.naver}개</span>` : '',
+      s.coup  ? `<span style="font-size:9px;color:#FB923C;background:#FB923C18;padding:1px 5px;border-radius:3px">${s.coup}개</span>` : '',
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div style="padding:11px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:11px;color:var(--text3);width:14px;text-align:center">${i+1}</div>
+            <div style="width:3px;height:14px;background:${s.color};border-radius:2px;flex-shrink:0"></div>
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:700;color:var(--text)">${s.name}</span>
+                ${isSet?'<span style="font-size:9px;color:#A78BFA;background:#A78BFA18;padding:1px 5px;border-radius:3px">세트</span>':''}
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:3px">${chBadges}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:700;color:${s.prf>=0?'var(--text)':'#F43F5E'}">${fmtW(Math.round(s.prf))}</div>
+            <div style="font-size:10px;color:var(--text3)">${s.qty}개 · 마진 ${s.margin}%</div>
+          </div>
+        </div>
+        <!-- 수익 기여도 바 -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:5px;background:${s.color};width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);white-space:nowrap;width:32px;text-align:right">${contribPct}%</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // 채널 범례
+  const legendHtml = `
+    <div style="display:flex;gap:12px;margin-top:10px;padding-top:10px">
+      <span style="font-size:10px;color:var(--text3)">채널:</span>
+      <span style="font-size:10px;color:#9B6DFF">■ 자사몰</span>
+      <span style="font-size:10px;color:#34D399">■ 네이버</span>
+      <span style="font-size:10px;color:#FB923C">■ 쿠팡</span>
+    </div>`;
+
+  el.innerHTML = summaryHtml + rowsHtml + legendHtml;
+}
 // ══════════════════════════════════════════════════
 const STOCK_KEY = 'anok_stock_v2';
 const STOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
