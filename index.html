@@ -396,6 +396,7 @@
       <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
       <button class="tab" onclick="switchTab('daily')">일별 내역</button>
       <button class="tab" onclick="switchTab('stock')">재고현황</button>
+      <button class="tab" onclick="switchTab('order')">발주관리</button>
     </div>
     <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
   </div>
@@ -749,9 +750,142 @@
 
   </div>
 
+  <!-- 발주관리 탭 -->
+  <div id="tabOrder" style="display:none">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">발주관리</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">판매·출고 추이 기반 발주 타이밍 및 수량 제안</div>
+      </div>
+      <button onclick="openOrderModal()" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap">+ 발주 등록</button>
+    </div>
+
+    <!-- SKU 상태 요약 카드 4개 -->
+    <div id="orderStatusCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px"></div>
+
+    <!-- 발주 계산기 -->
+    <div id="orderCalculator" style="margin-bottom:24px"></div>
+
+    <!-- 발주 이력 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">발주 이력</div>
+        <div style="font-size:11px;color:var(--text3)">실제 입고 확인 시 업데이트하세요</div>
+      </div>
+      <div id="orderHistory"></div>
+    </div>
+
+  </div>
+
 </div>
 
-<!-- 입고 등록 모달 -->
+<!-- 발주 등록 모달 -->
+<div class="modal-bg" id="orderModalBg">
+  <div class="modal">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1A1528,#252840)">
+      <h2>발주 등록</h2>
+      <button class="modal-close" onclick="closeOrderModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>발주일</label>
+        <input type="date" id="ord_date">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">리드타임</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;background:#1A1D27;border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer">
+            <input type="radio" name="ord_lead" id="ord_lead_now" value="0" checked style="accent-color:#6366F1">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text)">즉시 입고</div>
+              <div style="font-size:10px;color:var(--text3)">제조사 재고 있음</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#1A1D27;border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer">
+            <input type="radio" name="ord_lead" id="ord_lead_prod" value="60" style="accent-color:#6366F1">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text)">생산 필요</div>
+              <div style="font-size:10px;color:var(--text3)">리드타임 약 2달</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:10px">SKU별 발주 수량</label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#12151F;border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="width:3px;height:12px;background:#9B6DFF;border-radius:2px"></div>
+                <span style="font-size:12px;font-weight:600;color:var(--text2)">샴푸</span>
+              </div>
+              <div class="sku-input" style="margin:0"><input type="number" id="ord_shampoo" value="0" min="0" style="width:100px;text-align:right"></div>
+            </div>
+          </div>
+          <div style="background:#12151F;border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="width:3px;height:12px;background:#34D399;border-radius:2px"></div>
+                <span style="font-size:12px;font-weight:600;color:var(--text2)">트리트먼트</span>
+              </div>
+              <div class="sku-input" style="margin:0"><input type="number" id="ord_treatment" value="0" min="0" style="width:100px;text-align:right"></div>
+            </div>
+          </div>
+          <div style="background:#12151F;border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="width:3px;height:12px;background:#38BDF8;border-radius:2px"></div>
+                <span style="font-size:12px;font-weight:600;color:var(--text2)">바디워시</span>
+              </div>
+              <div class="sku-input" style="margin:0"><input type="number" id="ord_bodywash" value="0" min="0" style="width:100px;text-align:right"></div>
+            </div>
+          </div>
+          <div style="background:#12151F;border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="width:3px;height:12px;background:#FB923C;border-radius:2px"></div>
+                <span style="font-size:12px;font-weight:600;color:var(--text2)">바디로션</span>
+              </div>
+              <div class="sku-input" style="margin:0"><input type="number" id="ord_bodylotion" value="0" min="0" style="width:100px;text-align:right"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">메모 (선택)</label>
+        <input type="text" id="ord_memo" placeholder="예: 올리브영 납품 대비, 시즌 대응 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#12151F">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeOrderModal()">취소</button>
+      <button class="btn-save" onclick="saveOrder()">발주 등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 발주 입고 확인 모달 -->
+<div class="modal-bg" id="orderConfirmModalBg">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0D2318,#1A3020)">
+      <h2>입고 확인</h2>
+      <button class="modal-close" onclick="closeOrderConfirmModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">실제 입고된 날짜를 입력하세요.</p>
+      <div class="modal-date">
+        <label>실제 입고일</label>
+        <input type="date" id="ord_received_date">
+      </div>
+      <input type="hidden" id="ord_confirm_idx">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeOrderConfirmModal()">취소</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#16A34A,#059669)" onclick="confirmOrderReceived()">입고 확인</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="stockInitModalBg">
   <div class="modal">
     <div class="modal-header" style="background:linear-gradient(135deg,#1A1528,#252840)">
@@ -1428,12 +1562,14 @@ function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
   document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
+  document.getElementById('tabOrder').style.display=tab==='order'?'block':'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)
     );
   });
   if(tab==='stock') renderStock();
+  if(tab==='order') renderOrder();
 }
 
 function renderInsight(){
@@ -2346,6 +2482,282 @@ function deleteManualOut(idx){
   manualOuts.splice(idx,1);
   saveStockData(); renderStock(); showToast('삭제되었습니다');
 }
+// ══════════════════════════════════════════════════
+// 발주관리
+// ══════════════════════════════════════════════════
+const ORDER_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
+const ORDER_SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+const ORDER_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#FB923C'};
+const TARGET_DAYS = 90; // 3개월치 목표 재고
+const LEAD_TIME_PROD = 60; // 생산 리드타임 (일)
+
+let orderList = []; // [{id, date, leadTime, items:[{sku,qty}], memo, receivedDate, status}]
+
+async function loadOrderData(){
+  if(window._firestore){
+    try{
+      const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      // _firestore 기존 db 재사용
+    }catch(e){}
+  }
+  try{
+    const raw = localStorage.getItem('anok_orders_v1');
+    if(raw) orderList = JSON.parse(raw);
+  }catch(e){}
+}
+
+function saveOrderData(){
+  try{ localStorage.setItem('anok_orders_v1', JSON.stringify(orderList)); }catch(e){}
+  // Firebase 저장도 추가 가능
+}
+
+// 이커머스 + 수기출고 합산 일평균 소진 속도
+function calcTotalDailyRate(){
+  const ecom = calcAvgDailySales(14); // 최근 14일 이커머스
+  const today = new Date().toISOString().split('T')[0];
+  const from90 = new Date(); from90.setDate(from90.getDate()-90);
+  const from90Str = from90.toISOString().split('T')[0];
+
+  const rate = {};
+  ORDER_SKUS.forEach(k=>{
+    const manualTotal = manualOuts
+      .filter(r=>r.date>=from90Str && r.date<=today)
+      .reduce((s,r)=>s+(r[k]||0),0);
+    const manualAvg = Math.round(manualTotal/90*10)/10;
+    rate[k] = Math.round((ecom[k] + manualAvg)*10)/10;
+  });
+  return rate;
+}
+
+function renderOrder(){
+  const stock = calcCurrentStock();
+  const rate  = calcTotalDailyRate();
+  const ecom  = calcAvgDailySales(14);
+  const today = new Date().toISOString().split('T')[0];
+
+  // ── 상태 판단 함수 ──
+  function getStatus(daysLeft){
+    if(daysLeft===null) return {label:'데이터 없음', color:'#4A5568', bg:'#4A556820', dot:'#4A5568'};
+    if(daysLeft<=14)  return {label:'긴급 발주', color:'#EF4444', bg:'#EF444415', dot:'#EF4444'};
+    if(daysLeft<=60)  return {label:'발주 검토', color:'#F97316', bg:'#F9731615', dot:'#F97316'};
+    if(daysLeft<=90)  return {label:'발주 예정', color:'#EAB308', bg:'#EAB30815', dot:'#EAB308'};
+    return {label:'여유', color:'#34D399', bg:'#34D39915', dot:'#34D399'};
+  }
+
+  // ── 1. 상태 요약 카드 4개 ──
+  const cards = ORDER_SKUS.map(k=>{
+    const qty = stock[k]||0;
+    const r   = rate[k]||0;
+    const daysLeft = r>0 ? Math.round(qty/r) : null;
+    const st  = getStatus(daysLeft);
+    const target = r>0 ? Math.round(r*TARGET_DAYS) : null;
+    const needNow  = target ? Math.max(0, target-qty) : null;
+    const needProd = target && r>0 ? Math.max(0, target-qty+Math.round(r*LEAD_TIME_PROD)) : null;
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${ORDER_COLORS[k]};border-radius:14px 0 0 14px"></div>
+      <div style="padding-left:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2)">${ORDER_SKU_NAMES[k]}</div>
+          <div style="font-size:10px;font-weight:700;color:${st.color};background:${st.bg};padding:2px 8px;border-radius:20px;white-space:nowrap">${st.label}</div>
+        </div>
+        <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:2px">${qty.toLocaleString()}<span style="font-size:11px;font-weight:400;color:var(--text3)"> 개</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${daysLeft!==null?daysLeft+'일치':'판매 데이터 없음'} · 일평균 ${r>0?r+'개':'-'}</div>
+        <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
+        <div style="font-size:10px;color:var(--text3)">3개월 목표 재고 <span style="color:var(--text2);font-weight:600">${target?target.toLocaleString()+'개':'-'}</span></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">
+          즉시 <span style="color:${needNow===0?'#34D399':'#60A5FA'};font-weight:600">${needNow!==null?(needNow===0?'발주불필요':'+'+needNow.toLocaleString()+'개'):'-'}</span>
+          <span style="margin:0 4px;color:var(--border)">·</span>
+          생산 <span style="color:${needProd===0?'#34D399':'#F97316'};font-weight:600">${needProd!==null?(needProd===0?'발주불필요':'+'+needProd.toLocaleString()+'개'):'-'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('orderStatusCards').innerHTML = cards;
+
+  // ── 2. 발주 계산기 ──
+  const calc = ORDER_SKUS.map(k=>{
+    const qty = stock[k]||0;
+    const r   = rate[k]||0;
+    const ecomR = ecom[k]||0;
+    const manualR = Math.round((r-ecomR)*10)/10;
+    const daysLeft = r>0 ? Math.round(qty/r) : null;
+    const soginDate = daysLeft!==null ? (()=>{ const d=new Date(today); d.setDate(d.getDate()+daysLeft); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; })() : null;
+    const target = r>0 ? Math.round(r*TARGET_DAYS) : 0;
+    const needNow  = Math.max(0, target-qty);
+    const needProd = r>0 ? Math.max(0, target-qty+Math.round(r*LEAD_TIME_PROD)) : 0;
+    const st = getStatus(daysLeft);
+
+    // 발주 긴급도 바
+    const urgencyPct = daysLeft!==null ? Math.min(100, Math.round((TARGET_DAYS-Math.min(daysLeft,TARGET_DAYS))/TARGET_DAYS*100)) : 0;
+    const urgencyColor = daysLeft!==null?(daysLeft<=14?'#EF4444':daysLeft<=60?'#F97316':daysLeft<=90?'#EAB308':'#34D399'):'#4A5568';
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
+      <!-- SKU 헤더 -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:4px;height:18px;background:${ORDER_COLORS[k]};border-radius:2px"></div>
+          <span style="font-size:15px;font-weight:700;color:var(--text)">${ORDER_SKU_NAMES[k]}</span>
+          <span style="font-size:11px;color:var(--text3)">${qty.toLocaleString()}개 보유</span>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};padding:3px 10px;border-radius:20px">${st.label}</div>
+      </div>
+
+      <!-- 소진 속도 분석 -->
+      <div style="background:#0D1117;border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px">소진 속도 분석</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">이커머스</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">${ecomR}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">B2B 수기출고</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">${manualR}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">합산 소진</div>
+            <div style="font-size:16px;font-weight:700;color:${ORDER_COLORS[k]}">${r}<span style="font-size:10px;color:var(--text3)">개/일</span></div>
+          </div>
+        </div>
+        ${r>0?`<div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px">
+            <span>현재고 소진 예상</span>
+            <span style="color:${urgencyColor};font-weight:600">${daysLeft}일 후 (${soginDate})</span>
+          </div>
+          <div style="height:6px;background:#1A1D27;border-radius:3px;overflow:hidden">
+            <div style="height:6px;background:${urgencyColor};width:${urgencyPct}%;border-radius:3px;transition:width 0.4s"></div>
+          </div>
+        </div>`:''}
+      </div>
+
+      <!-- 발주 시나리오 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <!-- 시나리오 A -->
+        <div style="background:${needNow===0?'#0D1E14':'#0D1117'};border:1px solid ${needNow===0?'#16A34A30':'var(--border)'};border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <div style="width:6px;height:6px;border-radius:50%;background:${needNow===0?'#34D399':'#60A5FA'}"></div>
+            <div style="font-size:10px;font-weight:700;color:${needNow===0?'#34D399':'#60A5FA'}">시나리오 A · 즉시 입고</div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">제조사 재고 있을 경우</div>
+          <div style="font-size:20px;font-weight:700;color:${needNow===0?'#34D399':'var(--text)'}">
+            ${needNow===0?'발주 불필요':needNow.toLocaleString()+'개'}
+          </div>
+          ${needNow>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">3개월치 목표 ${target.toLocaleString()}개</div>`:''}
+        </div>
+        <!-- 시나리오 B -->
+        <div style="background:${needProd===0?'#0D1E14':'#1A0E08'};border:1px solid ${needProd===0?'#16A34A30':'#F9731630'};border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <div style="width:6px;height:6px;border-radius:50%;background:${needProd===0?'#34D399':'#F97316'}"></div>
+            <div style="font-size:10px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">시나리오 B · 생산 필요</div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">리드타임 2달 감안</div>
+          <div style="font-size:20px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">
+            ${needProd===0?'발주 불필요':needProd.toLocaleString()+'개'}
+          </div>
+          ${needProd>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">생산중 소진 ${r>0?Math.round(r*LEAD_TIME_PROD).toLocaleString()+'개 추가':'-'}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('orderCalculator').innerHTML = calc;
+
+  // ── 3. 발주 이력 ──
+  const histEl = document.getElementById('orderHistory');
+  if(orderList.length===0){
+    histEl.innerHTML=`<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">
+      <div style="font-size:24px;margin-bottom:8px">📋</div>
+      아직 발주 이력이 없습니다.<br>첫 발주를 등록해보세요.
+    </div>`;
+    return;
+  }
+  const sorted = [...orderList].sort((a,b)=>b.date.localeCompare(a.date));
+  histEl.innerHTML = sorted.map((o,i)=>{
+    const gi = orderList.indexOf(o);
+    const isReceived = !!o.receivedDate;
+    const actualLead = isReceived && o.leadTime>=0
+      ? Math.round((new Date(o.receivedDate)-new Date(o.date))/(864e5))
+      : null;
+    const expReceive = o.leadTime===0 ? '즉시' : (()=>{ const d=new Date(o.date); d.setDate(d.getDate()+parseInt(o.leadTime)); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; })();
+    const itemsStr = o.items.filter(it=>it.qty>0).map(it=>`${ORDER_SKU_NAMES[it.sku]} ${it.qty.toLocaleString()}개`).join(' · ');
+
+    return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:12px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <div style="font-size:12px;font-weight:700;color:var(--text)">${o.date} 발주</div>
+          <div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+            color:${isReceived?'#34D399':'#60A5FA'};background:${isReceived?'#34D39915':'#60A5FA15'}">
+            ${isReceived?'✓ 입고완료':'대기중'}
+          </div>
+          <div style="font-size:10px;color:var(--text3)">${o.leadTime===0?'즉시입고':'생산발주'}</div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${itemsStr}</div>
+        <div style="font-size:11px;color:var(--text3)">
+          예상 입고 ${expReceive}
+          ${isReceived?` · 실제 입고 ${o.receivedDate} · 리드타임 ${actualLead}일`:''}
+        </div>
+        ${o.memo?`<div style="font-size:11px;color:var(--text3);margin-top:3px">💬 ${o.memo}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${!isReceived?`<button onclick="openOrderConfirmModal(${gi})" style="font-size:11px;font-weight:600;color:#34D399;background:#34D39915;border:1px solid #34D39930;border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap">입고 확인</button>`:''}
+        <button onclick="deleteOrder(${gi})" style="font-size:11px;color:#4A5568;background:none;border:none;cursor:pointer;padding:5px">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 발주 모달 ──
+function openOrderModal(){
+  document.getElementById('ord_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ord_lead_now').checked = true;
+  ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
+    document.getElementById('ord_'+k).value=0;
+  });
+  document.getElementById('ord_memo').value='';
+  document.getElementById('orderModalBg').classList.add('open');
+}
+function closeOrderModal(){ document.getElementById('orderModalBg').classList.remove('open'); }
+function saveOrder(){
+  const date = document.getElementById('ord_date').value;
+  if(!date){ showToast('발주일을 입력해주세요'); return; }
+  const leadTime = parseInt(document.querySelector('input[name="ord_lead"]:checked').value);
+  const items = ORDER_SKUS.map(k=>({ sku:k, qty:parseInt(document.getElementById('ord_'+k).value)||0 })).filter(it=>it.qty>0);
+  if(items.length===0){ showToast('발주 수량을 입력해주세요'); return; }
+  const memo = document.getElementById('ord_memo').value.trim();
+  orderList.push({ id:'ord_'+Date.now(), date, leadTime, items, memo, receivedDate:null, status:'pending' });
+  saveOrderData();
+  closeOrderModal();
+  renderOrder();
+  showToast('발주가 등록되었습니다');
+}
+
+// ── 입고 확인 모달 ──
+function openOrderConfirmModal(idx){
+  document.getElementById('ord_received_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ord_confirm_idx').value = idx;
+  document.getElementById('orderConfirmModalBg').classList.add('open');
+}
+function closeOrderConfirmModal(){ document.getElementById('orderConfirmModalBg').classList.remove('open'); }
+function confirmOrderReceived(){
+  const idx = parseInt(document.getElementById('ord_confirm_idx').value);
+  const date = document.getElementById('ord_received_date').value;
+  if(!date){ showToast('입고일을 입력해주세요'); return; }
+  orderList[idx].receivedDate = date;
+  orderList[idx].status = 'received';
+  saveOrderData();
+  closeOrderConfirmModal();
+  renderOrder();
+  showToast('입고 확인 완료!');
+}
+function deleteOrder(idx){
+  if(!confirm('이 발주 이력을 삭제할까요?')) return;
+  orderList.splice(idx,1);
+  saveOrderData();
+  renderOrder();
+  showToast('삭제되었습니다');
+}
+// ══════════════════════════════════════════════════
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;
@@ -2363,7 +2775,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); loadStockData(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); }, 500);
 </script>
 </body>
 </html>
