@@ -123,6 +123,11 @@
   .kpi.total-card .kpi-label{color:#60A5FA}
   .kpi.total-card .kpi-value{color:#BAE6FD;font-size:18px}
   .kpi.total-card .kpi-sub{color:#38BDF8}
+  /* PC: 채널 카드 2행 배치 */
+  .ch-total { grid-column:1; grid-row:1/3; }
+  .ch-cafe  { grid-column:2; grid-row:1/3; }
+  .ch-naver { grid-column:3; grid-row:1/3; }
+  .ch-coup  { grid-column:4; grid-row:1/3; }
   .toast{position:fixed;bottom:20px;left:20px;background:#252840;border:1px solid var(--border);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
   @keyframes spin{to{transform:rotate(360deg)}}
   .toast.show{opacity:1}
@@ -147,16 +152,11 @@
       gap: 8px !important;
       margin-bottom: 14px !important;
     }
-    /* 총매출+총수익: 전체 너비 1행 */
-    .channel-grid .kpi.total-card {
-      grid-column: 1 / 3 !important;
-      grid-row: 1 !important;
-    }
-    /* 자사몰(좌2행) / 네이버(우2행) */
-    .channel-grid .kpi:nth-child(2) { grid-column: 1; grid-row: 2; }
-    .channel-grid .kpi:nth-child(3) { grid-column: 2; grid-row: 2; }
-    /* 쿠팡(좌3행) */
-    .channel-grid .kpi:nth-child(4) { grid-column: 1; grid-row: 3; }
+    /* PC grid-row 완전 초기화 후 모바일 재정의 */
+    .ch-total { grid-column: 1 / 3 !important; grid-row: 1 !important; }
+    .ch-cafe  { grid-column: 1 !important;     grid-row: 2 !important; }
+    .ch-naver { grid-column: 2 !important;     grid-row: 2 !important; }
+    .ch-coup  { grid-column: 1 !important;     grid-row: 3 !important; }
 
     /* ── 차트·그리드 1열 ── */
     .chart-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
@@ -417,10 +417,10 @@
     </div>
 
     <!-- 채널 매출 + 수익 통합 그리드 -->
-    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:auto auto;gap:12px;margin-bottom:20px">
 
-      <!-- 채널 총매출 — 2행 차지 -->
-      <div class="kpi indigo total-card" style="grid-row:1/3;display:flex;flex-direction:column;justify-content:center;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none">
+      <!-- 채널 총매출 — PC: 2행 차지 -->
+      <div class="kpi indigo total-card ch-total" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none">
         <div class="kpi-label">채널 총매출</div>
         <div class="kpi-value" id="kpiTotal" style="margin:4px 0">0</div>
         <div class="kpi-sub up" id="kpiRate">수익률 -</div>
@@ -432,7 +432,7 @@
       </div>
 
       <!-- 자사몰 매출 + 수익 -->
-      <div class="kpi purple" style="grid-row:1/3;display:flex;flex-direction:column;justify-content:center">
+      <div class="kpi purple ch-cafe" style="display:flex;flex-direction:column;justify-content:center">
         <div class="kpi-label" style="color:#7C3AED">자사몰 매출</div>
         <div class="kpi-value" id="kpiCafe">0</div>
         <div class="kpi-sub">cafe24</div>
@@ -444,7 +444,7 @@
       </div>
 
       <!-- 네이버 매출 + 수익 -->
-      <div class="kpi green" style="grid-row:1/3;display:flex;flex-direction:column;justify-content:center">
+      <div class="kpi green ch-naver" style="display:flex;flex-direction:column;justify-content:center">
         <div class="kpi-label" style="color:#16A34A">네이버 매출</div>
         <div class="kpi-value" id="kpiNaver">0</div>
         <div class="kpi-sub">스마트스토어</div>
@@ -456,7 +456,7 @@
       </div>
 
       <!-- 쿠팡 매출 + 수익 -->
-      <div class="kpi orange" style="grid-row:1/3;display:flex;flex-direction:column;justify-content:center">
+      <div class="kpi orange ch-coup" style="display:flex;flex-direction:column;justify-content:center">
         <div class="kpi-label" style="color:#EA580C">쿠팡 매출</div>
         <div class="kpi-value" id="kpiCoupang">0</div>
         <div class="kpi-sub">wing</div>
