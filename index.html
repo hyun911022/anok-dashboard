@@ -701,6 +701,15 @@
       </div>
     </div>
 
+    <!-- 재고 인사이트 -->
+    <div id="stockInsightCard" class="card" style="margin-bottom:16px;border:1px solid #6366F122;display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#9B6DFF);border-radius:2px"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2)">재고 운영 인사이트</div>
+      </div>
+      <div id="stockInsightBody"></div>
+    </div>
+
     <!-- 유통기한 임박 경고 배너 -->
     <div id="stockExpiryWarning" class="card" style="margin-bottom:16px;border:1px solid #F43F5E33;display:none"></div>
 
@@ -1794,62 +1803,49 @@ function renderStock(){
   const batchState = calcFIFOBatchState();
   const today = new Date().toISOString().split('T')[0];
 
-  // ── 요약 카드 4개 ──
+  // ── 요약 카드 4개 (배치별 세부 포함) ──
   const cards = STOCK_SKUS.map(k=>{
     const stock = currentStock[k]||0;
     const avg = avgSales[k]||0;
     const daysLeft = avg>0 ? Math.round(stock/avg) : null;
-    const nearestB = batchState[k].batches.find(b=>b.remaining>0&&b.expiry);
-    const expiryDate = nearestB?.expiry || null;
-    const halfLifeDate = nearestB?.halfLifeDate || null;
-
-    // 재고 소진 기반 상태
-    let statusColor, statusLabel;
-    if(avg===0){
-      statusColor = stock>300?'#34D399':stock>100?'#FB923C':'#F43F5E';
-      statusLabel = stock>300?'충분':stock>100?'주의':'부족';
-    } else if(daysLeft>=30){ statusColor='#34D399'; statusLabel='충분'; }
-    else if(daysLeft>=14){   statusColor='#FB923C'; statusLabel='주의'; }
-    else {                   statusColor='#F43F5E'; statusLabel='부족'; }
-
-    const daysLeftStr = daysLeft!==null
-      ? `약 ${daysLeft}일치 재고 (일평균 ${avg.toFixed(1)}개)`
-      : '판매 데이터 집계 중';
-
-    // 유통기한 3단계 경고
-    let expiryWarn = '';
-    if(expiryDate){
-      const daysToExp  = Math.round((new Date(expiryDate)-new Date(today))/(1000*60*60*24));
-      const daysToHalf = halfLifeDate
-        ? Math.round((new Date(halfLifeDate)-new Date(today))/(1000*60*60*24))
-        : null;
-
-      if(daysToExp <= 180){
-        // ③ 위험: 유통기한 6개월 이내
-        expiryWarn = `<div style="margin-top:6px;font-size:10px;color:#F43F5E;font-weight:700">⛔ 유통기한 ${daysToExp}일 · 소비자 수령 거부 가능</div>`;
-        statusColor='#F43F5E'; statusLabel='위험';
-      } else if(daysToHalf !== null && daysToHalf <= 0){
-        // ② B2B 납품 불가
-        expiryWarn = `<div style="margin-top:6px;font-size:10px;color:#FB923C;font-weight:700">🚫 B2B 납품 불가 · B2C 전용 (${halfLifeDate} 경과)</div>`;
-        if(statusColor==='#34D399'){ statusColor='#FB923C'; statusLabel='B2B불가'; }
-      } else if(daysToHalf !== null && daysToHalf <= 60){
-        // ① 주의: 2개월 내 B2B 납품 불가 예정
-        expiryWarn = `<div style="margin-top:6px;font-size:10px;color:#F59E0B;font-weight:700">⚠ ${daysToHalf}일 후 B2B 납품 불가 예정</div>`;
-        if(statusColor==='#34D399'){ statusColor='#F59E0B'; statusLabel='납품임박'; }
-      } else {
-        expiryWarn = `<div style="margin-top:6px;font-size:10px;color:var(--text3)">유통기한 ${expiryDate} (D-${daysToExp})</div>`;
-      }
-    }
-
     const color = STOCK_COLORS[k];
+
+    // 전체 상태 (소진 기준)
+    let statusColor, statusLabel;
+    if(avg===0){ statusColor=stock>300?'#34D399':stock>100?'#FB923C':'#F43F5E'; statusLabel=stock>300?'충분':stock>100?'주의':'부족'; }
+    else if(daysLeft>=30){ statusColor='#34D399'; statusLabel='충분'; }
+    else if(daysLeft>=14){ statusColor='#FB923C'; statusLabel='주의'; }
+    else { statusColor='#F43F5E'; statusLabel='부족'; }
+
+    // 배치별 상태 행 생성
+    const batches = batchState[k].batches;
+    const batchRows = batches.map((b,bi)=>{
+      if(b.originalQty===0) return '';
+      const dToHalf = b.halfLifeDate ? Math.round((new Date(b.halfLifeDate)-new Date(today))/(1000*60*60*24)) : null;
+      const dToExp  = b.expiry       ? Math.round((new Date(b.expiry)      -new Date(today))/(1000*60*60*24)) : null;
+      const isB2bBlock = b.halfLifeDate && today >= b.halfLifeDate;
+      let bStatus, bColor;
+      if(dToExp!==null && dToExp<=180){ bStatus='⛔ 판매주의'; bColor='#F43F5E'; }
+      else if(isB2bBlock)             { bStatus='🚫 B2B불가';   bColor='#FB923C'; statusColor='#FB923C'; if(statusLabel==='충분') statusLabel='B2B불가'; }
+      else if(dToHalf!==null&&dToHalf<=60){ bStatus=`⚠ ${dToHalf}일 후`; bColor='#F59E0B'; }
+      else                            { bStatus='✅ B2B가능';   bColor='#34D399'; }
+
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid var(--border)22;margin-top:4px;font-size:10px">
+        <span style="color:var(--text3)">배치${bi+1} ${b.expiry||'유통기한미입력'} · ${b.remaining}개</span>
+        <span style="color:${bColor};font-weight:700">${bStatus}</span>
+      </div>`;
+    }).join('');
+
+    const daysLeftStr = daysLeft!==null ? `약 ${daysLeft}일치 (일평균 ${avg.toFixed(1)}개)` : '판매데이터 집계 중';
+
     return `<div class="card" style="border-left:3px solid ${color}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px">${STOCK_SKU_NAMES[k]}</div>
         <div style="font-size:10px;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel}</div>
       </div>
       <div style="font-size:22px;font-weight:700;color:var(--text);margin:4px 0">${stock.toLocaleString()}<span style="font-size:12px;color:var(--text3);font-weight:400"> 개</span></div>
-      <div style="font-size:11px;color:var(--text3)">${daysLeftStr}</div>
-      ${expiryWarn}
+      <div style="font-size:11px;color:var(--text3);margin-bottom:2px">${daysLeftStr}</div>
+      ${batchRows}
     </div>`;
   }).join('');
   document.getElementById('stockCards').innerHTML = cards;
@@ -1865,12 +1861,21 @@ function renderStock(){
     const dl    = avg>0?Math.round(stock/avg):null;
     const isLow = dl!==null?dl<14:stock<100;
 
+    // 예상 소진 날짜 계산
+    let soginDateStr = '-';
+    if(dl!==null){
+      const soginDate = new Date(today);
+      soginDate.setDate(soginDate.getDate()+dl);
+      const sy=soginDate.getFullYear(), sm=soginDate.getMonth()+1, sd=soginDate.getDate();
+      soginDateStr = `${dl}일 (${sy}/${sm}/${sd})`;
+    }
+
     // SKU 합계 행
     tbody+=`<tr style="border-bottom:1px solid var(--border);background:#1A1D2788">
       <td style="padding:10px 10px 10px 10px;font-weight:700;color:var(--text);white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
       <td style="padding:10px;text-align:right;color:var(--text);font-weight:700;white-space:nowrap">${stock.toLocaleString()} 개</td>
       <td style="padding:10px;text-align:right;color:var(--text3);white-space:nowrap">${avg>0?avg.toFixed(1)+'/일':'-'}</td>
-      <td style="padding:10px;text-align:right;color:${isLow?'#F43F5E':'#60A5FA'};font-weight:700;white-space:nowrap">${dl!==null?dl+'일 치':'-'}</td>
+      <td style="padding:10px;text-align:right;color:${isLow?'#F43F5E':'#60A5FA'};font-weight:700;white-space:nowrap">${soginDateStr}</td>
       <td colspan="3" style="padding:10px;text-align:right;color:var(--text3);font-size:11px;white-space:nowrap">↓ 배치별 상세</td>
     </tr>`;
 
@@ -2015,29 +2020,26 @@ function renderStock(){
         ? Math.round((new Date(b.halfLifeDate) - new Date(today))/(1000*60*60*24))
         : null;
 
-      // ③ 위험: 유통기한 180일 이내
       if(daysToExp <= 180){
         warnings.push({
-          level: 3, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
+          level: 3, sku: k, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
           remaining: b.remaining, daysToExp, daysToHalf,
           msg: `유통기한 ${daysToExp}일 남음 · 소비자 수령 거부 가능`,
           tag: '⛔ 판매 주의', tagColor: '#F43F5E'
         });
       }
-      // ② B2B 납품 불가: halfLifeDate 지남 (단, 위험 미해당 시)
       else if(daysToHalf !== null && daysToHalf <= 0){
         warnings.push({
-          level: 2, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
+          level: 2, sku: k, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
           remaining: b.remaining, daysToExp, daysToHalf,
           halfLifeDate: b.halfLifeDate,
           msg: `유통기한 50% 경과 (${b.halfLifeDate}) · B2C 전용 판매만 가능`,
           tag: '🚫 B2B 납품 불가', tagColor: '#FB923C'
         });
       }
-      // ① 주의: halfLifeDate 60일 이내 (B2B 납품 불가 임박)
       else if(daysToHalf !== null && daysToHalf <= 60){
         warnings.push({
-          level: 1, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
+          level: 1, sku: k, name: STOCK_SKU_NAMES[k], expiry: b.expiry,
           remaining: b.remaining, daysToExp, daysToHalf,
           halfLifeDate: b.halfLifeDate,
           msg: `${daysToHalf}일 후 B2B 납품 불가 예정 (${b.halfLifeDate})`,
@@ -2058,22 +2060,116 @@ function renderStock(){
           <div style="font-size:12px;font-weight:700;color:var(--text2)">재고 유통기한 알림</div>
           <div style="margin-left:auto;font-size:11px;color:var(--text3)">${warnings.length}건</div>
         </div>` +
-        warnings.map(w=>`
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);gap:8px">
-          <div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-              <span style="font-size:13px;font-weight:700;color:var(--text)">${w.name}</span>
-              <span style="font-size:10px;color:${w.tagColor};font-weight:700">${w.tag}</span>
+        warnings.map(w=>{
+          const totalStock = currentStock[w.sku]||0;
+          const expShort = w.expiry ? w.expiry.slice(2).replace(/-/g,'/') : '';
+          return `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);gap:8px">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                <span style="font-size:13px;font-weight:700;color:var(--text)">${w.name}(${expShort})</span>
+                <span style="font-size:10px;color:${w.tagColor};font-weight:700">${w.tag}</span>
+              </div>
+              <div style="font-size:12px;color:var(--text2);font-weight:600">총 ${totalStock.toLocaleString()}개 중 <span style="color:${w.tagColor}">${w.remaining.toLocaleString()}개 해당</span></div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${w.msg}</div>
             </div>
-            <div style="font-size:11px;color:var(--text3)">${w.msg}</div>
-            <div style="font-size:11px;color:var(--text3)">유통기한 ${w.expiry} (D-${w.daysToExp}) · 잔여 ${w.remaining}개</div>
-          </div>
-          <div style="flex-shrink:0;font-size:10px;color:${w.tagColor};background:${w.tagColor}22;padding:3px 10px;border-radius:20px;font-weight:700;white-space:nowrap">
-            ${w.level===3?'위험':w.level===2?'B2B불가':'주의'}
+            <div style="flex-shrink:0;font-size:10px;color:${w.tagColor};background:${w.tagColor}22;padding:3px 10px;border-radius:20px;font-weight:700;white-space:nowrap">
+              ${w.level===3?'위험':w.level===2?'B2B불가':'주의'}
+            </div>
+          </div>`;
+        }).join('');
+    } else {
+      warnEl.style.display = 'none';
+    }
+  }
+
+  // ── 재고 운영 인사이트 ──
+  const insightEl = document.getElementById('stockInsightCard');
+  const insightBody = document.getElementById('stockInsightBody');
+  if(insightEl && insightBody){
+    const insights = [];
+
+    STOCK_SKUS.forEach(k=>{
+      const totalStock = currentStock[k]||0;
+      const avg = avgSales[k]||0;
+      const name = STOCK_SKU_NAMES[k];
+      const batches = batchState[k].batches;
+
+      batches.forEach((b,bi)=>{
+        if(b.remaining<=0) return;
+        const dToHalf = b.halfLifeDate ? Math.round((new Date(b.halfLifeDate)-new Date(today))/(1000*60*60*24)) : null;
+        const dToExp  = b.expiry       ? Math.round((new Date(b.expiry)      -new Date(today))/(1000*60*60*24)) : null;
+        const expShort = b.expiry ? b.expiry.slice(2).replace(/-/g,'/') : '';
+        const isB2bBlock = b.halfLifeDate && today >= b.halfLifeDate;
+
+        // 이미 B2B 납품 불가 → 이커머스 소진 촉구
+        if(isB2bBlock && dToExp>180){
+          const daysNeeded = avg>0 ? Math.round(b.remaining/avg) : null;
+          insights.push({
+            icon:'🚫', level:2, color:'#FB923C',
+            title:`${name}(${expShort}) B2B 납품 불가 수량 ${b.remaining.toLocaleString()}개`,
+            body: avg>0
+              ? `현 판매 속도(일평균 ${avg.toFixed(1)}개)로 약 ${daysNeeded}일 소요. 이커머스 채널 집중 판매로 조기 소진을 권장합니다.`
+              : `B2B 납품이 불가한 ${b.remaining}개를 자사몰·네이버·쿠팡 등 B2C 채널에서 우선 소진하세요.`
+          });
+        }
+
+        // 60일 내 B2B 납품 불가 예정 → 거래처 빠른 처리
+        else if(dToHalf!==null && dToHalf>0 && dToHalf<=60){
+          insights.push({
+            icon:'⚠', level:1, color:'#F59E0B',
+            title:`${name}(${expShort}) ${dToHalf}일 후 B2B 납품 불가 (${b.halfLifeDate})`,
+            body:`${b.remaining.toLocaleString()}개가 ${dToHalf}일 내 납품 불가 전환됩니다. 남은 기간 안에 거래처 발주를 받거나 특가로라도 B2B 소진을 서두르세요.`
+          });
+        }
+
+        // 유통기한 6개월 이내
+        else if(dToExp!==null && dToExp<=180){
+          insights.push({
+            icon:'⛔', level:3, color:'#F43F5E',
+            title:`${name}(${expShort}) 유통기한 ${dToExp}일 남음`,
+            body:`${b.remaining.toLocaleString()}개의 유통기한이 임박해 소비자 수령 거부 가능성이 있습니다. 프로모션 또는 할인 판매로 즉시 소진 계획을 세우세요.`
+          });
+        }
+      });
+
+      // 재발주 검토: 잔여 유통기한 기준 리드타임(60일) 이하
+      if(avg>0){
+        const dl = Math.round(totalStock/avg);
+        // 가장 최신 배치의 유통기한 확인 (재고 소진 시점 기준)
+        const latestBatch = batchState[k].batches.slice().reverse().find(b=>b.remaining>0&&b.expiry);
+        const daysToLastExp = latestBatch?.expiry
+          ? Math.round((new Date(latestBatch.expiry)-new Date(today))/(1000*60*60*24))
+          : null;
+
+        // 잔여 유통기한 60일 이하 or 재고 소진 14일 이하 → 재발주 검토
+        const needsReorder = (daysToLastExp!==null && daysToLastExp<=60) || (dl<=14 && dl>=0);
+        if(needsReorder){
+          const reason = (daysToLastExp!==null && daysToLastExp<=60)
+            ? `잔여 유통기한 ${daysToLastExp}일 · 신규 생산 리드타임(60일) 감안 시 즉시 발주 필요`
+            : `현 판매 속도(일평균 ${avg.toFixed(1)}개) 기준 약 ${dl}일 후 소진 예상`;
+          insights.push({
+            icon:'🔄', level:2, color:'#60A5FA',
+            title:`${name} 재발주 검토 필요`,
+            body:`${reason}. 신규 생산 요청 시 입고까지 약 2달 소요되므로 지금 바로 발주를 검토하세요.`
+          });
+        }
+      }
+    });
+
+    if(insights.length>0){
+      insightEl.style.display='block';
+      insights.sort((a,b)=>b.level-a.level);
+      insightBody.innerHTML = insights.map(ins=>`
+        <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:18px;flex-shrink:0">${ins.icon}</div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${ins.color};margin-bottom:3px">${ins.title}</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.65">${ins.body}</div>
           </div>
         </div>`).join('');
     } else {
-      warnEl.style.display = 'none';
+      insightEl.style.display='none';
     }
   }
 }
