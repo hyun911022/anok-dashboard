@@ -198,8 +198,10 @@
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     /* ── 재고현황 ── */
     #stockCards { grid-template-columns: repeat(2,1fr) !important; }
-    .stock-table-pc { display: none !important; }
-    .stock-table-mobile { display: block !important; }
+    .stock-table-pc { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .stock-table-pc table { min-width: 520px; font-size: 11px !important; }
+    .stock-table-pc th, .stock-table-pc td { white-space: nowrap; padding: 6px 7px !important; }
+    .stock-table-mobile { display: none !important; }
 
     /* ── 일별 내역: 모바일 1열 ── */
     .daily-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
@@ -1699,9 +1701,6 @@ function renderStock(){
   const byChannel = calcSoldByChannelByMonth(month);
   const mo      = calcManualOutByMonth(month);
 
-  // 이 월에 직접 설정된 기초재고가 있는지
-  const hasDirectSetting = !!stockInitByMonth[month];
-
   // 요약 카드
   const cards = STOCK_SKUS.map(k=>{
     const init    = opening[k]||0;
@@ -1725,14 +1724,6 @@ function renderStock(){
   }).join('');
   document.getElementById('stockCards').innerHTML = cards;
 
-  // 상세 테이블 — 기초재고 이월 안내 배너
-  const prevYear2 = m===1?y-1:y;
-  const prevMonth2 = m===1?12:m-1;
-  const prevKey2 = `${prevYear2}-${String(prevMonth2).padStart(2,'0')}`;
-  const sourceBadge = hasDirectSetting
-    ? `<span style="font-size:11px;color:#9B6DFF;background:#1A1528;padding:2px 8px;border-radius:20px;margin-left:8px">직접 설정</span>`
-    : `<span style="font-size:11px;color:#34D399;background:#0D2318;padding:2px 8px;border-radius:20px;margin-left:8px">← ${prevKey2} 기말재고 자동 이월</span>`;
-
   let tbody = '';
   STOCK_SKUS.forEach(k=>{
     const init  = opening[k]||0;
@@ -1744,23 +1735,19 @@ function renderStock(){
     const remain= init - total;
     const isLow = remain < init*0.2;
     tbody += `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:10px;font-weight:600;color:${STOCK_COLORS[k]}">${STOCK_SKU_NAMES[k]}</td>
-      <td style="padding:10px;text-align:right;color:var(--text2)">${init.toLocaleString()}</td>
-      <td style="padding:10px;text-align:right;color:#9B6DFF">${c||'-'}</td>
-      <td style="padding:10px;text-align:right;color:#34D399">${n||'-'}</td>
-      <td style="padding:10px;text-align:right;color:#FB923C">${o||'-'}</td>
-      <td style="padding:10px;text-align:right;color:var(--text3)">${mv||'-'}</td>
-      <td style="padding:10px;text-align:right;color:var(--text2);font-weight:600">${total.toLocaleString()}</td>
-      <td style="padding:10px;text-align:right;font-weight:700;color:${isLow?'#F43F5E':'#60A5FA'}">${remain.toLocaleString()}</td>
+      <td style="padding:10px;font-weight:600;color:${STOCK_COLORS[k]};white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
+      <td style="padding:10px;text-align:right;color:var(--text2);white-space:nowrap">${init.toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;color:#9B6DFF;white-space:nowrap">${c||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#34D399;white-space:nowrap">${n||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#FB923C;white-space:nowrap">${o||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text3);white-space:nowrap">${mv||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text2);font-weight:600;white-space:nowrap">${total.toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;font-weight:700;color:${isLow?'#F43F5E':'#60A5FA'};white-space:nowrap">${remain.toLocaleString()}</td>
     </tr>`;
   });
 
-  // 테이블 헤더에 배지 추가
-  const tableSection = document.querySelector('#stockTableBody').closest('.card');
   const titleEl = document.getElementById('stockDetailTitle');
-  if(titleEl){
-    titleEl.innerHTML = `SKU별 재고 상세${sourceBadge}`;
-  }
+  if(titleEl) titleEl.textContent = 'SKU별 재고 상세';
   document.getElementById('stockTableBody').innerHTML = tbody;
 
   // 모바일 카드 렌더링
