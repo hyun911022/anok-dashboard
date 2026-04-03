@@ -1328,7 +1328,7 @@ function renderInsight(){
       </div>
       <div style="font-size:10px;color:#8898AA;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${k.label}</div>
       <div style="display:flex;align-items:baseline;gap:6px">
-        <div style="font-size:20px;font-weight:800;color:var(--navy);margin:2px 0">${k.val}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin:2px 0">${k.val}</div>
         ${k.sub2?`<div style="font-size:13px;font-weight:700;color:${k.color}">${k.sub2}</div>`:''}
       </div>
       <div style="font-size:11px;color:#8898AA;line-height:1.6;margin-top:2px">${k.sub}</div>
@@ -1380,7 +1380,7 @@ function renderInsight(){
         <div style="font-size:10px;color:${c.positive?'#16A34A':'#EA580C'};background:${c.positive?'#F0FDF4':'#FFF7ED'};padding:2px 8px;border-radius:20px;font-weight:600">${c.positive?'▲ 양호':'▼ 주의'}</div>
       </div>
       <div style="font-size:10px;color:#8898AA;font-weight:600;letter-spacing:0.5px;margin-bottom:2px">${c.label}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--navy);margin:2px 0">${c.val}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin:2px 0">${c.val}</div>
       <div style="font-size:11px;color:#8898AA;line-height:1.5">${c.sub}</div>
     </div>
   `).join('');
