@@ -451,8 +451,16 @@
       </div>
       <div class="card">
         <div class="card-title">SKU 판매 현황</div>
-        <table class="sku-tbl">
-          <thead><tr><th>상품</th><th style="text-align:right">자사몰</th><th style="text-align:right">네이버</th><th style="text-align:right">쿠팡</th><th style="text-align:right">합계</th><th style="text-align:right;color:#2563EB">단품환산</th></tr></thead>
+        <table class="sku-tbl" style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:auto">
+            <col style="width:72px">
+            <col style="width:72px">
+            <col style="width:72px">
+            <col style="width:72px">
+            <col style="width:80px">
+          </colgroup>
+          <thead><tr><th>상품</th><th style="text-align:right">자사몰</th><th style="text-align:right">네이버</th><th style="text-align:right">쿠팡</th><th style="text-align:right">합계</th><th style="text-align:right;color:#60A5FA">단품환산</th></tr></thead>
           <tbody id="skuBody"></tbody>
         </table>
       </div>
@@ -987,7 +995,7 @@ function renderSkuTable(mRecs){
     const pct=Math.round(tot/maxTot*100);
     const uq=unitSkus.includes(k)?calcUnitQty(mRecs,k):null;
     const unitCell=uq!==null
-      ?`<td class="num" style="color:#2563EB;font-weight:600;background:#1A1E35;border-radius:4px">${uq}</td>`
+      ?`<td class="num" style="color:#60A5FA;font-weight:600;background:#0D1E3A;border-radius:4px">${uq}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     html+=`<tr><td>${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#7C3AED">${c}</td><td class="num" style="color:#16A34A">${n}</td><td class="num" style="color:#EA580C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
   });
