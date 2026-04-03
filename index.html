@@ -1525,6 +1525,8 @@ async function renderInsight(){
   const prompt = promptLines.concat(promptInstructions).join('\n');
 
   try{
+    // AI 분석 비활성화
+    throw new Error('AI 분석 기능이 비활성화되어 있습니다.');
     const resp=await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1711,6 +1713,8 @@ async function sendChat(){
       ? _chatHistory
       : [{role:'user', content: msg}];
 
+    // AI 채팅 비활성화
+    throw new Error('AI 기능이 비활성화되어 있습니다.');
     const resp = await fetch('https://morning-dew-502banok-proxy.hyun911022.workers.dev', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
