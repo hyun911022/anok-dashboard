@@ -167,7 +167,38 @@
     /* ── 인라인 그리드 오버라이드 (채널 카드 제외) ── */
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
 
-    /* ── 테이블 ── */
+    /* ── 광고 효율 & 손익: 모바일 2열 ── */
+    .ad-grid {
+      grid-template-columns: 1fr 1fr !important;
+      grid-template-rows: auto auto !important;
+    }
+    /* ROAS(좌상) + 광고비(우상) / 쿠팡(좌하) + 손익(우하) */
+    .ad-grid .card:nth-child(1) { grid-column:1; grid-row:1; }
+    .ad-grid .card:nth-child(2) { grid-column:2; grid-row:1; }
+    .ad-grid .card:nth-child(3) { grid-column:1; grid-row:2; }
+    .ad-grid .profit-banner     { grid-column:2; grid-row:2; border-radius:10px !important; }
+
+    /* ROAS 내부 세로 스택 */
+    .ad-grid .card:nth-child(1) .roas-card { display:flex; flex-direction:row; align-items:center; justify-content:space-between; }
+    .ad-grid .card:nth-child(1) [style*="grid-template-columns:1fr 1fr"] { grid-template-columns:1fr !important; gap:6px !important; }
+    .ad-grid .card:nth-child(1) .roas-val { font-size:18px !important; }
+
+    /* 광고비 내부 세로 스택 */
+    .ad-grid .card:nth-child(2) [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns:1fr !important; gap:4px !important; }
+
+    /* 손익 배너 compact */
+    .ad-grid .profit-banner .profit-val { font-size:16px !important; }
+
+    /* ── 성과 지표 KPI: 2열 ── */
+    .kpi4-grid { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
+
+    /* ── 전략 지표: 1열 compact 가로 스크롤 ── */
+    .strat3-grid { grid-template-columns: repeat(3,1fr) !important; gap:8px !important; overflow-x:auto; }
+    .strat3-grid .card { min-width:0; }
+    .strat3-grid .card [style*="font-size:20px"] { font-size:16px !important; }
+
+    /* ── 섹션 패딩 줄이기 ── */
+    div[style*="background:#F8FAFC"] { padding:12px 12px !important; margin-bottom:10px !important; }
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 4px; }
     .day-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -434,7 +465,7 @@
         <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">광고 효율 &amp; 손익</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:12px;align-items:stretch">
+      <div class="ad-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:12px;align-items:stretch">
 
         <!-- ROAS -->
         <div class="card" style="padding:14px 16px;margin:0">
@@ -445,7 +476,7 @@
           </div>
         </div>
 
-        <!-- 메타 광고비 -->
+        <!-- 광고비 -->
         <div class="card" style="padding:14px 16px;margin:0">
           <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">광고비</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -455,7 +486,7 @@
           </div>
         </div>
 
-        <!-- 쿠팡 비용 (placeholder 영역 — 필요시 활용) -->
+        <!-- 쿠팡 광고비 -->
         <div class="card" style="padding:14px 16px;margin:0;display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">쿠팡 광고비</div>
           <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.7">—</div>
@@ -480,7 +511,7 @@
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">성과 지표</span>
       </div>
       <!-- KPI 4개 -->
-      <div id="insightCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+      <div id="insightCards" class="kpi4-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
     </div>
 
     <!-- ── 전략 지표 섹션 ── -->
@@ -490,7 +521,7 @@
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">전략 지표</span>
       </div>
       <!-- 전략 지표 3개 -->
-      <div id="insightChannelRow" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+      <div id="insightChannelRow" class="strat3-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
     </div>
 
   </div>
