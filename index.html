@@ -192,7 +192,8 @@
     /* ── 섹션 패딩 줄이기 ── */
     div[style*="background:#141720"] { padding:12px 12px !important; margin-bottom:10px !important; }
     .sku-tbl { font-size: 11px; }
-    .sku-tbl th, .sku-tbl td { padding: 5px 4px; }
+    .sku-tbl th, .sku-tbl td { padding: 5px 6px; }
+    .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     /* ── 일별 내역: 모바일 1열 ── */
     .daily-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
     /* 매출 내역 — 4컬럼 가능, overflow 불필요 */
@@ -459,18 +460,19 @@
       </div>
       <div class="card">
         <div class="card-title">SKU 판매 현황</div>
-        <table class="sku-tbl" style="table-layout:fixed;width:100%">
-          <colgroup>
-            <col style="width:auto">
-            <col style="width:72px">
-            <col style="width:72px">
-            <col style="width:72px">
-            <col style="width:72px">
-            <col style="width:80px">
-          </colgroup>
-          <thead><tr><th>상품</th><th style="text-align:right">자사몰</th><th style="text-align:right">네이버</th><th style="text-align:right">쿠팡</th><th style="text-align:right">합계</th><th style="text-align:right;color:#60A5FA">단품환산</th></tr></thead>
+        <div class="sku-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table class="sku-tbl" style="width:100%;min-width:360px">
+          <thead><tr>
+            <th style="white-space:nowrap">상품</th>
+            <th style="text-align:right;white-space:nowrap">자사몰</th>
+            <th style="text-align:right;white-space:nowrap">네이버</th>
+            <th style="text-align:right;white-space:nowrap">쿠팡</th>
+            <th style="text-align:right;white-space:nowrap">합계</th>
+            <th style="text-align:right;white-space:nowrap;color:#60A5FA">단품환산</th>
+          </tr></thead>
           <tbody id="skuBody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -1005,7 +1007,7 @@ function renderSkuTable(mRecs){
     const unitCell=uq!==null
       ?`<td class="num" style="color:#60A5FA;font-weight:600;background:#0D1E3A;border-radius:4px">${uq}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
-    html+=`<tr><td>${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#7C3AED">${c}</td><td class="num" style="color:#16A34A">${n}</td><td class="num" style="color:#EA580C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
+    html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
   });
   document.getElementById('skuBody').innerHTML=html||'<tr><td colspan="6" class="empty">데이터 없음</td></tr>';
 }
