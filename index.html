@@ -985,6 +985,13 @@ const META_AD = 80000;
 const NAVER_AD = 10000;
 const AGENCY_FEE = 700000;
 
+// 한국시간(KST, UTC+9) 기준 오늘 날짜 반환
+function getTodayKST(){
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9*60*60*1000);
+  return kst.toISOString().split('T')[0];
+}
+
 const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
 const CAFE_PROFITS   = {shampoo:8766,treatment:9066,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
 const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
@@ -1611,8 +1618,8 @@ function renderInsight(){
   const achRate=Math.round(totRev/targetTotal*100);
 
   // 현재 월인지 과거 월인지 판단
-  const _today = new Date();
-  const _curMonth = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}`;
+  const _todayStr = getTodayKST();
+  const _curMonth = _todayStr.slice(0,7);
   const isPastMonth = selectedMonth < _curMonth;
 
   // 과거 월: 남은 일수 0, 예상 = 실적 그대로
@@ -2000,7 +2007,7 @@ function calcCumulativeSold(uptoDate){
 
 // FIFO 처리: 배치들을 유통기한 오름차순으로 차감하고 남은 배치 상태 반환
 function calcFIFOBatchState(){
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
   const totalSold = calcCumulativeSold(today);
 
   // SKU별 배치를 유통기한 오름차순 정렬 (유통기한 없으면 맨 뒤)
@@ -2055,7 +2062,8 @@ function calcCurrentStock(){
 
 // 일평균 판매량 (최근 N일)
 function calcAvgDailySales(days=14){
-  const today = new Date();
+  const todayStr = getTodayKST();
+  const today = new Date(todayStr);
   const from = new Date(today);
   from.setDate(from.getDate()-days);
   const fromStr = from.toISOString().split('T')[0];
@@ -2078,7 +2086,7 @@ function renderStock(){
   const currentStock = calcCurrentStock();
   const avgSales = calcAvgDailySales(14);
   const batchState = calcFIFOBatchState();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
 
   function fmtDate(d){ return d ? d.slice(2).replace(/-/g,'/') : '-'; }
   function daysFromNow(s){ return s ? Math.round((new Date(s)-new Date(today))/(864e5)) : null; }
@@ -2518,7 +2526,7 @@ function saveOrderData(){
 // 이커머스 + 수기출고 합산 일평균 소진 속도
 function calcTotalDailyRate(){
   const ecom = calcAvgDailySales(14); // 최근 14일 이커머스
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
   const from90 = new Date(); from90.setDate(from90.getDate()-90);
   const from90Str = from90.toISOString().split('T')[0];
 
@@ -2537,7 +2545,7 @@ function renderOrder(){
   const stock = calcCurrentStock();
   const rate  = calcTotalDailyRate();
   const ecom  = calcAvgDailySales(14);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
 
   // ── 상태 판단 함수 ──
   function getStatus(daysLeft){
@@ -2720,7 +2728,7 @@ function renderOrder(){
 
 // ── 발주 모달 ──
 function openOrderModal(){
-  document.getElementById('ord_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ord_date').value = getTodayKST();
   document.getElementById('ord_lead_now').checked = true;
   ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
     document.getElementById('ord_'+k).value=0;
@@ -2745,7 +2753,7 @@ function saveOrder(){
 
 // ── 입고 확인 모달 ──
 function openOrderConfirmModal(idx){
-  document.getElementById('ord_received_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ord_received_date').value = getTodayKST();
   document.getElementById('ord_confirm_idx').value = idx;
   document.getElementById('orderConfirmModalBg').classList.add('open');
 }
