@@ -2055,7 +2055,7 @@ function renderStock(){
             <div style="font-size:10px;color:#4A6580;margin-top:2px">&#8361;${grandRev.toLocaleString()}</div>
           </div>
           <div style="background:#0A1628;border-radius:10px;padding:14px 16px">
-            <div style="font-size:10px;color:#34D399;margin-bottom:4px">예상 총수익 (상품)</div>
+            <div style="font-size:10px;color:#34D399;margin-bottom:4px">예상 매출이익</div>
             <div style="font-size:22px;font-weight:700;color:#34D399">${fmtV(grandPrf)}</div>
             <div style="font-size:10px;color:#4A6580;margin-top:2px">마진율 ${grandMargin}%</div>
           </div>
@@ -2074,7 +2074,7 @@ function renderStock(){
                 <span style="font-size:10px;color:var(--text3)">${v.qty.toLocaleString()}개</span>
               </div>
               <div style="font-size:15px;font-weight:700;color:#BAE6FD">${fmtV(v.rev)}</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px">수익 ${fmtV(v.prf)}${v.cost?` · 원가 ${fmtV(v.cost)}`:''}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">매출이익 ${fmtV(v.prf)}${v.cost?` · 원가 ${fmtV(v.cost)}`:''}</div>
               ${v.mix.length>1?`<div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap">${v.mix.map(m=>`<span style="font-size:9px;color:var(--text3);background:#1A2E44;padding:1px 5px;border-radius:3px">${m.label} ${m.pct}%</span>`).join('')}</div>`:''}
             </div>`;
           }).join('')}
