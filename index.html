@@ -92,6 +92,8 @@
   .profit-val{font-size:28px;font-weight:600;color:#fff}
   .profit-sub{font-size:11px;color:#6EAB84;margin-top:3px}
 
+  .stock-table-mobile { display: none; }
+
   .day-table-wrap{overflow-x:auto}
   .day-tbl{width:100%;border-collapse:collapse;font-size:12px}
   .day-tbl th{font-size:10px;color:var(--text3);font-weight:500;text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -196,6 +198,8 @@
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     /* ── 재고현황 ── */
     #stockCards { grid-template-columns: repeat(2,1fr) !important; }
+    .stock-table-pc { display: none !important; }
+    .stock-table-mobile { display: block !important; }
 
     /* ── 일별 내역: 모바일 1열 ── */
     .daily-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
@@ -702,14 +706,16 @@
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:3px;height:14px;background:linear-gradient(#9B6DFF,#34D399);border-radius:2px"></div>
-        <div class="card-title" style="margin-bottom:0">SKU별 재고 상세</div>
+        <div class="card-title" id="stockDetailTitle" style="margin-bottom:0">SKU별 재고 상세</div>
       </div>
-      <div style="overflow-x:auto">
+
+      <!-- PC: 테이블 -->
+      <div class="stock-table-pc" style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="border-bottom:1px solid var(--border)">
               <th style="text-align:left;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">SKU</th>
-              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">초기재고</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">기초재고</th>
               <th style="text-align:right;padding:8px 10px;color:#9B6DFF;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">자사몰</th>
               <th style="text-align:right;padding:8px 10px;color:#34D399;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">네이버</th>
               <th style="text-align:right;padding:8px 10px;color:#FB923C;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">쿠팡</th>
@@ -721,6 +727,9 @@
           <tbody id="stockTableBody"></tbody>
         </table>
       </div>
+
+      <!-- 모바일: SKU별 카드 -->
+      <div class="stock-table-mobile" id="stockMobileCards"></div>
     </div>
 
     <!-- 입고 내역 -->
@@ -1748,14 +1757,51 @@ function renderStock(){
 
   // 테이블 헤더에 배지 추가
   const tableSection = document.querySelector('#stockTableBody').closest('.card');
-  const titleEl = tableSection?.querySelector('.card-title');
-  if(titleEl && !titleEl.dataset.badged){
-    titleEl.dataset.badged='1';
-  }
+  const titleEl = document.getElementById('stockDetailTitle');
   if(titleEl){
     titleEl.innerHTML = `SKU별 재고 상세${sourceBadge}`;
   }
   document.getElementById('stockTableBody').innerHTML = tbody;
+
+  // 모바일 카드 렌더링
+  const mobileCards = STOCK_SKUS.map(k=>{
+    const init   = opening[k]||0;
+    const c      = byChannel.cafe[k]||0;
+    const n      = byChannel.naver[k]||0;
+    const o      = byChannel.coup[k]||0;
+    const mv     = mo[k]||0;
+    const total  = c+n+o+mv;
+    const remain = init - total;
+    const isLow  = remain < init*0.2;
+    const color  = STOCK_COLORS[k];
+    return `<div style="border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:${color}">${STOCK_SKU_NAMES[k]}</div>
+        <div style="font-size:16px;font-weight:700;color:${isLow?'#F43F5E':'#60A5FA'}">${remain.toLocaleString()}개</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text3)">기초재고</span><span style="color:var(--text2);font-weight:600">${init.toLocaleString()}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text3)">총출고</span><span style="color:var(--text2);font-weight:600">${total}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:#9B6DFF">자사몰</span><span style="color:#9B6DFF;font-weight:600">${c||'-'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:#34D399">네이버</span><span style="color:#34D399;font-weight:600">${n||'-'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:#FB923C">쿠팡</span><span style="color:#FB923C;font-weight:600">${o||'-'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:var(--text3)">수기출고</span><span style="color:var(--text3);font-weight:600">${mv||'-'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('stockMobileCards').innerHTML = mobileCards;
 
   // 입고 내역 (이 월 것만)
   const monthIns = (stockIns||[]).filter(r=>r.date.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));
