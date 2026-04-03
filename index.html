@@ -60,7 +60,7 @@
   .kpi.orange{border-left-color:var(--orange)}
   .kpi.indigo{border-left-color:var(--indigo)}
   .kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-  .kpi-value{font-size:22px;font-weight:600;color:var(--text)}
+  .kpi-value{font-size:18px;font-weight:700;color:var(--text)}
   .kpi-sub{font-size:11px;margin-top:3px;color:var(--text3)}
   .kpi-sub.up{color:var(--green)}
 
@@ -119,7 +119,7 @@
   .ach-pct-out{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700}
   .kpi.total-card{background:#E0F2FE;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none}
   .kpi.total-card .kpi-label{color:#0369A1}
-  .kpi.total-card .kpi-value{color:#0C4A6E;font-size:24px}
+  .kpi.total-card .kpi-value{color:#0C4A6E;font-size:18px}
   .kpi.total-card .kpi-sub{color:#0284C7}
   .toast{position:fixed;bottom:20px;left:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:300}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -132,8 +132,8 @@
     .month-badge { display: none; }
     .btn-input { padding: 6px 10px; font-size: 12px; }
     .kpi-grid { grid-template-columns: repeat(2,1fr) !important; gap: 8px; margin-bottom: 10px; }
-    .kpi-value { font-size: 17px; }
-    .kpi.total-card .kpi-value { font-size: 19px; }
+    .kpi-value { font-size: 16px; }
+    .kpi.total-card .kpi-value { font-size: 16px; }
     .kpi { padding: 12px 12px; }
     .chart-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
     .bottom-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
@@ -320,7 +320,7 @@
       <!-- 채널 총매출 — 2행 차지 -->
       <div class="kpi indigo total-card" style="grid-row:1/3;display:flex;flex-direction:column;justify-content:center;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none">
         <div class="kpi-label">채널 총매출</div>
-        <div class="kpi-value" id="kpiTotal" style="font-size:28px;margin:6px 0">0</div>
+        <div class="kpi-value" id="kpiTotal" style="margin:6px 0">0</div>
         <div class="kpi-sub up" id="kpiRate">수익률 -</div>
       </div>
 
@@ -346,19 +346,19 @@
       <!-- 자사몰 수익 -->
       <div class="kpi" style="border-left:3px solid #7C3AED">
         <div class="kpi-label" style="color:#7C3AED">자사몰 수익</div>
-        <div class="kpi-value" id="profitCafeVal" style="font-size:18px">-</div>
+        <div class="kpi-value" id="profitCafeVal">-</div>
         <div class="kpi-sub" id="profitCafeRate">수익률 -</div>
       </div>
       <!-- 네이버 수익 -->
       <div class="kpi" style="border-left:3px solid #16A34A">
         <div class="kpi-label" style="color:#16A34A">네이버 수익</div>
-        <div class="kpi-value" id="profitNaverVal" style="font-size:18px">-</div>
+        <div class="kpi-value" id="profitNaverVal">-</div>
         <div class="kpi-sub" id="profitNaverRate">수익률 -</div>
       </div>
       <!-- 쿠팡 수익 -->
       <div class="kpi" style="border-left:3px solid #EA580C">
         <div class="kpi-label" style="color:#EA580C">쿠팡 수익</div>
-        <div class="kpi-value" id="profitCoupangVal" style="font-size:18px">-</div>
+        <div class="kpi-value" id="profitCoupangVal">-</div>
         <div class="kpi-sub" id="profitCoupangRate">수익률 -</div>
       </div>
 
@@ -394,36 +394,70 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 220px;gap:12px;margin-bottom:20px">
-      <div class="card">
-        <div class="card-title">ROAS</div>
-        <div class="roas-grid">
-          <div class="roas-card"><div class="roas-label">자사몰 ROAS</div><div class="roas-val" id="raosC">-</div><div class="roas-sub">자사몰 ÷ 메타 80,000/일</div></div>
-          <div class="roas-card"><div class="roas-label">네이버 ROAS</div><div class="roas-val" id="raosN">-</div><div class="roas-sub">네이버 ÷ 네이버 10,000/일</div></div>
-        </div>
+    <!-- ── 광고·손익 섹션 ── -->
+    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">광고 효율 &amp; 손익</span>
       </div>
-      <div class="card">
-        <div class="card-title">광고비</div>
-        <div class="roas-grid" style="grid-template-columns:repeat(3,1fr)">
-          <div class="roas-card"><div class="roas-label">메타 광고비</div><div class="roas-val" id="adMeta">0</div><div class="roas-sub">80,000원 × 입력일수</div></div>
-          <div class="roas-card"><div class="roas-label">네이버 광고비</div><div class="roas-val" id="adNaver">0</div><div class="roas-sub">10,000원 × 입력일수</div></div>
-          <div class="roas-card"><div class="roas-label">메타 대행료</div><div class="roas-val" id="adAgency">0</div><div class="roas-sub">700,000원 월 일할계산</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:12px;align-items:stretch">
+
+        <!-- ROAS -->
+        <div class="card" style="padding:14px 16px;margin:0">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">ROAS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="roas-card"><div class="roas-label">자사몰</div><div class="roas-val" id="raosC">-</div><div class="roas-sub">÷ 메타 80K/일</div></div>
+            <div class="roas-card"><div class="roas-label">네이버</div><div class="roas-val" id="raosN">-</div><div class="roas-sub">÷ 네이버 10K/일</div></div>
+          </div>
         </div>
-      </div>
-      <div class="profit-banner">
-        <div>
-          <div class="profit-label">예상 손익</div>
-          <div class="profit-val" id="profitVal">0</div>
-          <div class="profit-sub">수익 - 광고비 - 대행료</div>
+
+        <!-- 메타 광고비 -->
+        <div class="card" style="padding:14px 16px;margin:0">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">광고비</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div class="roas-card"><div class="roas-label">메타</div><div class="roas-val" id="adMeta" style="font-size:15px">0</div><div class="roas-sub">80K × 일수</div></div>
+            <div class="roas-card"><div class="roas-label">네이버</div><div class="roas-val" id="adNaver" style="font-size:15px">0</div><div class="roas-sub">10K × 일수</div></div>
+            <div class="roas-card"><div class="roas-label">대행료</div><div class="roas-val" id="adAgency" style="font-size:15px">0</div><div class="roas-sub">70만 일할</div></div>
+          </div>
         </div>
+
+        <!-- 쿠팡 비용 (placeholder 영역 — 필요시 활용) -->
+        <div class="card" style="padding:14px 16px;margin:0;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">쿠팡 광고비</div>
+          <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.7">—</div>
+        </div>
+
+        <!-- 예상 손익 -->
+        <div class="profit-banner" style="margin:0;border-radius:12px">
+          <div>
+            <div class="profit-label">예상 손익</div>
+            <div class="profit-val" id="profitVal" style="font-size:22px">0</div>
+            <div class="profit-sub">수익 - 광고비 - 대행료</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- KPI 4개 카드 -->
-    <div id="insightCards" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px"></div>
+    <!-- ── 성과 지표 섹션 ── -->
+    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div style="width:3px;height:14px;background:linear-gradient(#0EA5E9,#6366F1);border-radius:2px"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">성과 지표</span>
+      </div>
+      <!-- KPI 4개 -->
+      <div id="insightCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+    </div>
 
-    <!-- 전략 지표 3개 -->
-    <div id="insightChannelRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px"></div>
+    <!-- ── 전략 지표 섹션 ── -->
+    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div style="width:3px;height:14px;background:linear-gradient(#16A34A,#0EA5E9);border-radius:2px"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">전략 지표</span>
+      </div>
+      <!-- 전략 지표 3개 -->
+      <div id="insightChannelRow" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+    </div>
 
   </div>
 
@@ -630,6 +664,17 @@ function render(){
   document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
   document.getElementById('adAgency').textContent='₩'+fmt(agencyFee);
   document.getElementById('profitVal').textContent=(profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
+
+  // 쿠팡 광고비 요약
+  const totFulfil=mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0);
+  const totCoupon=mRecs.reduce((s,r)=>s+(r.coupang?.coupon||0),0);
+  const totCoupAd=mRecs.reduce((s,r)=>s+(r.coupang?.adcost||0),0);
+  const el=document.getElementById('coupangAdSummary');
+  if(el) el.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">풀필비</span><span style="font-weight:600">₩${fmt(totFulfil)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">할인쿠폰</span><span style="font-weight:600">₩${fmt(totCoupon)}</span></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:5px;margin-top:2px"><span style="color:var(--text3)">쿠팡광고</span><span style="font-weight:600">₩${fmt(totCoupAd)}</span></div>
+  </div>`;
 
   const totPct=totRev>0;
   const cPct=totPct?Math.round(totC/totRev*100):0;
