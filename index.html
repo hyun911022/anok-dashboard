@@ -225,6 +225,7 @@
 
     /* ── 탭·카드 ── */
     .tabs { margin-bottom: 10px; }
+    .tab-sticky { top: 50px !important; }
     .tab { font-size: 12px; padding: 6px 12px; }
     .card { padding: 12px 12px; }
     .card-title { font-size: 12px; }
@@ -390,7 +391,7 @@
 </div>
 
 <div class="main">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+  <div class="tab-sticky" style="position:sticky;top:60px;z-index:99;background:var(--bg);padding:10px 0 10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
     <div class="tabs" style="margin-bottom:0">
       <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
       <button class="tab" onclick="switchTab('daily')">일별 내역</button>
