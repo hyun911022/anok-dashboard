@@ -197,7 +197,7 @@
     .sku-tbl th, .sku-tbl td { padding: 5px 6px; }
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     /* ── 재고현황 ── */
-    #stockCards { grid-template-columns: repeat(2,1fr) !important; }
+    #stockCards { grid-template-columns: 1fr !important; }
     .stock-table-pc { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     .stock-table-pc table { min-width: 520px; font-size: 11px !important; }
     .stock-table-pc th, .stock-table-pc td { white-space: nowrap; padding: 6px 7px !important; }
@@ -1845,19 +1845,21 @@ function renderStock(){
               </div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text3)">
-              <span>${fmtDate(b.mfgDate)} 제조</span>
+              <span style="white-space:nowrap">${fmtDate(b.mfgDate)}</span>
               <span style="color:${barColor};font-weight:600">${pct}% 경과</span>
-              <span>${fmtDate(b.expiry)} 만료</span>
+              <span style="white-space:nowrap">${fmtDate(b.expiry)} 만료</span>
             </div>
           </div>`;
       }
 
       return `<div style="padding:8px 0;border-top:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:11px;color:var(--text3)">제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:12px;font-weight:600;color:var(--text)">${b.remaining.toLocaleString()}개</span>
-            <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 6px;border-radius:4px;white-space:nowrap">${tag}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
+          <div style="font-size:11px;color:var(--text3);line-height:1.5">
+            제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</span>
+            <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 7px;border-radius:4px;white-space:nowrap">${tag}</span>
           </div>
         </div>
         ${barHtml}
@@ -1867,15 +1869,17 @@ function renderStock(){
     const sogin = dl!==null ? soginStr(dl) : '판매 데이터 집계 중';
 
     return `<div class="card" style="padding:14px 16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:3px;height:14px;background:${color};border-radius:2px"></div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</div>
-          <div style="font-size:18px;font-weight:700;color:var(--text);margin-left:4px">${stock.toLocaleString()}<span style="font-size:10px;font-weight:400;color:var(--text3)">개</span></div>
+      <!-- SKU 헤더: 제품명+수량 / 소진정보 2줄 -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:3px;height:14px;background:${color};border-radius:2px;flex-shrink:0"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</span>
+            <span style="font-size:20px;font-weight:700;color:var(--text)">${stock.toLocaleString()}<span style="font-size:11px;font-weight:400;color:var(--text3)">개</span></span>
+          </div>
+          <div style="font-size:10px;color:var(--text3);text-align:right">일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:10px;color:var(--text3)">일평균 ${avg>0?avg.toFixed(1)+'개 ·':''} ${sogin}</div>
-        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;padding-left:9px">${sogin}</div>
       </div>
       ${batchRows}
     </div>`;
