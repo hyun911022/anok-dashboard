@@ -172,19 +172,11 @@
       grid-template-columns: 1fr 1fr !important;
       grid-template-rows: auto auto !important;
     }
-    /* ROAS(좌상) + 광고비(우상) / 쿠팡(좌하) + 손익(우하) */
-    .ad-grid .card:nth-child(1) { grid-column:1; grid-row:1; }
-    .ad-grid .card:nth-child(2) { grid-column:2; grid-row:1; }
-    .ad-grid .card:nth-child(3) { grid-column:1; grid-row:2; }
+    /* ROAS(좌상) + 퍼포광고비(우상) / 쿠팡(좌하) + 손익(우하) */
+    .ad-grid > div:nth-child(1) { grid-column:1; grid-row:1; }
+    .ad-grid > div:nth-child(2) { grid-column:2; grid-row:1; }
+    .ad-grid > div:nth-child(3) { grid-column:1; grid-row:2; }
     .ad-grid .profit-banner     { grid-column:2; grid-row:2; border-radius:10px !important; }
-
-    /* ROAS 내부 세로 스택 */
-    .ad-grid .card:nth-child(1) .roas-card { display:flex; flex-direction:row; align-items:center; justify-content:space-between; }
-    .ad-grid .card:nth-child(1) [style*="grid-template-columns:1fr 1fr"] { grid-template-columns:1fr !important; gap:6px !important; }
-    .ad-grid .card:nth-child(1) .roas-val { font-size:18px !important; }
-
-    /* 광고비 내부 세로 스택 */
-    .ad-grid .card:nth-child(2) [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns:1fr !important; gap:4px !important; }
 
     /* 손익 배너 compact */
     .ad-grid .profit-banner .profit-val { font-size:16px !important; }
@@ -468,39 +460,59 @@
 
     <!-- ── 광고·손익 섹션 ── -->
     <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">광고 효율 &amp; 손익</span>
       </div>
-      <div class="ad-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:12px;align-items:stretch">
+      <div class="ad-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:24px;align-items:start">
 
         <!-- ROAS -->
-        <div class="card" style="padding:14px 16px;margin:0">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">ROAS</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="roas-card"><div class="roas-label">자사몰</div><div class="roas-val" id="raosC">-</div><div class="roas-sub">÷ 메타 80K/일</div></div>
-            <div class="roas-card"><div class="roas-label">네이버</div><div class="roas-val" id="raosN">-</div><div class="roas-sub">÷ 네이버 10K/일</div></div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">ROAS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">자사몰</div>
+              <div style="font-size:22px;font-weight:700;color:var(--text)" id="raosC">-</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">÷ 메타 80K/일</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">네이버</div>
+              <div style="font-size:22px;font-weight:700;color:var(--text)" id="raosN">-</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">÷ 네이버 10K/일</div>
+            </div>
           </div>
         </div>
 
-        <!-- 광고비 -->
-        <div class="card" style="padding:14px 16px;margin:0">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">퍼포 광고비</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <div class="roas-card"><div class="roas-label">메타</div><div class="roas-val" id="adMeta" style="font-size:15px">0</div><div class="roas-sub">80K × 일수</div></div>
-            <div class="roas-card"><div class="roas-label">네이버</div><div class="roas-val" id="adNaver" style="font-size:15px">0</div><div class="roas-sub">10K × 일수</div></div>
-            <div class="roas-card"><div class="roas-label">대행료</div><div class="roas-val" id="adAgency" style="font-size:15px">0</div><div class="roas-sub">70만 일할</div></div>
+        <!-- 퍼포 광고비 -->
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">퍼포 광고비</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">메타</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text)" id="adMeta">0</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">80K × 일수</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">네이버</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text)" id="adNaver">0</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">10K × 일수</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">대행료</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text)" id="adAgency">0</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">70만 일할</div>
+            </div>
           </div>
         </div>
 
         <!-- 쿠팡 광고비 -->
-        <div class="card" style="padding:14px 16px;margin:0;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px">쿠팡 광고비</div>
-          <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.7">—</div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">쿠팡 광고비</div>
+          <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.9">—</div>
         </div>
 
         <!-- 예상 손익 -->
-        <div class="profit-banner" style="margin:0;border-radius:12px">
+        <div class="profit-banner" style="margin:0;border-radius:12px;height:100%">
           <div>
             <div class="profit-label">예상 손익</div>
             <div class="profit-val" id="profitVal" style="font-size:22px">0</div>
