@@ -711,7 +711,7 @@
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:3px;height:14px;background:linear-gradient(#9B6DFF,#34D399);border-radius:2px"></div>
-        <div class="card-title" id="stockDetailTitle" style="margin-bottom:0">SKU별 재고 상세</div>
+        <div class="card-title" id="stockDetailTitle" style="margin-bottom:0">SKU별 재고 가용 현황</div>
       </div>
 
       <!-- PC: 테이블 -->
@@ -735,14 +735,35 @@
       <div class="stock-table-mobile" id="stockMobileCards"></div>
     </div>
 
-    <!-- 입고 내역 -->
+    <!-- SKU별 출고 현황 -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:3px;height:14px;background:linear-gradient(#9B6DFF,#FB923C);border-radius:2px"></div>
+        <div class="card-title" style="margin-bottom:0">SKU별 출고 현황</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">SKU</th>
+              <th style="text-align:right;padding:8px 10px;color:#9B6DFF;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">자사몰</th>
+              <th style="text-align:right;padding:8px 10px;color:#34D399;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">네이버</th>
+              <th style="text-align:right;padding:8px 10px;color:#FB923C;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">쿠팡</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">수기출고</th>
+              <th style="text-align:right;padding:8px 10px;color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px">총출고</th>
+            </tr>
+          </thead>
+          <tbody id="stockOutTableBody"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
         <div style="width:3px;height:14px;background:linear-gradient(#34D399,#0EA5E9);border-radius:2px"></div>
         <div class="card-title" style="margin-bottom:0">입고 내역</div>
       </div>
       <div id="stockInList">
-        <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이 달의 입고 내역이 없습니다.</div>
+        <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">입고 내역이 없습니다.</div>
       </div>
     </div>
 
@@ -1648,6 +1669,34 @@ function saveStockData(){
 
 // ── FIFO 계산 엔진 ──────────────────────────────────
 // 특정 날짜까지 누적 판매/수기출고 수량 반환
+// 전체 기간 채널별 판매 수량 (출고 현황용)
+function calcSoldByChannelAll(){
+  const cafe={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  const naver={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  const coup={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  records.forEach(r=>{
+    const c=r.cafe||{},n=r.naver||{},o=r.coupang||{};
+    cafe.shampoo   +=(c.shampoo||0)+(c.hairset||0)+(c.washset||0);
+    cafe.treatment +=(c.treatment||0)+(c.hairset||0);
+    cafe.bodywash  +=(c.bodywash||0)+(c.bodyset||0)+(c.washset||0);
+    cafe.bodylotion+=(c.bodylotion||0)+(c.bodyset||0);
+    naver.shampoo  +=(n.shampoo||0)+(n.hairset||0)+(n.washset||0);
+    naver.treatment+=(n.treatment||0)+(n.hairset||0);
+    naver.bodywash +=(n.bodywash||0)+(n.bodyset||0)+(n.washset||0);
+    naver.bodylotion+=(n.bodylotion||0)+(n.bodyset||0);
+    coup.shampoo   +=(o.shampoo||0);
+    coup.treatment +=(o.treatment||0);
+    coup.bodywash  +=(o.bodywash||0);
+    coup.bodylotion+=(o.bodylotion||0);
+  });
+  return {cafe,naver,coup};
+}
+function calcManualOutAll(){
+  const mo={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  manualOuts.forEach(r=>STOCK_SKUS.forEach(k=>mo[k]+=(r[k]||0)));
+  return mo;
+}
+
 function calcCumulativeSold(uptoDate){
   const sold={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   records.filter(r=>r.date<=uptoDate).forEach(r=>{
@@ -1806,7 +1855,7 @@ function renderStock(){
 
   // ── 상세 테이블 ──
   const titleEl = document.getElementById('stockDetailTitle');
-  if(titleEl) titleEl.textContent = 'SKU별 재고 상세';
+  if(titleEl) titleEl.textContent = 'SKU별 재고 가용 현황';
 
   let tbody = '';
   STOCK_SKUS.forEach(k=>{
@@ -1835,6 +1884,25 @@ function renderStock(){
     </tr>`;
   });
   document.getElementById('stockTableBody').innerHTML = tbody;
+
+  // ── 출고 현황 테이블 ──
+  const byCh = calcSoldByChannelAll();
+  const moAll = calcManualOutAll();
+  let outTbody = '';
+  STOCK_SKUS.forEach(k=>{
+    const c=byCh.cafe[k]||0, n=byCh.naver[k]||0, o=byCh.coup[k]||0, m=moAll[k]||0;
+    const total=c+n+o+m;
+    outTbody+=`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px;font-weight:600;color:var(--text);white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
+      <td style="padding:10px;text-align:right;color:#9B6DFF;font-weight:600;white-space:nowrap">${c||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#34D399;font-weight:600;white-space:nowrap">${n||'-'}</td>
+      <td style="padding:10px;text-align:right;color:#FB923C;font-weight:600;white-space:nowrap">${o||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text3);white-space:nowrap">${m||'-'}</td>
+      <td style="padding:10px;text-align:right;color:var(--text2);font-weight:700;white-space:nowrap">${total||'-'}</td>
+    </tr>`;
+  });
+  const outEl = document.getElementById('stockOutTableBody');
+  if(outEl) outEl.innerHTML = outTbody;
 
   // 모바일 카드
   const mobileCards = STOCK_SKUS.map(k=>{
