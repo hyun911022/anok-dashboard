@@ -2374,6 +2374,7 @@ function renderStock(){
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text3)">
               <span style="white-space:nowrap">${fmtDate(b.mfgDate)}</span>
+              ${b.halfLifeDate?`<span style="color:#FB923C;font-weight:600;white-space:nowrap">B2B ${fmtDate(b.halfLifeDate)}</span>`:''}
               <span style="white-space:nowrap">${fmtDate(b.expiry)} 만료</span>
             </div>
           </div>`;
