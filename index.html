@@ -2342,7 +2342,7 @@ function renderStock(){
     const color = STOCK_COLORS[k];
 
     // 배치 행 (한 줄씩 compact)
-    const batchRows = batches.map(b=>{
+    const batchRows = batches.filter(b => b.remaining > 0).map(b=>{
       const dExp  = daysFromNow(b.expiry);
       const dHalf = daysFromNow(b.halfLifeDate);
       const isBlock = b.halfLifeDate && today >= b.halfLifeDate;
