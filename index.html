@@ -192,6 +192,10 @@
     .sku-tbl { font-size: 11px; }
     .sku-tbl th, .sku-tbl td { padding: 5px 6px; }
     .sku-tbl-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    /* ── 상품관리 ── */
+    #tabProducts > div:last-child { grid-template-columns: 1fr !important; }
+    #skuDetailPanel > div > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+
     /* ── 발주관리 ── */
     #orderStatusCards { grid-template-columns: repeat(2,1fr) !important; }
     #orderCalculator > div { grid-template-columns: 1fr !important; }
@@ -3068,7 +3072,7 @@ function renderChDetail(p, ch){
         </div>
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
-          ${profitBreakdown(p, ch, profit, margin, marginColor)}
+          <div id="profitBreakdownArea">${profitBreakdown(p, ch, profit, margin, marginColor)}</div>
         </div>
       </div>`;
   }
@@ -3086,7 +3090,7 @@ function renderChDetail(p, ch){
       </div>
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
-        ${profitBreakdown(p, ch, profit, margin, marginColor)}
+        <div id="profitBreakdownArea">${profitBreakdown(p, ch, profit, margin, marginColor)}</div>
       </div>
     </div>`;
 }
@@ -3099,7 +3103,7 @@ function inputRow(label, id, value, unit, color, hint=''){
     </div>
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:11px;color:var(--text3)">${unit}</span>
-      <input id="${id}" type="number" value="${value}" onchange="updateProfitPreview()"
+      <input id="${id}" type="number" value="${value}" oninput="updateProfitPreview()"
         style="flex:1;padding:7px 10px;background:#12151F;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--text);outline:none"
         onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">
     </div>
@@ -3218,23 +3222,23 @@ function updateProfitPreview(){
   const margin = price>0?Math.round(profit/price*100):0;
   const marginColor = margin>=40?'#34D399':margin>=30?'#EAB308':'#EF4444';
 
-  // breakdown 영역만 업데이트
-  const bd = profitBreakdown(p, ch, profit, margin, marginColor);
-  const cols = document.getElementById('chDetailArea')?.querySelectorAll(':scope > div > div');
-  if(cols && cols[1]) cols[1].innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
-    ${bd}`;
+  // breakdown 영역 직접 업데이트
+  const bdEl = document.getElementById('profitBreakdownArea');
+  if(bdEl) bdEl.innerHTML = profitBreakdown(p, ch, profit, margin, marginColor);
 }
 
 function saveSku(id){
   const p = products.find(x=>x.id===id);
   if(!p) return;
+  // 기본 정보
   p.name        = document.getElementById('prod_name')?.value || p.name;
   p.normalPrice = parseInt(document.getElementById('prod_normalPrice')?.value)||p.normalPrice;
   p.cost        = parseInt(document.getElementById('prod_cost')?.value)||p.cost;
+  // 현재 열려있는 채널 데이터도 저장
+  updateProfitPreview();
   saveProducts();
+  showToast(`${p.name} 저장 완료 ✓`);
   renderProducts();
-  showToast(`${p.name} 저장 완료`);
 }
 
 function openAddSkuModal(){
