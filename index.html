@@ -2715,7 +2715,7 @@ function renderOrder(){
             <div style="font-size:10px;color:var(--text3);margin-top:4px">
               ${needProd===0?`입고 대기 60일간 소진(${leadSogin}개)도 충족`
                 :needNow===0
-                  ?`지금은 충분하나 입고 대기 60일간 ${leadSogin}개 소진 → ${leadSogin-(target-qty+leadSogin-needProd)}개 부족 예상`
+                  ?`60일 대기중 ${leadSogin}개 소진 → 잔여(${qty-leadSogin}개) < 목표(${target}개) → ${needProd}개 부족`
                   :`목표 ${target}개 + 대기 소진 ${leadSogin}개 − 현재고 ${qty}개`}
             </div>
           </div>
