@@ -106,7 +106,7 @@
 
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 
-  .tabs{display:flex;gap:2px;background:#12151F;border-radius:8px;padding:3px;border:1px solid var(--border)}
+  .tabs{display:flex;gap:2px;background:#12151F;border-radius:8px;padding:3px;border:1px solid var(--border);white-space:nowrap;flex-shrink:0}
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:500}
   .tab.active{background:#252840;color:#9B6DFF;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
 
@@ -234,6 +234,10 @@
     /* ── 탭·카드 ── */
     .tabs { margin-bottom: 10px; }
     .tab-sticky { top: 50px !important; }
+    .tabs-scroll { flex-wrap:nowrap !important; white-space:nowrap; }
+    .tabs-scroll::-webkit-scrollbar { display:none; }
+    .btn-input-pc { display:none !important; }
+    .btn-input-mobile { display:block !important; }
     .tab { font-size: 12px; padding: 6px 12px; }
     .card { padding: 12px 12px; }
     .card-title { font-size: 12px; }
@@ -399,15 +403,18 @@
 </div>
 
 <div class="main">
-  <div class="tab-sticky" style="position:sticky;top:60px;z-index:99;background:var(--bg);padding:10px 0 10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-    <div class="tabs" style="margin-bottom:0">
-      <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-      <button class="tab" onclick="switchTab('daily')">일별 내역</button>
-      <button class="tab" onclick="switchTab('stock')">재고현황</button>
-      <button class="tab" onclick="switchTab('order')">발주관리</button>
-      <button class="tab" onclick="switchTab('products')">상품관리</button>
+  <div class="tab-sticky" style="position:sticky;top:60px;z-index:99;background:var(--bg);padding:10px 0 6px;margin-bottom:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="tabs tabs-scroll" style="margin-bottom:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0">
+        <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
+        <button class="tab" onclick="switchTab('daily')">일별 내역</button>
+        <button class="tab" onclick="switchTab('stock')">재고현황</button>
+        <button class="tab" onclick="switchTab('order')">발주관리</button>
+        <button class="tab" onclick="switchTab('products')">상품관리</button>
+      </div>
+      <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
     </div>
-    <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
+    <button class="btn-input btn-input-mobile" onclick="openModal()" style="display:none;width:100%;margin-top:6px;text-align:center">+ 일 실적 입력</button>
   </div>
 
   <!-- 대시보드 탭 -->
