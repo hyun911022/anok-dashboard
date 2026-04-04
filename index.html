@@ -1853,12 +1853,19 @@ function renderSkuProfit(mRecs){
       stats[s.key].naver+= q;
     });
 
-    // 쿠팡 단품 (세트 없음)
+    // 쿠팡 단품 (세트 없음) — 풀필먼트비·쿠폰 차감 포함
+    const oFulfil = Math.round((o.fulfil||0)/1.1); // VAT 제거
+    const oCoupon = o.coupon||0;
+    const oAdcost = o.adcost||0;
+    const coupDeduct = oFulfil + oCoupon + oAdcost; // 전체 차감액
+    const coupSkuQty = SKUS.reduce((s,sk)=>s+(o[sk.key]||0), 0); // 총 판매 수량
     SKUS.forEach(s=>{
       const q = o[s.key]||0;
       stats[s.key].qty  += q;
       stats[s.key].rev  += q * (COUP_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (COUP_PROFITS[s.key]||0);
+      // 차감액을 판매 수량 비례로 배분
+      const deduct = coupSkuQty>0 ? Math.round(coupDeduct * (q/coupSkuQty)) : 0;
+      stats[s.key].prf  += q * (COUP_PROFITS[s.key]||0) - deduct;
       stats[s.key].coup += q;
     });
   });
