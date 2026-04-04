@@ -401,6 +401,7 @@
       <button class="tab" onclick="switchTab('daily')">일별 내역</button>
       <button class="tab" onclick="switchTab('stock')">재고현황</button>
       <button class="tab" onclick="switchTab('order')">발주관리</button>
+      <button class="tab" onclick="switchTab('products')">상품관리</button>
     </div>
     <button class="btn-input" onclick="openModal()">+ 일 실적 입력</button>
   </div>
@@ -754,6 +755,43 @@
 
   </div>
 
+  </div>
+
+  <!-- 상품관리 탭 -->
+  <div id="tabProducts" style="display:none">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">상품관리</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">SKU별 원가·판매가·채널 비용 설정 — 저장 시 전체 대시보드에 즉시 반영</div>
+      </div>
+      <button onclick="openAddSkuModal()" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">+ SKU 추가</button>
+    </div>
+
+    <!-- SKU 목록 + 상세 편집 영역 -->
+    <div style="display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start">
+
+      <!-- 왼쪽: SKU 목록 -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px">단품</div>
+        <div id="skuListSingle" style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px"></div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px">세트</div>
+        <div id="skuListSet" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+
+      <!-- 오른쪽: 상세 편집 -->
+      <div id="skuDetailPanel">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;color:var(--text3)">
+          <div style="font-size:28px;margin-bottom:12px">📦</div>
+          <div style="font-size:13px">왼쪽에서 SKU를 선택하세요</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
   <!-- 발주관리 탭 -->
   <div id="tabOrder" style="display:none">
 
@@ -993,11 +1031,11 @@ function getTodayKST(){
 }
 
 const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-const CAFE_PROFITS   = {shampoo:8766,treatment:9066,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
+const CAFE_PROFITS   = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
 const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-const NAVER_PROFITS  = {shampoo:8683.09,treatment:8983.09,hairset:17185.82,bodywash:8754,bodylotion:8554,bodyset:16910.55,washset:17039.64};
+const NAVER_PROFITS  = {shampoo:9274,treatment:9574,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
 const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
-const COUP_PROFITS   = {shampoo:13767.87,treatment:14067.87,bodywash:13854.78,bodylotion:13654.78};
+const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655};
 
 // 단품 원가 (제조원가)
 const UNIT_COSTS = {shampoo:5200, treatment:4900, bodywash:4300, bodylotion:4500};
@@ -1574,13 +1612,15 @@ function switchTab(tab){
   document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
   document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
   document.getElementById('tabOrder').style.display=tab==='order'?'block':'none';
+  document.getElementById('tabProducts').style.display=tab==='products'?'block':'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)
     );
   });
   if(tab==='stock') renderStock();
   if(tab==='order') renderOrder();
+  if(tab==='products') renderProducts();
 }
 
 function renderInsight(){
@@ -2778,6 +2818,431 @@ function deleteOrder(idx){
 }
 // ══════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════
+// 상품관리
+// ══════════════════════════════════════════════════
+
+// 기본 SKU 데이터 (초기값 — Firebase 없을 때 fallback)
+const DEFAULT_PRODUCTS = [
+  // 단품
+  { id:'shampoo',   name:'샴푸 400ml',      type:'single', cost:5200, normalPrice:33000,
+    channels:{
+      cafe:  {price:19800,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      naver: {price:19700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      coupang:{price:23900,fee:0.096,toLogistics:350,opp:115}
+    }},
+  { id:'treatment', name:'트리트먼트 400ml', type:'single', cost:4900, normalPrice:33000,
+    channels:{
+      cafe:  {price:19800,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      naver: {price:19700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      coupang:{price:23900,fee:0.096,toLogistics:350,opp:115}
+    }},
+  { id:'bodywash',  name:'바디워시 300ml',   type:'single', cost:4300, normalPrice:31000,
+    channels:{
+      cafe:  {price:18700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      naver: {price:18700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      coupang:{price:22900,fee:0.096,toLogistics:350,opp:115}
+    }},
+  { id:'bodylotion',name:'바디로션 300ml',   type:'single', cost:4500, normalPrice:31000,
+    channels:{
+      cafe:  {price:18700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      naver: {price:18700,fee:0.05,delivery:1050,packaging:900,materials:500,gwp:0},
+      coupang:{price:22900,fee:0.096,toLogistics:350,opp:115}
+    }},
+  // 세트
+  { id:'hairset',   name:'헤어세트',    type:'set', cost:10100, normalPrice:66000,
+    components:{shampoo:1,treatment:1},
+    channels:{
+      cafe:  {price:38700,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      naver: {price:38700,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      coupang:null
+    }},
+  { id:'bodyset',   name:'바디세트',    type:'set', cost:8800,  normalPrice:62000,
+    components:{bodywash:1,bodylotion:1},
+    channels:{
+      cafe:  {price:36800,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      naver: {price:36800,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      coupang:null
+    }},
+  { id:'washset',   name:'워시세트',    type:'set', cost:9500,  normalPrice:64000,
+    components:{shampoo:1,bodywash:1},
+    channels:{
+      cafe:  {price:37800,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      naver: {price:37800,fee:0.05,delivery:2100,packaging:900,materials:500,gwp:1300},
+      coupang:null
+    }},
+];
+
+let products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+let selectedSkuId = null;
+
+// ── 이익 계산 함수 ──
+function calcProfit(p, chKey){
+  const ch = p.channels[chKey];
+  if(!ch) return null;
+  const price = ch.price;
+  const vat   = price / 11;
+  if(chKey === 'coupang'){
+    const fee = price * (ch.fee||0);
+    return Math.round(price - vat - p.cost - (ch.toLogistics||0) - (ch.opp||0) - fee);
+  } else {
+    const fee  = price * (ch.fee||0);
+    return Math.round(price - vat - p.cost - fee - (ch.delivery||0) - (ch.packaging||0) - (ch.materials||0) - (ch.gwp||0));
+  }
+}
+
+// ── 전역 상수 동기화 (products → CAFE_PROFITS 등) ──
+function syncProfitConstants(){
+  products.forEach(p=>{
+    const cafePrf  = calcProfit(p,'cafe');
+    const naverPrf = calcProfit(p,'naver');
+    const coupPrf  = calcProfit(p,'coupang');
+    if(cafePrf!==null)  CAFE_PROFITS[p.id]  = cafePrf;
+    if(naverPrf!==null) NAVER_PROFITS[p.id] = naverPrf;
+    if(coupPrf!==null)  COUP_PROFITS[p.id]  = coupPrf;
+    CAFE_PRICES[p.id]  = p.channels.cafe?.price   || CAFE_PRICES[p.id];
+    NAVER_PRICES[p.id] = p.channels.naver?.price  || NAVER_PRICES[p.id];
+    COUP_PRICES[p.id]  = p.channels.coupang?.price || COUP_PRICES[p.id];
+    UNIT_COSTS[p.id]   = p.cost;
+  });
+}
+
+// ── Firebase 저장/로드 ──
+async function saveProducts(){
+  try{
+    localStorage.setItem('anok_products_v1', JSON.stringify(products));
+    // Firebase
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db,'anok','products'),{products});
+  }catch(e){ console.log('saveProducts error:',e); }
+  syncProfitConstants();
+}
+
+async function loadProducts(){
+  try{
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db,'anok','products'));
+    if(snap.exists() && snap.data().products){
+      products = snap.data().products;
+      syncProfitConstants();
+      return;
+    }
+  }catch(e){}
+  try{
+    const raw = localStorage.getItem('anok_products_v1');
+    if(raw){ products = JSON.parse(raw); syncProfitConstants(); }
+  }catch(e){}
+}
+
+// ── 렌더링 ──
+function renderProducts(){
+  const singles = products.filter(p=>p.type==='single');
+  const sets    = products.filter(p=>p.type==='set');
+
+  const makeBtn = p => {
+    const isSelected = p.id === selectedSkuId;
+    return `<button onclick="selectSku('${p.id}')" style="
+      width:100%;text-align:left;padding:10px 14px;border-radius:10px;cursor:pointer;
+      background:${isSelected?'#6366F120':'var(--card)'};
+      border:1px solid ${isSelected?'#6366F1':'var(--border)'};
+      color:${isSelected?'#9B6DFF':'var(--text2)'};
+      font-size:13px;font-weight:${isSelected?'700':'500'};
+      transition:all 0.15s">
+      <div style="font-weight:600;color:${isSelected?'#9B6DFF':'var(--text)'}">${p.name}</div>
+      ${p.type==='set'?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${Object.keys(p.components||{}).map(k=>products.find(x=>x.id===k)?.name||k).join(' + ')}</div>`:''}
+    </button>`;
+  };
+
+  document.getElementById('skuListSingle').innerHTML = singles.map(makeBtn).join('');
+  document.getElementById('skuListSet').innerHTML    = sets.map(makeBtn).join('');
+
+  if(selectedSkuId) renderSkuDetail(selectedSkuId);
+}
+
+function selectSku(id){
+  selectedSkuId = id;
+  renderProducts();
+}
+
+function renderSkuDetail(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+
+  const CH_LABELS = {cafe:'자사몰', naver:'네이버', coupang:'쿠팡'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+
+  // 채널 탭 HTML
+  const chTabs = Object.keys(CH_LABELS).map((ch,i)=>`
+    <button id="chtab_${ch}" onclick="selectChTab('${id}','${ch}')"
+      style="padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);
+      background:${i===0?CH_COLORS.cafe+'20':'var(--card)'};color:${i===0?CH_COLORS.cafe:'var(--text3)'}">
+      ${CH_LABELS[ch]}
+    </button>`).join('');
+
+  const html = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+      <!-- SKU 헤더 -->
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <input id="prod_name" value="${p.name}" style="font-size:16px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;width:280px;border-bottom:1px solid transparent" onfocus="this.style.borderBottomColor='#6366F1'" onblur="this.style.borderBottomColor='transparent'">
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${p.type==='set'?'#A78BFA20':'#6366F120'};color:${p.type==='set'?'#A78BFA':'#6366F1'};font-weight:600">${p.type==='set'?'세트':'단품'}</span>
+            ${p.type==='set'?`<span style="font-size:10px;color:var(--text3)">${Object.keys(p.components||{}).map(k=>products.find(x=>x.id===k)?.name||k).join(' + ')}</span>`:''}
+          </div>
+        </div>
+        <button onclick="saveSku('${id}')" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 20px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">저장</button>
+      </div>
+
+      <!-- 기본 정보 -->
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px">정상가</div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:12px;color:var(--text3)">₩</span>
+            <input id="prod_normalPrice" type="number" value="${p.normalPrice}" style="font-size:15px;font-weight:600;color:var(--text);background:#12151F;border:1px solid var(--border);border-radius:8px;padding:7px 10px;width:100%">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px">원가 (제조원가)</div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:12px;color:var(--text3)">₩</span>
+            <input id="prod_cost" type="number" value="${p.cost}" style="font-size:15px;font-weight:600;color:var(--text);background:#12151F;border:1px solid var(--border);border-radius:8px;padding:7px 10px;width:100%">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px">원가율</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);padding:8px 0" id="prod_costRate">${p.normalPrice>0?Math.round(p.cost/p.normalPrice*100):0}%</div>
+        </div>
+      </div>
+
+      <!-- 채널 탭 -->
+      <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px">
+        ${chTabs}
+      </div>
+
+      <!-- 채널별 설정 -->
+      <div id="chDetailArea" style="padding:20px 24px">
+        ${renderChDetail(p, 'cafe')}
+      </div>
+    </div>`;
+
+  document.getElementById('skuDetailPanel').innerHTML = html;
+
+  // 원가율 실시간 업데이트
+  document.getElementById('prod_cost').addEventListener('input', function(){
+    const cost = parseInt(this.value)||0;
+    const norm = parseInt(document.getElementById('prod_normalPrice').value)||0;
+    document.getElementById('prod_costRate').textContent = norm>0?Math.round(cost/norm*100)+'%':'0%';
+  });
+}
+
+function renderChDetail(p, ch){
+  const c = p.channels[ch];
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+  const color = CH_COLORS[ch];
+
+  if(!c){
+    return `<div style="text-align:center;padding:30px;color:var(--text3)">
+      <div style="font-size:20px;margin-bottom:8px">🚫</div>
+      이 채널에서는 판매하지 않는 SKU입니다.
+    </div>`;
+  }
+
+  const profit = calcProfit(p, ch);
+  const margin = c.price>0 ? Math.round(profit/c.price*100) : 0;
+  const marginColor = margin>=40?'#34D399':margin>=30?'#EAB308':'#EF4444';
+
+  if(ch === 'coupang'){
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">판매 설정</div>
+          ${inputRow('판매가', `cp_price`, c.price, '₩', color)}
+          ${inputRow('판매 수수료', `cp_fee_pct`, Math.round(c.fee*100), '%', color, '쿠팡 9.6%')}
+          ${inputRow('대화 → 쿠팡', `cp_toLogistics`, c.toLogistics, '₩', color)}
+          ${inputRow('후가공(OPP)', `cp_opp`, c.opp, '₩', color)}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
+          ${profitBreakdown(p, ch, profit, margin, marginColor)}
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">판매 설정</div>
+        ${inputRow('판매가', `cp_price`, c.price, '₩', color)}
+        ${inputRow('수수료', `cp_fee_pct`, Math.round(c.fee*100), '%', color, '5%')}
+        ${inputRow('택배비', `cp_delivery`, c.delivery, '₩', color, '단품 1,050 / 세트 2,100')}
+        ${inputRow('포장비', `cp_packaging`, c.packaging, '₩', color)}
+        ${inputRow('부자재', `cp_materials`, c.materials, '₩', color)}
+        ${inputRow('GWP', `cp_gwp`, c.gwp, '₩', color, '세트 1,300 / 단품 0')}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
+        ${profitBreakdown(p, ch, profit, margin, marginColor)}
+      </div>
+    </div>`;
+}
+
+function inputRow(label, id, value, unit, color, hint=''){
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--text3)">${label}</span>
+      ${hint?`<span style="font-size:10px;color:var(--text3)">${hint}</span>`:''}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px;color:var(--text3)">${unit}</span>
+      <input id="${id}" type="number" value="${value}" onchange="updateProfitPreview()"
+        style="flex:1;padding:7px 10px;background:#12151F;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--text);outline:none"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+  </div>`;
+}
+
+function profitBreakdown(p, ch, profit, margin, marginColor){
+  const c = p.channels[ch];
+  const price = c.price;
+  const vat = Math.round(price/11);
+  const fee = Math.round(price*(c.fee||0));
+
+  let rows = `
+    <div style="background:#0D1117;border-radius:10px;padding:14px">
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">판매가</span><span style="color:var(--text);font-weight:600">+₩${price.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">부가세 (÷11)</span><span style="color:#EF4444">-₩${vat.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">원가</span><span style="color:#EF4444">-₩${p.cost.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">수수료</span><span style="color:#EF4444">-₩${fee.toLocaleString()}</span>
+      </div>`;
+
+  if(ch !== 'coupang'){
+    rows += `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">택배비</span><span style="color:#EF4444">-₩${(c.delivery||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">포장비</span><span style="color:#EF4444">-₩${(c.packaging||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">부자재</span><span style="color:#EF4444">-₩${(c.materials||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">GWP</span><span style="color:#EF4444">-₩${(c.gwp||0).toLocaleString()}</span>
+      </div>`;
+  } else {
+    const toLog = c.toLogistics||0;
+    const opp = c.opp||0;
+    rows += `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">대화→쿠팡</span><span style="color:#EF4444">-₩${toLog.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px">
+        <span style="color:var(--text3)">후가공</span><span style="color:#EF4444">-₩${opp.toLocaleString()}</span>
+      </div>`;
+  }
+
+  rows += `
+      <div style="height:1px;background:var(--border);margin:8px 0"></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">매출이익</span>
+        <span style="font-size:16px;font-weight:700;color:${marginColor}">₩${profit.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span style="font-size:11px;color:var(--text3)">이익률</span>
+        <span style="font-size:13px;font-weight:700;color:${marginColor}">${margin}%</span>
+      </div>
+    </div>`;
+
+  return rows;
+}
+
+let currentDetailCh = 'cafe';
+function selectChTab(skuId, ch){
+  currentDetailCh = ch;
+  const p = products.find(x=>x.id===skuId);
+  if(!p) return;
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+  // 탭 스타일 업데이트
+  ['cafe','naver','coupang'].forEach(c=>{
+    const btn = document.getElementById('chtab_'+c);
+    if(!btn) return;
+    if(c===ch){
+      btn.style.background = CH_COLORS[c]+'20';
+      btn.style.color = CH_COLORS[c];
+    } else {
+      btn.style.background = 'var(--card)';
+      btn.style.color = 'var(--text3)';
+    }
+  });
+  document.getElementById('chDetailArea').innerHTML = renderChDetail(p, ch);
+}
+
+function updateProfitPreview(){
+  if(!selectedSkuId) return;
+  const p = products.find(x=>x.id===selectedSkuId);
+  if(!p) return;
+  const ch = currentDetailCh;
+  const c = p.channels[ch];
+  if(!c) return;
+
+  // 입력값 읽기
+  const price = parseInt(document.getElementById('cp_price')?.value)||0;
+  if(ch==='coupang'){
+    c.price = price;
+    c.fee   = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    c.toLogistics = parseInt(document.getElementById('cp_toLogistics')?.value)||0;
+    c.opp   = parseInt(document.getElementById('cp_opp')?.value)||0;
+  } else {
+    c.price    = price;
+    c.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    c.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
+    c.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
+    c.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
+    c.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
+  }
+
+  // 이익 미리보기 재계산
+  const profit = calcProfit(p, ch);
+  const margin = price>0?Math.round(profit/price*100):0;
+  const marginColor = margin>=40?'#34D399':margin>=30?'#EAB308':'#EF4444';
+
+  // breakdown 영역만 업데이트
+  const bd = profitBreakdown(p, ch, profit, margin, marginColor);
+  const cols = document.getElementById('chDetailArea')?.querySelectorAll(':scope > div > div');
+  if(cols && cols[1]) cols[1].innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
+    ${bd}`;
+}
+
+function saveSku(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  p.name        = document.getElementById('prod_name')?.value || p.name;
+  p.normalPrice = parseInt(document.getElementById('prod_normalPrice')?.value)||p.normalPrice;
+  p.cost        = parseInt(document.getElementById('prod_cost')?.value)||p.cost;
+  saveProducts();
+  renderProducts();
+  showToast(`${p.name} 저장 완료`);
+}
+
+function openAddSkuModal(){
+  showToast('SKU 추가 기능은 곧 추가될 예정이에요');
+}
+
+// ══════════════════════════════════════════════════
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;
@@ -2795,7 +3260,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); }, 500);
 </script>
 </body>
 </html>
