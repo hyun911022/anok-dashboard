@@ -167,20 +167,28 @@
     /* ── 인라인 그리드 오버라이드 (채널 카드 제외) ── */
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
 
-    /* ── 광고 효율 & 손익: 모바일 3열+풀너비 ── */
+    /* ── 광고 효율 & 손익: 모바일 ── */
     .ad-grid {
       grid-template-columns: 1fr 1fr 1fr !important;
       grid-template-rows: auto auto !important;
-      gap: 10px !important;
+      gap: 8px !important;
     }
-    /* ROAS(1) + 퍼포광고비(2) + 쿠팡비용(3) 한 줄 / 예상 손익 풀 너비 */
     .ad-grid > div:nth-child(1) { grid-column:1; grid-row:1; }
     .ad-grid > div:nth-child(2) { grid-column:2; grid-row:1; }
     .ad-grid > div:nth-child(3) { grid-column:3; grid-row:1; }
     .ad-grid .profit-banner     { grid-column:1/-1; grid-row:2; border-radius:10px !important; }
 
-    /* 손익 배너 compact */
+    /* ROAS 모바일: 자사몰/네이버 세로로 쌓기 */
+    .ad-grid > div:nth-child(1) .roas-inner { grid-template-columns: 1fr !important; gap:6px !important; }
+
+    /* 퍼포광고비 모바일: 3개 세로로 */
+    .ad-grid > div:nth-child(2) .perf-inner { grid-template-columns: 1fr !important; gap:4px !important; }
+    .ad-grid > div:nth-child(2) .perf-inner > div { display:flex; justify-content:space-between; align-items:baseline; }
+    .ad-grid > div:nth-child(2) .perf-inner > div > div:last-child { display:none; } /* 서브텍스트 숨김 */
+
+    /* 손익 배너 */
     .ad-grid .profit-banner .profit-val { font-size:22px !important; }
+    .ad-grid .profit-banner { flex-direction:row; justify-content:space-between; align-items:center; }
 
     /* ── 성과 지표 KPI: 2열 ── */
     .kpi4-grid { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
@@ -564,7 +572,7 @@
         <!-- ROAS -->
         <div>
           <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">ROAS</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="roas-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div>
               <div style="font-size:10px;color:var(--text3);margin-bottom:3px">자사몰</div>
               <div style="font-size:22px;font-weight:700;color:var(--text)" id="raosC">-</div>
@@ -581,7 +589,7 @@
         <!-- 퍼포 광고비 -->
         <div>
           <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">퍼포 광고비</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="perf-inner" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div>
               <div style="font-size:10px;color:var(--text3);margin-bottom:3px">메타</div>
               <div style="font-size:16px;font-weight:700;color:var(--text)" id="adMeta">0</div>
@@ -2023,7 +2031,7 @@ function renderSkuProfit(mRecs){
         <!-- 수익 기여도 바 — 최대 너비 제한 -->
         <div style="display:flex;align-items:center;gap:10px;padding-left:22px">
           <div style="flex:1;max-width:400px;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="height:5px;background:rgba(255,255,255,0.2);width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
+            <div style="height:5px;background:rgba(255,255,255,0.45);width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
           </div>
           <div style="font-size:10px;color:var(--text3);white-space:nowrap">${contribPct}% 기여</div>
         </div>
