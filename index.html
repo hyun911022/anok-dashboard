@@ -754,6 +754,9 @@
     <div id="stockValueCard" style="margin-bottom:20px"></div>
     <div id="stockCards" style="margin-bottom:20px"></div>
 
+    <!-- 과재고율 카드 -->
+    <div id="overstockCard" style="margin-bottom:16px"></div>
+
     <!-- SKU별 출고 현황 -->
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px">SKU별 출고 현황</div>
@@ -2353,7 +2356,87 @@ function renderStock(){
   } else if(valueEl){ valueEl.innerHTML=''; }
 
 
-  // ── 1. 알림 + 인사이트 통합 (중복 없이 한 곳만) ──
+  // ── 과재고율 카드 ──
+  const TARGET_DAYS_STOCK = 90; // 적정 기준 3개월
+  const OVERSTOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
+  const OVERSTOCK_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+  const OVERSTOCK_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#FB923C'};
+
+  const overstockEl = document.getElementById('overstockCard');
+  if(overstockEl){
+    const overstockData = OVERSTOCK_SKUS.map(k=>{
+      const qty = currentStock[k]||0;
+      const rate = avgSales[k]||0;
+      const daysLeft = rate>0 ? Math.round(qty/rate) : null;
+      const optimal = rate>0 ? Math.round(rate*TARGET_DAYS_STOCK) : null;
+      const overstockRate = optimal>0 ? Math.round(qty/optimal*100) : null;
+      // 상태: 90일 이하 정상, 90~180일 주의, 180일 초과 과재고
+      const status = daysLeft===null ? null : daysLeft<=TARGET_DAYS_STOCK ? 'normal' : daysLeft<=TARGET_DAYS_STOCK*2 ? 'caution' : 'over';
+      return {k, qty, rate, daysLeft, optimal, overstockRate, status};
+    });
+
+    // 과재고 or 주의 있을 때만 표시
+    const hasIssue = overstockData.some(d=>d.status==='over'||d.status==='caution');
+    if(!hasIssue || avgSales[OVERSTOCK_SKUS[0]]===0){
+      overstockEl.innerHTML='';
+    } else {
+      const rows = overstockData.map(d=>{
+        const color = OVERSTOCK_COLORS[d.k];
+        const statusColor = d.status==='over'?'#EF4444':d.status==='caution'?'#F97316':'#34D399';
+        const statusLabel = d.status==='over'?'과재고':d.status==='caution'?'주의':'정상';
+        // 바 너비: 적정(90일) 기준 100%, 최대 300%까지 표시
+        const barMax = TARGET_DAYS_STOCK*3;
+        const barPct = d.daysLeft!==null ? Math.min(Math.round(d.daysLeft/barMax*100),100) : 0;
+        const optimalPct = Math.round(TARGET_DAYS_STOCK/barMax*100); // 적정선 위치 (33%)
+
+        if(d.status==='normal') return ''; // 정상은 표시 안함
+
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:3px;height:14px;background:${color};border-radius:2px"></div>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${OVERSTOCK_NAMES[d.k]}</span>
+              <span style="font-size:11px;color:var(--text3)">${d.qty.toLocaleString()}개 보유</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:var(--text3)">${d.daysLeft}일치</span>
+              <span style="font-size:10px;font-weight:700;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:20px">${statusLabel}</span>
+            </div>
+          </div>
+          <!-- 진행 바 -->
+          <div style="position:relative;height:10px;background:#1A1D27;border-radius:5px;overflow:hidden">
+            <div style="height:10px;background:${statusColor};width:${barPct}%;border-radius:5px;opacity:0.85;transition:width 0.4s"></div>
+            <!-- 적정선 (90일 기준) -->
+            <div style="position:absolute;top:0;left:${optimalPct}%;width:2px;height:10px;background:rgba(255,255,255,0.5)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text3)">
+            <span>0일</span>
+            <span style="color:rgba(255,255,255,0.4)">적정 90일</span>
+            <span>${barMax}일+</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      const overCount = overstockData.filter(d=>d.status==='over').length;
+      const cautionCount = overstockData.filter(d=>d.status==='caution').length;
+
+      overstockEl.innerHTML = `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">과재고 현황</div>
+              <div style="font-size:11px;color:var(--text3)">적정 기준: 3개월치(90일) 소진량</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              ${overCount>0?`<span style="font-size:11px;font-weight:700;color:#EF4444;background:#EF444415;padding:3px 10px;border-radius:20px">과재고 ${overCount}종</span>`:''}
+              ${cautionCount>0?`<span style="font-size:11px;font-weight:700;color:#F97316;background:#F9731615;padding:3px 10px;border-radius:20px">주의 ${cautionCount}종</span>`:''}
+            </div>
+          </div>
+          ${rows}
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">* 흰색 점선: 적정 재고 기준선 (일평균 × 90일) · 최근 14일 판매 기준</div>
+        </div>`;
+    }
+  }
   const notices = [];
   STOCK_SKUS.forEach(k=>{
     const avg = avgSales[k]||0;
