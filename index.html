@@ -79,7 +79,7 @@
   .sku-tbl tr:last-child td{border-bottom:none}
   .sku-tbl .num{text-align:right;font-weight:500}
   .sku-bar-bg{background:#1E2236;border-radius:2px;height:4px;margin-top:3px}
-  .sku-bar{height:4px;border-radius:2px;background:var(--purple)}
+  .sku-bar{height:4px;border-radius:2px;background:rgba(255,255,255,0.55)}
 
   .roas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .roas-card{background:#12151F;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
@@ -87,7 +87,8 @@
   .roas-val{font-size:20px;font-weight:600;color:var(--text)}
   .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
-  .profit-banner{background:linear-gradient(135deg,#1C3A2A,#0D4A2E);border:1px solid #2E5A3A;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+  .ad-grid-mobile { display: none; }
+  .ad-grid-pc { display: grid; }
   .profit-banner-hover{transition:filter 0.15s,transform 0.15s}
   .profit-banner-hover:hover{filter:brightness(1.15);transform:translateY(-1px)}
   .profit-label{font-size:12px;color:#6EAB84;margin-bottom:4px}
@@ -168,27 +169,11 @@
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
 
     /* ── 광고 효율 & 손익: 모바일 ── */
-    .ad-grid {
-      grid-template-columns: 1fr 1fr 1fr !important;
-      grid-template-rows: auto auto !important;
-      gap: 8px !important;
-    }
-    .ad-grid > div:nth-child(1) { grid-column:1; grid-row:1; }
-    .ad-grid > div:nth-child(2) { grid-column:2; grid-row:1; }
-    .ad-grid > div:nth-child(3) { grid-column:3; grid-row:1; }
-    .ad-grid .profit-banner     { grid-column:1/-1; grid-row:2; border-radius:10px !important; }
-
-    /* ROAS 모바일: 자사몰/네이버 세로로 쌓기 */
-    .ad-grid > div:nth-child(1) .roas-inner { grid-template-columns: 1fr !important; gap:6px !important; }
-
-    /* 퍼포광고비 모바일: 3개 세로로 */
-    .ad-grid > div:nth-child(2) .perf-inner { grid-template-columns: 1fr !important; gap:4px !important; }
-    .ad-grid > div:nth-child(2) .perf-inner > div { display:flex; justify-content:space-between; align-items:baseline; }
-    .ad-grid > div:nth-child(2) .perf-inner > div > div:last-child { display:none; } /* 서브텍스트 숨김 */
+    .ad-grid-pc { display: none !important; }
+    .ad-grid-mobile { display: block !important; }
 
     /* 손익 배너 */
     .ad-grid .profit-banner .profit-val { font-size:22px !important; }
-    .ad-grid .profit-banner { flex-direction:row; justify-content:space-between; align-items:center; }
 
     /* ── 성과 지표 KPI: 2열 ── */
     .kpi4-grid { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
@@ -567,12 +552,12 @@
         <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
         <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.3px;text-transform:uppercase">광고 효율 &amp; 손익</span>
       </div>
-      <div class="ad-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:24px;align-items:start">
-
+      <!-- PC 레이아웃 (4열) -->
+      <div class="ad-grid-pc" style="display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:24px;align-items:start">
         <!-- ROAS -->
         <div>
           <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">ROAS</div>
-          <div class="roas-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div>
               <div style="font-size:10px;color:var(--text3);margin-bottom:3px">자사몰</div>
               <div style="font-size:22px;font-weight:700;color:var(--text)" id="raosC">-</div>
@@ -585,11 +570,10 @@
             </div>
           </div>
         </div>
-
         <!-- 퍼포 광고비 -->
         <div>
           <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">퍼포 광고비</div>
-          <div class="perf-inner" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
             <div>
               <div style="font-size:10px;color:var(--text3);margin-bottom:3px">메타</div>
               <div style="font-size:16px;font-weight:700;color:var(--text)" id="adMeta">0</div>
@@ -607,13 +591,11 @@
             </div>
           </div>
         </div>
-
         <!-- 쿠팡 비용 -->
         <div>
           <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">쿠팡 비용</div>
           <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.9">—</div>
         </div>
-
         <!-- 예상 손익 -->
         <div class="profit-banner profit-banner-hover" style="margin:0;border-radius:12px;height:100%;cursor:pointer" onclick="openProfitDetail()">
           <div>
@@ -622,7 +604,58 @@
             <div class="profit-sub">탭하여 상세보기</div>
           </div>
         </div>
+      </div>
 
+      <!-- 모바일 레이아웃 -->
+      <div class="ad-grid-mobile">
+        <!-- 1행: ROAS + 퍼포광고비 + 쿠팡비용 균등 3열 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+          <!-- ROAS -->
+          <div style="background:#1A1D27;border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">ROAS</div>
+            <div style="margin-bottom:8px">
+              <div style="font-size:9px;color:var(--text3);margin-bottom:2px">자사몰</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1.2" id="raosC_m">-</div>
+              <div style="font-size:9px;color:var(--text3);margin-top:1px">÷ 메타 80K</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--text3);margin-bottom:2px">네이버</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1.2" id="raosN_m">-</div>
+              <div style="font-size:9px;color:var(--text3);margin-top:1px">÷ 네이버 10K</div>
+            </div>
+          </div>
+          <!-- 퍼포 광고비 -->
+          <div style="background:#1A1D27;border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">퍼포 광고비</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:9px;color:var(--text3)">메타</span>
+                <span style="font-size:11px;font-weight:700;color:var(--text)" id="adMeta_m">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:9px;color:var(--text3)">네이버</span>
+                <span style="font-size:11px;font-weight:700;color:var(--text)" id="adNaver_m">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border);padding-top:6px">
+                <span style="font-size:9px;color:var(--text3)">대행료</span>
+                <span style="font-size:11px;font-weight:700;color:var(--text)" id="adAgency_m">0</span>
+              </div>
+            </div>
+          </div>
+          <!-- 쿠팡 비용 -->
+          <div style="background:#1A1D27;border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">쿠팡 비용</div>
+            <div id="coupangAdSummary_m" style="display:flex;flex-direction:column;gap:6px">—</div>
+          </div>
+        </div>
+        <!-- 2행: 예상 손익 풀 너비 -->
+        <div class="profit-banner profit-banner-hover" style="margin:0;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:16px 20px" onclick="openProfitDetail()">
+          <div>
+            <div class="profit-label" style="font-size:11px">예상 손익</div>
+            <div class="profit-val" id="profitVal_m" style="font-size:22px;font-weight:700">0</div>
+          </div>
+          <div style="font-size:11px;color:#6EAB84;text-align:right">탭하여<br>상세보기</div>
+        </div>
       </div>
     </div>
 
@@ -1247,24 +1280,35 @@ function render(){
     const pRate = totRev>0 ? (totPrf/totRev*100).toFixed(1) : '0';
     totalProfitRateEl.textContent = `마진율 ${pRate}% (상품 기준)`;
   }
-  document.getElementById('raosC').textContent=metaAd>0?(totC/metaAd).toFixed(2):'-';
-  document.getElementById('raosN').textContent=naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
+  const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
+  const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
+  const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
+  document.getElementById('raosC').textContent=roasC;
+  document.getElementById('raosN').textContent=roasN;
   document.getElementById('adMeta').textContent='₩'+fmt(metaAd);
   document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
   document.getElementById('adAgency').textContent='₩'+fmt(agencyFee);
-  document.getElementById('profitVal').textContent=(profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
+  document.getElementById('profitVal').textContent=profitStr;
+  // 모바일 전용 동기화
+  const setM=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+  setM('raosC_m', roasC); setM('raosN_m', roasN);
+  setM('adMeta_m','₩'+fmt(metaAd)); setM('adNaver_m','₩'+fmt(naverAdTotal)); setM('adAgency_m','₩'+fmt(agencyFee));
+  setM('profitVal_m', profitStr);
 
   // 쿠팡 광고비 요약
   const totFulfil=mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0);
-  const totFulfilVat=Math.round(totFulfil/1.1); // VAT 제거 (공급가액)
+  const totFulfilVat=Math.round(totFulfil/1.1);
   const totCoupon=mRecs.reduce((s,r)=>s+(r.coupang?.coupon||0),0);
   const totCoupAd=mRecs.reduce((s,r)=>s+(r.coupang?.adcost||0),0);
-  const el=document.getElementById('coupangAdSummary');
-  if(el) el.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px">
-    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">풀필비</span><span style="font-weight:600">₩${fmt(totFulfilVat)}</span></div>
-    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">할인쿠폰</span><span style="font-weight:600">₩${fmt(totCoupon)}</span></div>
-    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:5px;margin-top:2px"><span style="color:var(--text3)">쿠팡광고</span><span style="font-weight:600">₩${fmt(totCoupAd)}</span></div>
+  const coupHtml=`<div style="display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3);font-size:9px">풀필비</span><span style="font-weight:700;font-size:11px">₩${fmt(totFulfilVat)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3);font-size:9px">할인쿠폰</span><span style="font-weight:700;font-size:11px">₩${fmt(totCoupon)}</span></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;margin-top:1px"><span style="color:var(--text3);font-size:9px">쿠팡광고</span><span style="font-weight:700;font-size:11px">₩${fmt(totCoupAd)}</span></div>
   </div>`;
+  const el=document.getElementById('coupangAdSummary');
+  if(el) el.innerHTML=coupHtml;
+  const elM=document.getElementById('coupangAdSummary_m');
+  if(elM) elM.innerHTML=coupHtml;
 
   const totPct=totRev>0;
   const cPct=totPct?Math.round(totC/totRev*100):0;
@@ -2031,7 +2075,7 @@ function renderSkuProfit(mRecs){
         <!-- 수익 기여도 바 — 최대 너비 제한 -->
         <div style="display:flex;align-items:center;gap:10px;padding-left:22px">
           <div style="flex:1;max-width:400px;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="height:5px;background:rgba(255,255,255,0.45);width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
+            <div style="height:5px;background:rgba(255,255,255,0.55);width:${barW}%;border-radius:3px;transition:width 0.4s"></div>
           </div>
           <div style="font-size:10px;color:var(--text3);white-space:nowrap">${contribPct}% 기여</div>
         </div>
