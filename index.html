@@ -1232,11 +1232,12 @@ function render(){
 
   // 쿠팡 광고비 요약
   const totFulfil=mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0);
+  const totFulfilVat=Math.round(totFulfil/1.1); // VAT 제거 (공급가액)
   const totCoupon=mRecs.reduce((s,r)=>s+(r.coupang?.coupon||0),0);
   const totCoupAd=mRecs.reduce((s,r)=>s+(r.coupang?.adcost||0),0);
   const el=document.getElementById('coupangAdSummary');
   if(el) el.innerHTML=`<div style="display:flex;flex-direction:column;gap:5px">
-    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">풀필비</span><span style="font-weight:600">₩${fmt(totFulfil)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">풀필비</span><span style="font-weight:600">₩${fmt(totFulfilVat)}</span></div>
     <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">할인쿠폰</span><span style="font-weight:600">₩${fmt(totCoupon)}</span></div>
     <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:5px;margin-top:2px"><span style="color:var(--text3)">쿠팡광고</span><span style="font-weight:600">₩${fmt(totCoupAd)}</span></div>
   </div>`;
