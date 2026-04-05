@@ -2638,7 +2638,7 @@ function renderStock(){
 
   // ── 5. 수기 출고 내역 ──
   // ── 유통기한 소진 가능성 카드 ──
-  renderExpiryRisk(batchState, avgSales, currentStock);
+  renderExpiryRisk(batchState, avgSales);
 
   const moSorted=[...manualOuts].sort((a,b)=>b.date.localeCompare(a.date));
   const moEl=document.getElementById('manualOutList');
@@ -2659,11 +2659,11 @@ function renderStock(){
 }
 
 // ── 유통기한 소진 가능성 카드 ──────────────────────────────────────
-function renderExpiryRisk(batchState, avgSales, currentStock){
+function renderExpiryRisk(batchState, avgSales){
   const el = document.getElementById('expiryRiskCard');
   if(!el) return;
   const today = getTodayKST();
-
+  const fmt = d => d ? d.slice(2).replace(/-/g,'/') : '';
   const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
   const skus = ['shampoo','treatment','bodywash','bodylotion'];
 
@@ -2672,19 +2672,14 @@ function renderExpiryRisk(batchState, avgSales, currentStock){
     if(!batches.length) return null;
     const totalQty = batches.reduce((s,b)=>s+b.remaining,0);
     const daily = avgSales[k]||0;
-    // 소진 완료 날짜 (현속도 기준)
     const daysToSell = daily>0 ? Math.ceil(totalQty/daily) : 99999;
     const sellByDate = new Date(new Date(today).getTime()+daysToSell*864e5).toISOString().split('T')[0];
-    // 첫 배치(가장 이른) 유통기한
     const firstExpiry = batches[0].expiry;
     const daysToExpiry = Math.round((new Date(firstExpiry)-new Date(today))/(864e5));
-    // 판정
-    const gap = daysToExpiry - daysToSell; // 양수면 여유, 음수면 부족
+    const gap = daysToExpiry - daysToSell;
     const canSell = gap >= 0;
-    // 필요 일평균 (유통기한 내 소진하려면)
     const needDaily = Math.ceil(totalQty/daysToExpiry*10)/10;
     const needMultiple = daily>0 ? (needDaily/daily).toFixed(1) : '∞';
-
     return {k, name:skuNames[k], totalQty, daily, daysToSell, sellByDate, firstExpiry, daysToExpiry, canSell, gap, needDaily, needMultiple};
   }).filter(Boolean);
 
@@ -2693,25 +2688,19 @@ function renderExpiryRisk(batchState, avgSales, currentStock){
   const rowsHtml = rows.map(r=>{
     const statusColor = r.canSell ? '#34D399' : r.gap > -180 ? '#F97316' : '#EF4444';
     const statusBg = r.canSell ? '#34D39912' : r.gap > -180 ? '#F9731612' : '#EF444412';
-    const statusText = r.canSell ? '소진 가능' : '소진 불가';
-    const statusIcon = r.canSell ? '✓' : '✗';
-
-    // 현속도 소진 완료 연월 표시
-    const sellYM = r.daysToSell<9999 ? fmtDate(r.sellByDate).slice(0,5) : '∞';
-    const expiryYM = fmtDate(r.firstExpiry).slice(0,5);
-
+    const sellYM = r.daysToSell<9999 ? fmt(r.sellByDate).slice(0,5) : '∞';
+    const expiryYM = fmt(r.firstExpiry).slice(0,5);
     return `
     <div style="padding:9px 0;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span style="font-size:12px;font-weight:700;color:var(--text)">${r.name}</span>
-          <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusBg};padding:1px 6px;border-radius:3px">${statusIcon} ${statusText}</span>
+          <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusBg};padding:1px 6px;border-radius:3px">${r.canSell?'✓ 소진 가능':'✗ 소진 불가'}</span>
         </div>
         <div style="font-size:10px;color:var(--text3)">
-          현속도 소진: <span style="color:var(--text2)">${sellYM}</span>
-          &nbsp;·&nbsp;
-          유통기한: <span style="color:var(--text2)">${expiryYM}</span>
-          ${!r.canSell ? `&nbsp;·&nbsp;<span style="color:${statusColor}">필요 일평균 ${r.needDaily}개 (현재 ×${r.needMultiple})</span>` : ''}
+          현속도: <span style="color:var(--text2)">${sellYM}</span>
+          &nbsp;·&nbsp;유통: <span style="color:var(--text2)">${expiryYM}</span>
+          ${!r.canSell?`&nbsp;·&nbsp;<span style="color:${statusColor}">×${r.needMultiple} 필요</span>`:''}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -2721,7 +2710,7 @@ function renderExpiryRisk(batchState, avgSales, currentStock){
     </div>`;
   }).join('');
 
-  el.innerHTML = `
+  el.innerHTML=`
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;height:100%;box-sizing:border-box">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <div style="font-size:12px;font-weight:700;color:var(--text)">유통기한 내 소진 가능성</div>
