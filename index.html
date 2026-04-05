@@ -768,7 +768,7 @@
 
     <!-- SKU별 출고 현황 -->
     <div class="card" style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px">SKU별 출고 현황</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">SKU별 출고 현황</div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
@@ -788,13 +788,13 @@
 
     <!-- 입고 내역 -->
     <div class="card" style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px">입고 내역</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">입고 내역</div>
       <div id="stockInList"><div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">입고 내역이 없습니다.</div></div>
     </div>
 
     <!-- 수기 출고 내역 -->
     <div class="card">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px">수기 출고 내역</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">수기 출고 내역</div>
       <div id="manualOutList"><div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div></div>
     </div>
 
@@ -2667,15 +2667,17 @@ function renderExpiryRisk(batchState, avgSales){
   const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
   const skus = ['shampoo','treatment','bodywash','bodylotion'];
 
+  // calcTotalDailyRate: 이커머스 14일 + 수기출고 90일 합산 속도
+  const combinedRates = calcTotalDailyRate();
+
   // SKU별, 배치별 행 생성
   let allOk = true;
   const rowsHtml = skus.map(k=>{
     const batches = (batchState[k]?.batches||[]).filter(b=>b.remaining>0);
     if(!batches.length) return '';
-    const daily = avgSales[k]||0;
-    const totalQty = batches.reduce((s,b)=>s+b.remaining,0);
+    const daily = combinedRates[k]||0; // 합산 소진 속도 사용
 
-    // FIFO: 배치별로 누적 소진량 기준으로 소진 완료일 계산
+    // FIFO: 배치별 누적 소진량 기준 소진 완료일 계산
     let accQty = 0;
     const batchRows = batches.map((b, bi)=>{
       accQty += b.remaining;
@@ -2684,10 +2686,38 @@ function renderExpiryRisk(batchState, avgSales){
       const daysToExpiry = Math.round((new Date(b.expiry)-new Date(today))/(864e5));
       const canSell = daysToSell <= daysToExpiry;
       if(!canSell) allOk = false;
+
+      // 6개월(180일) 이내 잔량 계산
+      const warn180days = 180;
+      const qtyAt180 = daily>0 ? Math.max(0, Math.round(b.remaining - daily*Math.min(daysToExpiry-warn180days, daysToSell))) : b.remaining;
+      const hasShortExpiry = canSell && daysToExpiry <= warn180days; // 배치 자체가 이미 6개월 이내
+      // 소진 가능하지만 유통기한 6개월 이내 시점에 남아있을 수량
+      const remainAt180 = daily>0 && daysToExpiry>warn180days
+        ? Math.max(0, Math.round(accQty - daily*(daysToExpiry-warn180days)))
+        : (daysToExpiry<=warn180days ? b.remaining : 0);
+
       const needMultiple = (!canSell && daily>0) ? (Math.ceil(accQty/daysToExpiry*10)/10/daily).toFixed(1) : null;
-      const c = canSell ? '#34D399' : '#EF4444';
+
+      // 색상
+      const c = !canSell ? '#EF4444' : (remainAt180>0||hasShortExpiry) ? '#EAB308' : '#34D399';
+      if(!canSell) allOk = false;
+
       const sellYM = daysToSell<9999 ? fmt(sellByDate).slice(0,5) : '∞';
       const expYM = fmt(b.expiry).slice(0,5);
+
+      // 상태 뱃지
+      const badge = !canSell
+        ? `<span style="font-size:9px;font-weight:700;color:#EF4444;background:#EF444412;padding:1px 6px;border-radius:3px">✗ 불가</span>`
+        : (remainAt180>0||hasShortExpiry)
+          ? `<span style="font-size:9px;font-weight:700;color:#EAB308;background:#EAB30812;padding:1px 6px;border-radius:3px">⚠ 주의</span>`
+          : `<span style="font-size:9px;font-weight:700;color:#34D399;background:#34D39912;padding:1px 6px;border-radius:3px">✓ 가능</span>`;
+
+      // 서브텍스트
+      let sub = `소진완료 <span style="color:${c};font-weight:600">${sellYM}</span> · 유통 <span style="color:var(--text2)">${expYM}</span>`;
+      if(!canSell && needMultiple) sub += ` &nbsp;<span style="color:#EF4444">×${needMultiple} 필요</span>`;
+      else if(hasShortExpiry) sub += ` &nbsp;<span style="color:#EAB308">${b.remaining.toLocaleString()}개 전량 6개월 이내</span>`;
+      else if(remainAt180>0) sub += ` &nbsp;<span style="color:#EAB308">유통 6개월 전 ${remainAt180.toLocaleString()}개 잔존 예상</span>`;
+
       return `
       <div style="padding:7px 0;border-top:1px solid ${bi===0?'var(--border)':'#ffffff08'};display:flex;align-items:center;gap:8px">
         <div style="flex:1;min-width:0">
@@ -2695,13 +2725,9 @@ function renderExpiryRisk(batchState, avgSales){
             ${bi===0
               ? `<span style="font-size:12px;font-weight:700;color:var(--text)">${skuNames[k]}</span>${batches.length>1?`<span style="font-size:10px;color:var(--text3)">배치1</span>`:''}`
               : `<span style="font-size:10px;color:var(--text3);padding-left:2px">└ 배치${bi+1}</span>`}
-            <span style="font-size:9px;font-weight:700;color:${c};background:${c}12;padding:1px 6px;border-radius:3px">${canSell?'✓ 가능':'✗ 불가'}</span>
+            ${badge}
           </div>
-          <div style="font-size:10px;color:var(--text3)">
-            소진완료 <span style="color:${c};font-weight:600">${sellYM}</span>
-            &nbsp;·&nbsp;유통 <span style="color:var(--text2)">${expYM}</span>
-            ${needMultiple ? `&nbsp;·&nbsp;<span style="color:${c}">×${needMultiple} 필요</span>` : ''}
-          </div>
+          <div style="font-size:10px;color:var(--text3)">${sub}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:12px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</div>
@@ -2719,7 +2745,7 @@ function renderExpiryRisk(batchState, avgSales){
       <div style="font-size:14px;font-weight:700;color:var(--text)">유통기한 내 소진 가능성</div>
       <span style="font-size:9px;font-weight:700;color:${allOk?'#34D399':'#F97316'};background:${allOk?'#34D39912':'#F9731612'};padding:2px 8px;border-radius:4px">${allOk?'전품목 안전':'주의 필요'}</span>
     </div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">현재 판매 속도 기준 · 이커머스 14일 평균</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">이커머스 14일 + 수기출고 90일 합산 평균</div>
     ${rowsHtml}
   </div>`;
 }
