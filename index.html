@@ -299,12 +299,34 @@
     } catch(e) { console.log('Firestore stock save error:', e); }
   }
 
+  async function loadChannelSharesFromFirestore() {
+    try {
+      const docRef = doc(db, 'anok', 'channelShares');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) return docSnap.data();
+    } catch(e) {}
+    return null;
+  }
+
+  async function saveChannelSharesToFirestore(monthKey, shares) {
+    try {
+      const docRef = doc(db, 'anok', 'channelShares');
+      const snap = await getDoc(docRef);
+      const existing = snap.exists() ? snap.data() : {};
+      existing[monthKey] = shares;
+      await setDoc(docRef, existing);
+    } catch(e) {}
+  }
+
   window._firestore = {
     load: loadFromFirestore,
     save: saveToFirestore,
     loadStock: loadStockFromFirestore,
-    saveStock: saveStockToFirestore
+    saveStock: saveStockToFirestore,
+    loadChannelShares: loadChannelSharesFromFirestore,
+    saveChannelShares: saveChannelSharesToFirestore,
   };
+
 </script>
 </head>
 <body>
@@ -1056,6 +1078,15 @@ let trendChart, donutChart;
 
 async function loadData(){
   if(window._firestore) {
+    // 채널 비중 로드
+    const shares = await window._firestore.loadChannelShares();
+    if(shares){
+      const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
+      const prevYear = sm===1 ? sy-1 : sy;
+      const prevMonth = sm===1 ? 12 : sm-1;
+      const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
+      if(shares[prevKey]) channelSharesOverride = shares[prevKey];
+    }
     const fsData = await window._firestore.load();
     if(fsData && fsData.length > 0) {
       records = fsData;
@@ -1494,7 +1525,15 @@ function calcTargetTotal(){
   return Math.round((monthlyFixed + 1000000) / margin);
 }
 
+// 채널 비중 별도 저장 (마진율 계산에 영향 없음)
+let channelSharesOverride = null; // Firebase에서 로드된 값
+
 function calcChannelShares(){
+  // Firebase에서 로드된 채널 비중이 있으면 우선 사용
+  if(channelSharesOverride){
+    return channelSharesOverride;
+  }
+  // 전월 records 기반 계산 (fallback)
   const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
   const prevYear = sm===1 ? sy-1 : sy;
   const prevMonth = sm===1 ? 12 : sm-1;
@@ -1506,7 +1545,7 @@ function calcChannelShares(){
     const tot=totC+totN+totO;
     if(tot>0) return {c:totC/tot, n:totN/tot, o:totO/tot};
   }
-  return {c:0.66, n:0.29, o:0.05};
+  return {c:0.48, n:0.34, o:0.18}; // 3월 실적 기본값
 }
 
 let TARGET_TOTAL = Math.round((META_AD*30+NAVER_AD*30+AGENCY_FEE+1000000)/0.47);
