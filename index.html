@@ -1437,7 +1437,26 @@ function renderSkuTable(mRecs){
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
   });
-  document.getElementById('skuBody').innerHTML=html||'<tr><td colspan="6" class="empty">데이터 없음</td></tr>';
+  // 단품 합계 행
+  const totalUnit = unitSkus.reduce((s,k)=>s+(calcUnitQty(mRecs,k)||0),0);
+  const totalC = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0),0);
+  const totalN = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0),0);
+  const totalO = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0),0);
+  const totalTot = unitSkus.reduce((s,k)=>{
+    const c=mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0);
+    const n=mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0);
+    const o=mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0);
+    return s+c+n+o;
+  },0);
+  const totalRow = `<tr style="border-top:2px solid var(--border);font-weight:700">
+    <td style="color:var(--text2)">합계</td>
+    <td class="num" style="color:#9B6DFF">${totalC}</td>
+    <td class="num" style="color:#34D399">${totalN}</td>
+    <td class="num" style="color:#FB923C">${totalO||'-'}</td>
+    <td class="num">${totalTot}</td>
+    <td class="num" style="color:#60A5FA;font-weight:700">${totalUnit}</td>
+  </tr>`;
+  document.getElementById('skuBody').innerHTML=(html||'<tr><td colspan="6" class="empty">데이터 없음</td></tr>')+totalRow;
 }
 
 function renderDayTable(mRecs){
