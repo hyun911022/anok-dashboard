@@ -2402,7 +2402,7 @@ function renderStock(){
               <span style="font-size:11px;color:var(--text3)">${d.qty.toLocaleString()}개 보유</span>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:12px;font-weight:700;color:${statusColor}">${d.daysLeft}일치</span>
+              <span style="font-size:12px;font-weight:700;color:${statusColor}">${(d.daysLeft/30).toFixed(1)}개월분</span>
               <span style="font-size:10px;font-weight:700;color:${statusColor};background:${statusColor}18;padding:2px 8px;border-radius:20px">${statusLabel}</span>
             </div>
           </div>
@@ -2416,7 +2416,7 @@ function renderStock(){
           <div style="position:relative;height:16px;margin-top:4px;font-size:10px;color:var(--text3)">
             <span style="position:absolute;left:0">0</span>
             <span style="position:absolute;left:${optimalPct}%;transform:translateX(-50%);color:rgba(255,255,255,0.45);white-space:nowrap">적정(3개월분)</span>
-            <span style="position:absolute;right:0">9개월분</span>
+            <span style="position:absolute;right:0;color:rgba(255,255,255,0.45)">9개월분</span>
           </div>
         </div>`;
       }).join('');
