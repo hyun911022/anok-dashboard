@@ -88,6 +88,8 @@
   .roas-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
   .profit-banner{background:linear-gradient(135deg,#1C3A2A,#0D4A2E);border:1px solid #2E5A3A;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+  .profit-banner-hover{transition:filter 0.15s,transform 0.15s}
+  .profit-banner-hover:hover{filter:brightness(1.15);transform:translateY(-1px)}
   .profit-label{font-size:12px;color:#6EAB84;margin-bottom:4px}
   .profit-val{font-size:28px;font-weight:600;color:#fff}
   .profit-sub{font-size:11px;color:#6EAB84;margin-top:3px}
@@ -597,20 +599,19 @@
           </div>
         </div>
 
-        <!-- 쿠팡 광고비 -->
+        <!-- 쿠팡 비용 -->
         <div>
-          <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">쿠팡 광고비</div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">쿠팡 비용</div>
           <div id="coupangAdSummary" style="font-size:13px;color:var(--text2);line-height:1.9">—</div>
         </div>
 
         <!-- 예상 손익 -->
-        <div class="profit-banner" style="margin:0;border-radius:12px;height:100%;cursor:pointer" onclick="openProfitDetail()">
+        <div class="profit-banner profit-banner-hover" style="margin:0;border-radius:12px;height:100%;cursor:pointer" onclick="openProfitDetail()">
           <div>
             <div class="profit-label">예상 손익</div>
             <div class="profit-val" id="profitVal" style="font-size:22px">0</div>
-            <div class="profit-sub">수익 - 광고비 - 대행료 · 탭하여 상세보기</div>
+            <div class="profit-sub">탭하여 상세보기</div>
           </div>
-          <div style="font-size:18px;opacity:0.5">›</div>
         </div>
 
       </div>
