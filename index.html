@@ -188,17 +188,20 @@
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
 
     /* 광고효율 모바일: ROAS/퍼포/쿠팡 가로 한 줄 + 손익 풀너비 */
-    .adg-wrap { grid-template-columns: auto 1fr 1fr !important; grid-template-rows: auto auto !important; gap:14px !important; }
+    .adg-wrap { grid-template-columns: auto 1fr auto !important; grid-template-rows: auto auto !important; gap:12px !important; }
     .adg-profit { grid-column: 1/-1 !important; border-radius:8px !important; height:auto !important; }
     .adg-profit-hint { display:block !important; }
     .adg-num-lg { font-size:16px !important; }
     .adg-num { font-size:10px !important; }
-    .adg-rows { gap:4px !important; }
-    .adg-row-top { padding-top:4px !important; }
-    .adg-roas-inner { grid-template-columns:1fr !important; gap:6px !important; }
-    .adg-title { font-size:8px !important; margin-bottom:6px !important; padding-bottom:4px !important; }
+    .adg-rows { gap:3px !important; }
+    .adg-row { gap:4px !important; justify-content:flex-start !important; }
+    .adg-coup .adg-row { justify-content:space-between !important; }
+    .adg-row-top { padding-top:3px !important; }
+    .adg-roas-inner { grid-template-columns:1fr !important; gap:5px !important; }
+    .adg-title { font-size:8px !important; margin-bottom:5px !important; padding-bottom:4px !important; }
     .adg-label { font-size:8px !important; }
     .adg-sub { display:none !important; }
+    .adg-sub2 { display:none !important; }
     .profit-val { font-size:20px !important; }
 
     /* ── 성과 지표 KPI: 2열 ── */
