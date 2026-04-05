@@ -2709,7 +2709,7 @@ function renderExpiryRisk(batchState, avgSales){
       const badge = !canSell
         ? `<span style="font-size:9px;font-weight:700;color:#EF4444;background:#EF444412;padding:1px 6px;border-radius:3px">✗ 불가</span>`
         : (remainAt180>0||hasShortExpiry)
-          ? `<span style="font-size:9px;font-weight:700;color:#EAB308;background:#EAB30812;padding:1px 6px;border-radius:3px">⚠ 주의</span>`
+          ? `<span style="font-size:9px;font-weight:700;color:#34D399;background:#34D39912;padding:1px 6px;border-radius:3px">✓ 가능</span><span style="font-size:9px;font-weight:700;color:#EAB308;background:#EAB30812;padding:1px 6px;border-radius:3px;margin-left:3px">⚠ 주의</span>`
           : `<span style="font-size:9px;font-weight:700;color:#34D399;background:#34D39912;padding:1px 6px;border-radius:3px">✓ 가능</span>`;
 
       // 서브텍스트
