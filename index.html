@@ -3441,8 +3441,9 @@ function openProfitDetail(){
   let totPrf=0, totCprf=0, totNprf=0, totOprf=0;
   mRecs.forEach(r=>{ const d=calcDay(r); totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; });
 
-  const metaAd=80000*days, naverAd=10000*days, agency=700000;
-  const netProfit=Math.round(totPrf-metaAd-naverAd-agency);
+  const metaAd=80000*days, naverAd=10000*days;
+  const agencyDaily=Math.round(700000/daysInMonth*days);
+  const netProfit=Math.round(totPrf-metaAd-naverAd-agencyDaily);
   const isPos = netProfit>=0;
 
   const totFulfil=Math.round(mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0)/1.1);
@@ -3472,10 +3473,10 @@ function openProfitDetail(){
     <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin:14px 0 4px">차감 비용</div>
     ${row('메타 광고비', metaAd, '#EF4444', false, `₩80,000 × ${days}일`)}
     ${row('네이버 광고비', naverAd, '#EF4444', false, `₩10,000 × ${days}일`)}
-    ${row('대행료', agency, '#EF4444', false, '월 고정')}
+    ${row('대행료', agencyDaily, '#EF4444', false, `₩700,000 × ${days}일/${daysInMonth}일`)}
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border)">
       <div style="font-size:13px;font-weight:700;color:var(--text)">합계 차감</div>
-      <div style="font-size:14px;font-weight:700;color:#EF4444">-₩${(metaAd+naverAd+agency).toLocaleString()}</div>
+      <div style="font-size:14px;font-weight:700;color:#EF4444">-₩${(metaAd+naverAd+agencyDaily).toLocaleString()}</div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:4px;background:${isPos?'#0D2A1A':'#2A0D0D'};border-radius:10px;padding:14px 16px;margin-top:12px">
