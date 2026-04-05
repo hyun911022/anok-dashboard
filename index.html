@@ -2672,24 +2672,45 @@ function renderExpiryRisk(batchState, avgSales){
     if(!batches.length) return null;
     const totalQty = batches.reduce((s,b)=>s+b.remaining,0);
     const daily = avgSales[k]||0;
-    const daysToSell = daily>0 ? Math.ceil(totalQty/daily) : 99999;
-    const sellByDate = new Date(new Date(today).getTime()+daysToSell*864e5).toISOString().split('T')[0];
+
+    // 배치별로 FIFO 순서로 소진 가능 여부 판단
+    let accQty = 0; // 누적 소진량
+    let worstBatch = null; // 소진 불가한 배치 중 가장 심각한 것
+    let allBatchOk = true;
+    batches.forEach(b=>{
+      accQty += b.remaining;
+      const daysToSellThisBatch = daily>0 ? Math.ceil(accQty/daily) : 99999;
+      const sellByDate = new Date(new Date(today).getTime()+daysToSellThisBatch*864e5).toISOString().split('T')[0];
+      const daysToExpiry = Math.round((new Date(b.expiry)-new Date(today))/(864e5));
+      const canSell = daysToSellThisBatch <= daysToExpiry;
+      if(!canSell){
+        allBatchOk = false;
+        const needDaily = Math.ceil(accQty/daysToExpiry*10)/10;
+        const needMultiple = daily>0 ? (needDaily/daily).toFixed(1) : '∞';
+        if(!worstBatch || (daysToExpiry - daysToSellThisBatch) < (worstBatch.gap)){
+          worstBatch = { expiry: b.expiry, remaining: b.remaining, accQty, daysToSellThisBatch, sellByDate, daysToExpiry, gap: daysToExpiry - daysToSellThisBatch, needDaily, needMultiple };
+        }
+      }
+    });
+
+    // 표시용: 전체 소진 완료 날짜
+    const totalDaysToSell = daily>0 ? Math.ceil(totalQty/daily) : 99999;
+    const totalSellByDate = new Date(new Date(today).getTime()+totalDaysToSell*864e5).toISOString().split('T')[0];
     const firstExpiry = batches[0].expiry;
-    const daysToExpiry = Math.round((new Date(firstExpiry)-new Date(today))/(864e5));
-    const gap = daysToExpiry - daysToSell;
-    const canSell = gap >= 0;
-    const needDaily = Math.ceil(totalQty/daysToExpiry*10)/10;
-    const needMultiple = daily>0 ? (needDaily/daily).toFixed(1) : '∞';
-    return {k, name:skuNames[k], totalQty, daily, daysToSell, sellByDate, firstExpiry, daysToExpiry, canSell, gap, needDaily, needMultiple};
+
+    return {k, name:skuNames[k], totalQty, daily, canSell:allBatchOk, worstBatch, totalDaysToSell, totalSellByDate, firstExpiry};
   }).filter(Boolean);
 
   const allOk = rows.every(r=>r.canSell);
 
   const rowsHtml = rows.map(r=>{
-    const statusColor = r.canSell ? '#34D399' : r.gap > -180 ? '#F97316' : '#EF4444';
-    const statusBg = r.canSell ? '#34D39912' : r.gap > -180 ? '#F9731612' : '#EF444412';
-    const sellYM = r.daysToSell<9999 ? fmt(r.sellByDate).slice(0,5) : '∞';
+    const statusColor = r.canSell ? '#34D399' : r.worstBatch?.gap > -180 ? '#F97316' : '#EF4444';
+    const statusBg = statusColor+'12';
+    const sellYM = r.totalDaysToSell<9999 ? fmt(r.totalSellByDate).slice(0,5) : '∞';
     const expiryYM = fmt(r.firstExpiry).slice(0,5);
+    const sub = r.canSell
+      ? `현속도: <span style="color:var(--text2)">${sellYM}</span> · 유통: <span style="color:var(--text2)">${expiryYM}</span>`
+      : `<span style="color:${statusColor}">${fmt(r.worstBatch.expiry).slice(0,5)} 유통 배치 ${r.worstBatch.remaining}개 — ×${r.worstBatch.needMultiple} 필요</span>`;
     return `
     <div style="padding:9px 0;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
@@ -2697,11 +2718,7 @@ function renderExpiryRisk(batchState, avgSales){
           <span style="font-size:12px;font-weight:700;color:var(--text)">${r.name}</span>
           <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusBg};padding:1px 6px;border-radius:3px">${r.canSell?'✓ 소진 가능':'✗ 소진 불가'}</span>
         </div>
-        <div style="font-size:10px;color:var(--text3)">
-          현속도: <span style="color:var(--text2)">${sellYM}</span>
-          &nbsp;·&nbsp;유통: <span style="color:var(--text2)">${expiryYM}</span>
-          ${!r.canSell?`&nbsp;·&nbsp;<span style="color:${statusColor}">×${r.needMultiple} 필요</span>`:''}
-        </div>
+        <div style="font-size:10px;color:var(--text3)">${sub}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:13px;font-weight:700;color:var(--text)">${r.totalQty.toLocaleString()}개</div>
