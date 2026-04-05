@@ -1381,8 +1381,8 @@ function renderAchieve(mRecs){
       <div class="ach-header">
         <span class="ach-label">${ch.label}</span>
         <span class="ach-nums">
-          <b>₩${Math.round(ch.actual).toLocaleString()}</b>&nbsp;/&nbsp;₩${Math.round(ch.target).toLocaleString()}
-          &nbsp;<span style="color:${ch.color};font-weight:600">→ 예상 ₩${ch.proj.toLocaleString()}</span>
+          <b>₩${Math.round(ch.actual).toLocaleString()}</b>&nbsp;/&nbsp;<span style="color:${ch.color};font-weight:600">₩${ch.proj.toLocaleString()}</span>
+          &nbsp;→ 목표 ₩${Math.round(ch.target).toLocaleString()}
         </span>
       </div>
       <div class="ach-track">
