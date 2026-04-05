@@ -115,7 +115,7 @@
   .ach-label{font-size:12px;font-weight:600;color:var(--text)}
   .ach-nums{font-size:11px;color:var(--text3)}
   .ach-nums b{font-weight:600;color:var(--text2)}
-  .ach-track{height:32px;background:#1E2236;border-radius:8px;overflow:visible;position:relative}
+  .ach-track{height:32px;background:#1E2236;border-radius:8px;overflow:hidden;position:relative}
   .ach-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:12px;min-width:2px}
   .ach-fill-label{font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
   .ach-pct-out{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700}
@@ -1382,8 +1382,7 @@ function renderAchieve(mRecs){
     const rawPct=ch.target>0?ch.actual/ch.target*100:0;
     const fillPct=Math.min(Math.round(rawPct),100);
     const pctLabel=Math.round(rawPct)+'%';
-    const isAhead = rawPct >= elapsedPct; // 경과일 기준 초과달성 여부
-    const fillColor=rawPct>=100?'#16A34A':isAhead?ch.color:'#EF4444'; // 미달이면 빨강
+    const fillColor=rawPct>=100?'#16A34A':ch.color;
     return `<div class="ach-row">
       <div class="ach-header">
         <span class="ach-label">${ch.label}</span>
@@ -1399,7 +1398,7 @@ function renderAchieve(mRecs){
         </div>
         ${fillPct<=18?`<span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>`:''}
         <!-- 경과일 인디케이터 -->
-        <div style="position:absolute;top:-2px;left:${elapsedPct}%;transform:translateX(-50%);width:2px;height:36px;background:#FB923C;border-radius:1px;pointer-events:none"></div>
+        <div style="position:absolute;top:0;left:${elapsedPct}%;transform:translateX(-50%);width:2px;height:32px;background:#FB923C;border-radius:1px;pointer-events:none"></div>
       </div>
     </div>`;
   }).join('');
