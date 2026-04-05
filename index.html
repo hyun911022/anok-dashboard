@@ -1386,10 +1386,9 @@ function renderAchieve(mRecs){
         </span>
       </div>
       <div class="ach-track">
-        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}">
-          ${fillPct>18?`<span class="ach-fill-label">${pctLabel}</span>`:''}
+        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor};min-width:${fillPct>0?'42px':'0'}">
+          ${fillPct>0?`<span class="ach-fill-label">${pctLabel}</span>`:''}
         </div>
-        ${fillPct<=18?`<span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>`:''}
       </div>
     </div>`;
   }).join('');
