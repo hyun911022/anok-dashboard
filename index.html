@@ -1393,10 +1393,8 @@ function renderAchieve(mRecs){
         </span>
       </div>
       <div class="ach-track">
-        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}">
-          ${fillPct>18?`<span class="ach-fill-label">${pctLabel}</span>`:''}
-        </div>
-        ${fillPct<=18?`<span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>`:''}
+        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}"></div>
+        <span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>
         <!-- 경과일 인디케이터 -->
         <div style="position:absolute;top:0;left:${elapsedPct}%;transform:translateX(-50%);width:2px;height:32px;background:#FB923C;border-radius:1px;pointer-events:none"></div>
       </div>
