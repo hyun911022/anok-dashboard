@@ -2364,9 +2364,10 @@ function renderStock(){
 
   const overstockEl = document.getElementById('overstockCard');
   if(overstockEl){
+    const totalRate = calcTotalDailyRate(); // 이커머스 14일 + 수기출고 90일 합산
     const overstockData = OVERSTOCK_SKUS.map(k=>{
       const qty = currentStock[k]||0;
-      const rate = avgSales[k]||0;
+      const rate = totalRate[k]||0;
       const daysLeft = rate>0 ? Math.round(qty/rate) : null;
       const optimal = rate>0 ? Math.round(rate*TARGET_DAYS_STOCK) : null;
       const overstockRate = optimal>0 ? Math.round(qty/optimal*100) : null;
@@ -2377,7 +2378,7 @@ function renderStock(){
 
     // 과재고 or 주의 있을 때만 표시
     const hasIssue = overstockData.some(d=>d.status==='over'||d.status==='caution');
-    if(!hasIssue || avgSales[OVERSTOCK_SKUS[0]]===0){
+    if(!hasIssue || totalRate[OVERSTOCK_SKUS[0]]===0){
       overstockEl.innerHTML='';
     } else {
       const rows = overstockData.map(d=>{
