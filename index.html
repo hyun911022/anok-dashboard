@@ -628,7 +628,7 @@
           <!-- 퍼포 광고비 -->
           <div style="background:#1A1D27;border-radius:8px;padding:8px 8px">
             <div style="font-size:8px;font-weight:700;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--border)">퍼포광고비</div>
-            <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;flex-direction:column;gap:3px">
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <span style="font-size:8px;color:var(--text3)">메타</span>
                 <span style="font-size:10px;font-weight:700;color:var(--text)" id="adMeta_m">0</span>
@@ -637,7 +637,7 @@
                 <span style="font-size:8px;color:var(--text3)">네이버</span>
                 <span style="font-size:10px;font-weight:700;color:var(--text)" id="adNaver_m">0</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:4px">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:3px;margin-top:1px">
                 <span style="font-size:8px;color:var(--text3)">대행료</span>
                 <span style="font-size:10px;font-weight:700;color:var(--text)" id="adAgency_m">0</span>
               </div>
@@ -646,7 +646,7 @@
           <!-- 쿠팡 비용 -->
           <div style="background:#1A1D27;border-radius:8px;padding:8px 8px">
             <div style="font-size:8px;font-weight:700;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--border)">쿠팡비용</div>
-            <div id="coupangAdSummary_m" style="display:flex;flex-direction:column;gap:4px">—</div>
+            <div id="coupangAdSummary_m" style="display:flex;flex-direction:column;gap:3px">—</div>
           </div>
         </div>
         <!-- 2행: 예상 손익 풀 너비 초록 박스 -->
@@ -1310,7 +1310,7 @@ function render(){
   const coupHtmlM=`
     ${coupRowM('풀필비',totFulfilVat)}
     ${coupRowM('할인쿠폰',totCoupon)}
-    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:4px"><span style="font-size:8px;color:var(--text3)">쿠팡광고</span><span style="font-size:10px;font-weight:700;color:var(--text)">₩${fmt(totCoupAd)}</span></div>`;
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:3px;margin-top:1px"><span style="font-size:8px;color:var(--text3)">쿠팡광고</span><span style="font-size:10px;font-weight:700;color:var(--text)">₩${fmt(totCoupAd)}</span></div>`;
   const el=document.getElementById('coupangAdSummary');
   if(el) el.innerHTML=coupHtml;
   const elM=document.getElementById('coupangAdSummary_m');
