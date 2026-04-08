@@ -1688,6 +1688,14 @@ function openModal(){
     for(const k in n) if(document.getElementById('n_'+k)) document.getElementById('n_'+k).value=n[k]||0;
     for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
   }
+  // 일 실적 입력 모달 전용: 클릭 시 값 지우고 새로 입력 가능하게
+  document.querySelectorAll('.modal-body input[type="number"]').forEach(el=>{
+    if(!el._clearOnClick){
+      el._clearOnClick = true;
+      el.addEventListener('focus', function(){ this.value=''; });
+      el.addEventListener('blur',  function(){ if(this.value==='') this.value=0; });
+    }
+  });
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
