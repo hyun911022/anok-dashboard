@@ -1672,15 +1672,12 @@ function initCharts(){
   });
 }
 
-function openModal(){
-  const today=new Date();
-  document.getElementById('inputDate').value=today.toISOString().split('T')[0];
+function fillModalByDate(date){
   ['c_shampoo','c_treatment','c_hairset','c_bodywash','c_bodylotion','c_bodyset','c_washset',
    'n_shampoo','n_treatment','n_hairset','n_bodywash','n_bodylotion','n_bodyset','n_washset',
    'o_shampoo','o_treatment','o_bodywash','o_bodylotion','o_fulfil','o_coupon','o_adcost'].forEach(id=>{
     document.getElementById(id).value=0;
   });
-  const date=document.getElementById('inputDate').value;
   const existing=records.find(r=>r.date===date);
   if(existing){
     const c=existing.cafe||{}, n=existing.naver||{}, o=existing.coupang||{};
@@ -1688,6 +1685,20 @@ function openModal(){
     for(const k in n) if(document.getElementById('n_'+k)) document.getElementById('n_'+k).value=n[k]||0;
     for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
   }
+}
+function openModal(){
+  // KST 오늘 날짜로 세팅
+  const today = getTodayKST();
+  document.getElementById('inputDate').value = today;
+  fillModalByDate(today);
+
+  // 날짜 변경 시 해당 날짜 데이터 자동 로드
+  const dateEl = document.getElementById('inputDate');
+  if(!dateEl._dateChangeListener){
+    dateEl._dateChangeListener = true;
+    dateEl.addEventListener('change', function(){ fillModalByDate(this.value); });
+  }
+
   // 일 실적 입력 모달 전용: 클릭 시 값 지우고 새로 입력 가능하게
   document.querySelectorAll('.modal-body input[type="number"]').forEach(el=>{
     if(!el._clearOnClick){
