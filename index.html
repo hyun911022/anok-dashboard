@@ -1699,12 +1699,12 @@ function openModal(){
     dateEl.addEventListener('change', function(){ fillModalByDate(this.value); });
   }
 
-  // 일 실적 입력 모달 전용: 클릭 시 값 지우고 새로 입력 가능하게
+  // 일 실적 입력 모달 전용: 클릭/터치 시 전체 선택 → 바로 덮어쓰기 가능
   document.querySelectorAll('.modal-body input[type="number"]').forEach(el=>{
     if(!el._clearOnClick){
       el._clearOnClick = true;
-      el.addEventListener('focus', function(){ this.value=''; });
-      el.addEventListener('blur',  function(){ if(this.value==='') this.value=0; });
+      el.addEventListener('focus', function(){ this.select(); });
+      el.addEventListener('blur',  function(){ if(this.value==='' || isNaN(this.value)) this.value=0; });
     }
   });
   document.getElementById('modalBg').classList.add('open');
