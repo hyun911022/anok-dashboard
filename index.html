@@ -1711,7 +1711,7 @@ function openModal(){
 }
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
 
-function saveDay(){
+async function saveDay(){
   const date=document.getElementById('inputDate').value;
   if(!date){showToast('날짜를 입력해주세요');return;}
   const gv=id=>parseInt(document.getElementById(id).value)||0;
@@ -1721,6 +1721,20 @@ function saveDay(){
     naver:{shampoo:gv('n_shampoo'),treatment:gv('n_treatment'),hairset:gv('n_hairset'),bodywash:gv('n_bodywash'),bodylotion:gv('n_bodylotion'),bodyset:gv('n_bodyset'),washset:gv('n_washset')},
     coupang:{shampoo:gv('o_shampoo'),treatment:gv('o_treatment'),bodywash:gv('o_bodywash'),bodylotion:gv('o_bodylotion'),fulfil:gv('o_fulfil'),coupon:gv('o_coupon'),adcost:gv('o_adcost')}
   };
+  // 저장 전 Firebase에서 최신 records를 먼저 가져와서 해당 날짜만 업데이트
+  // 다른 기기에서 추가된 데이터를 덮어쓰지 않기 위함
+  if(window._firestore){
+    try{
+      const latest = await window._firestore.load();
+      if(latest && latest.length > 0){
+        // 최신 데이터로 로컬 records 동기화
+        latest.forEach(r => {
+          const i = records.findIndex(x => x.date === r.date);
+          if(i >= 0) records[i] = r; else records.push(r);
+        });
+      }
+    }catch(e){ console.log('sync error:', e); }
+  }
   const idx=records.findIndex(r=>r.date===date);
   if(idx>=0) records[idx]=entry; else records.push(entry);
   saveData();
