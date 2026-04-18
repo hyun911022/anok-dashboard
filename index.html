@@ -625,16 +625,15 @@
           <div>
             <div class="profit-label">이커머스 손익</div>
             <div class="profit-val" id="profitVal">0</div>
-            <div style="font-size:10px;color:#6EAB84;margin-top:6px">B2B: <span id="profitB2BNet" style="font-weight:600;color:inherit">-</span></div>
           </div>
           <div class="adg-profit-hint">탭하여<br>상세보기</div>
         </div>
-        <!-- 예상 손익 — 합산 -->
+        <!-- 예상 손익 — B2B -->
         <div class="adg-profit profit-banner" style="cursor:default">
           <div>
-            <div class="profit-label">합산 손익</div>
-            <div class="profit-val" id="profitTotal">0</div>
-            <div style="font-size:10px;color:#6EAB84;margin-top:6px">이커머스 + B2B</div>
+            <div class="profit-label">B2B 손익</div>
+            <div class="profit-val" id="profitB2BNet">-</div>
+            <div style="font-size:10px;color:#6EAB84;margin-top:6px">납품가 − 원가</div>
           </div>
         </div>
       </div>
@@ -1314,8 +1313,7 @@ function render(){
   const _pb = document.getElementById('profitB2BNet');
   if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#fff':'#F43F5E'; }
   // 합산 손익
-  const _pt = document.getElementById('profitTotal');
-  if(_pt){ _pt.textContent=totalNetStr; _pt.style.color=totalNetProfit>=0?'#fff':'#F43F5E'; }
+  // profitTotal 제거됨
 
   // 쿠팡 광고비 요약
   const totFulfil=mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0);
