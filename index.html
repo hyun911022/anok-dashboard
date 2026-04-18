@@ -91,7 +91,7 @@
   .ad-grid-pc { display: grid; }
 
   /* 광고효율 통합 레이아웃 */
-  .adg-wrap { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px; align-items:start; width:100%; }
+  .adg-wrap { display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:16px; align-items:start; width:100%; }
   .adg-title { font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border); }
   .adg-label { font-size:10px;color:var(--text3); }
   .adg-sub { font-size:10px;color:var(--text3);margin-top:2px; }
@@ -186,7 +186,7 @@
 
     /* 광고효율 모바일: ROAS/퍼포/쿠팡 가로 한 줄 + 손익 풀너비 */
     .adg-wrap { grid-template-columns: auto auto auto !important; grid-template-rows: auto auto !important; gap:16px !important; }
-    .adg-profit { grid-column: 1/-1 !important; border-radius:8px !important; height:auto !important; }
+    .adg-profit { grid-column: span 2 !important; border-radius:8px !important; height:auto !important; }
     .adg-profit-hint { display:block !important; }
     .adg-num-lg { font-size:16px !important; }
     .adg-num { font-size:10px !important; }
@@ -620,28 +620,21 @@
           <div class="adg-title">쿠팡 비용</div>
           <div class="adg-rows" id="coupangAdSummary">—</div>
         </div>
-        <!-- 예상 손익 -->
-        <div class="adg-profit profit-banner profit-banner-hover" onclick="openProfitDetail()" style="flex-direction:column;gap:12px;align-items:stretch">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div style="font-size:11px;font-weight:600;color:#6EAB84;letter-spacing:0.3px">예상 손익</div>
-            <div class="adg-profit-hint">탭하여 상세보기</div>
+        <!-- 예상 손익 — 이커머스 -->
+        <div class="adg-profit profit-banner profit-banner-hover" onclick="openProfitDetail()">
+          <div>
+            <div class="profit-label">이커머스 손익</div>
+            <div class="profit-val" id="profitVal">0</div>
+            <div style="font-size:10px;color:#6EAB84;margin-top:6px">B2B: <span id="profitB2BNet" style="font-weight:600;color:inherit">-</span></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <!-- 이커머스 손익 -->
-            <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px 12px">
-              <div style="font-size:9px;font-weight:600;color:#6EAB84;margin-bottom:4px;letter-spacing:0.4px">이커머스</div>
-              <div class="profit-val" id="profitVal" style="font-size:18px">0</div>
-            </div>
-            <!-- B2B 손익 -->
-            <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px 12px">
-              <div style="font-size:9px;font-weight:600;color:#60A5FA;margin-bottom:4px;letter-spacing:0.4px">B2B</div>
-              <div class="profit-val" id="profitB2BNet" style="font-size:18px;color:#60A5FA">-</div>
-            </div>
-            <!-- 합산 손익 -->
-            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;border:1px solid rgba(255,255,255,0.1)">
-              <div style="font-size:9px;font-weight:600;color:#fff;margin-bottom:4px;letter-spacing:0.4px">합산</div>
-              <div class="profit-val" id="profitTotal" style="font-size:18px">0</div>
-            </div>
+          <div class="adg-profit-hint">탭하여<br>상세보기</div>
+        </div>
+        <!-- 예상 손익 — 합산 -->
+        <div class="adg-profit profit-banner" style="cursor:default">
+          <div>
+            <div class="profit-label">합산 손익</div>
+            <div class="profit-val" id="profitTotal">0</div>
+            <div style="font-size:10px;color:#6EAB84;margin-top:6px">이커머스 + B2B</div>
           </div>
         </div>
       </div>
@@ -1319,7 +1312,7 @@ function render(){
   if(_pv){ _pv.textContent=profitStr; _pv.style.color=profit>=0?'#fff':'#F43F5E'; }
   // B2B 손익
   const _pb = document.getElementById('profitB2BNet');
-  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#60A5FA':'#F43F5E'; }
+  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#fff':'#F43F5E'; }
   // 합산 손익
   const _pt = document.getElementById('profitTotal');
   if(_pt){ _pt.textContent=totalNetStr; _pt.style.color=totalNetProfit>=0?'#fff':'#F43F5E'; }
@@ -2015,7 +2008,7 @@ function renderInsight(){
   const _pb2=document.getElementById('profitB2BNet');
   const _pt2=document.getElementById('profitTotal');
   if(_pv2){ _pv2.textContent=fmtNet(_np); _pv2.style.color=_np>=0?'#fff':'#F43F5E'; }
-  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>=0?'#60A5FA':'#F43F5E'; }
+  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>=0?'#fff':'#F43F5E'; }
   if(_pt2){ _pt2.textContent=fmtNet(_totalNet); _pt2.style.color=_totalNet>=0?'#fff':'#F43F5E'; }
 }
 
