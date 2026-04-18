@@ -633,8 +633,8 @@
           <div>
             <div class="profit-label">B2B 손익</div>
             <div class="profit-val" id="profitB2BNet">-</div>
-            <div style="font-size:10px;color:#6EAB84;margin-top:6px">납품가 − 원가</div>
           </div>
+          <div class="adg-profit-hint">납품가<br>− 원가</div>
         </div>
       </div>
     </div>
@@ -1311,7 +1311,7 @@ function render(){
   if(_pv){ _pv.textContent=profitStr; _pv.style.color=profit>=0?'#fff':'#F43F5E'; }
   // B2B 손익
   const _pb = document.getElementById('profitB2BNet');
-  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#fff':'#F43F5E'; }
+  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>0?'#fff':b2bNetProfit<0?'#F43F5E':'#6EAB84'; }
   // 합산 손익
   // profitTotal 제거됨
 
@@ -2007,7 +2007,7 @@ function renderInsight(){
   const _pb2=document.getElementById('profitB2BNet');
   const _pt2=document.getElementById('profitTotal');
   if(_pv2){ _pv2.textContent=fmtNet(_np); _pv2.style.color=_np>=0?'#fff':'#F43F5E'; }
-  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>=0?'#fff':'#F43F5E'; }
+  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>0?'#fff':_b2bNet<0?'#F43F5E':'#6EAB84'; }
   if(_pt2){ _pt2.textContent=fmtNet(_totalNet); _pt2.style.color=_totalNet>=0?'#fff':'#F43F5E'; }
 }
 
