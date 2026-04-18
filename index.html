@@ -480,9 +480,9 @@
     </div>
 
     <!-- 채널 매출 + 수익 통합 그리드 -->
-    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:auto auto;gap:12px;margin-bottom:20px">
+    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;grid-template-rows:auto;gap:12px;margin-bottom:20px">
 
-      <!-- 채널 총매출 — PC: 2행 차지 -->
+      <!-- 채널 총매출 -->
       <div class="kpi indigo total-card ch-total" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none">
         <div class="kpi-label">채널 총매출</div>
         <div class="kpi-value" id="kpiTotal" style="margin:4px 0">0</div>
@@ -530,15 +530,27 @@
         </div>
       </div>
 
+      <!-- B2B 매출 + 수익 -->
+      <div class="kpi ch-b2b" style="display:flex;flex-direction:column;justify-content:center;background:var(--card);border:1px solid #1E3A5F;border-radius:14px;padding:16px">
+        <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
+        <div class="kpi-value" id="kpiB2B" style="margin:4px 0">0</div>
+        <div class="kpi-sub" id="kpiB2BSub">유상 납품</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
+          <div class="kpi-label" style="color:#60A5FA">B2B 수익</div>
+          <div class="kpi-value" id="profitB2BVal" style="margin:4px 0">-</div>
+          <div class="kpi-sub" id="profitB2BRate">납품가-원가</div>
+        </div>
+      </div>
+
     </div>
 
     <div class="chart-grid">
       <div class="card">
-        <div class="card-title">일 매출 추이</div>
+        <div class="card-title">이커머스 일 매출 추이</div>
         <div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title">채널 비중</div>
+        <div class="card-title">이커머스 채널 비중</div>
         <div style="position:relative;height:170px"><canvas id="donutChart"></canvas></div>
         <div class="legend" style="justify-content:center;margin-top:10px">
           <span class="leg"><span class="leg-dot" style="background:#7C3AED"></span><span id="legCafe">자사몰</span></span>
@@ -550,11 +562,11 @@
 
     <div class="bottom-grid">
       <div class="card">
-        <div class="card-title">예상 매출 및 목표 달성률</div>
+        <div class="card-title">이커머스 예상 매출 및 목표 달성률</div>
         <div id="achieveWrap" style="padding:8px 0"></div>
       </div>
       <div class="card">
-        <div class="card-title">SKU 판매 현황</div>
+        <div class="card-title">이커머스 SKU 판매현황</div>
         <div class="sku-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
         <table class="sku-tbl" style="width:100%;min-width:360px">
           <thead><tr>
@@ -585,12 +597,12 @@
             <div>
               <div class="adg-label">자사몰</div>
               <div class="adg-num-lg" id="raosC">-</div>
-              <div class="adg-sub">÷ 메타 80K/일</div>
+              <div class="adg-sub">÷ 메타 97.8K/일</div>
             </div>
             <div>
               <div class="adg-label">네이버</div>
               <div class="adg-num-lg" id="raosN">-</div>
-              <div class="adg-sub">÷ 네이버 10K/일</div>
+              <div class="adg-sub">÷ 네이버 9K/일</div>
             </div>
           </div>
         </div>
@@ -598,8 +610,8 @@
         <div class="adg-perf">
           <div class="adg-title">퍼포 광고비</div>
           <div class="adg-rows">
-            <div class="adg-row"><span class="adg-label">메타 <span class="adg-sub2">80K×일수</span></span><span class="adg-num" id="adMeta">0</span></div>
-            <div class="adg-row"><span class="adg-label">네이버 <span class="adg-sub2">10K×일수</span></span><span class="adg-num" id="adNaver">0</span></div>
+            <div class="adg-row"><span class="adg-label">메타 <span class="adg-sub2">97.8K×일수</span></span><span class="adg-num" id="adMeta">0</span></div>
+            <div class="adg-row"><span class="adg-label">네이버 <span class="adg-sub2">9K×일수</span></span><span class="adg-num" id="adNaver">0</span></div>
             <div class="adg-row adg-row-top"><span class="adg-label">대행료 <span class="adg-sub2">70만일할</span></span><span class="adg-num" id="adAgency">0</span></div>
           </div>
         </div>
@@ -609,12 +621,28 @@
           <div class="adg-rows" id="coupangAdSummary">—</div>
         </div>
         <!-- 예상 손익 -->
-        <div class="adg-profit profit-banner profit-banner-hover" onclick="openProfitDetail()">
-          <div>
-            <div class="profit-label">예상 손익</div>
-            <div class="profit-val" id="profitVal">0</div>
+        <div class="adg-profit profit-banner profit-banner-hover" onclick="openProfitDetail()" style="flex-direction:column;gap:12px;align-items:stretch">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:11px;font-weight:600;color:#6EAB84;letter-spacing:0.3px">예상 손익</div>
+            <div class="adg-profit-hint">탭하여 상세보기</div>
           </div>
-          <div class="adg-profit-hint">탭하여<br>상세보기</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <!-- 이커머스 손익 -->
+            <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px 12px">
+              <div style="font-size:9px;font-weight:600;color:#6EAB84;margin-bottom:4px;letter-spacing:0.4px">이커머스</div>
+              <div class="profit-val" id="profitVal" style="font-size:18px">0</div>
+            </div>
+            <!-- B2B 손익 -->
+            <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px 12px">
+              <div style="font-size:9px;font-weight:600;color:#60A5FA;margin-bottom:4px;letter-spacing:0.4px">B2B</div>
+              <div class="profit-val" id="profitB2BNet" style="font-size:18px;color:#60A5FA">-</div>
+            </div>
+            <!-- 합산 손익 -->
+            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;border:1px solid rgba(255,255,255,0.1)">
+              <div style="font-size:9px;font-weight:600;color:#fff;margin-bottom:4px;letter-spacing:0.4px">합산</div>
+              <div class="profit-val" id="profitTotal" style="font-size:18px">0</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1058,12 +1086,16 @@
         <label>출고 사유</label>
         <input type="text" id="mo_reason" placeholder="예: 공구, 샘플, 파손 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
       </div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 (단품 기준)</p>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 · 납품단가(공급가액) — 단가 0이면 무상(샘플)</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="sku-input"><label>샴푸</label><input type="number" id="mo_shampoo" value="0" min="0"></div>
-        <div class="sku-input"><label>트리트먼트</label><input type="number" id="mo_treatment" value="0" min="0"></div>
-        <div class="sku-input"><label>바디워시</label><input type="number" id="mo_bodywash" value="0" min="0"></div>
-        <div class="sku-input"><label>바디로션</label><input type="number" id="mo_bodylotion" value="0" min="0"></div>
+        <div class="sku-input"><label>샴푸 수량</label><input type="number" id="mo_shampoo" value="0" min="0"></div>
+        <div class="sku-input"><label>샴푸 단가(원)</label><input type="number" id="mo_price_shampoo" value="0" min="0" placeholder="공급가액"></div>
+        <div class="sku-input"><label>트리트먼트 수량</label><input type="number" id="mo_treatment" value="0" min="0"></div>
+        <div class="sku-input"><label>트리트먼트 단가(원)</label><input type="number" id="mo_price_treatment" value="0" min="0" placeholder="공급가액"></div>
+        <div class="sku-input"><label>바디워시 수량</label><input type="number" id="mo_bodywash" value="0" min="0"></div>
+        <div class="sku-input"><label>바디워시 단가(원)</label><input type="number" id="mo_price_bodywash" value="0" min="0" placeholder="공급가액"></div>
+        <div class="sku-input"><label>바디로션 수량</label><input type="number" id="mo_bodylotion" value="0" min="0"></div>
+        <div class="sku-input"><label>바디로션 단가(원)</label><input type="number" id="mo_price_bodylotion" value="0" min="0" placeholder="공급가액"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1228,6 +1260,12 @@ function render(){
     totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
   });
   const totRev=totC+totN+totO;
+  // B2B 해당월 집계
+  const b2bMonth = calcB2BByMonth(month);
+  const totB2BRev = b2bMonth.rev;
+  const totB2BPrf = b2bMonth.prf;
+  const grandTotRev = totRev + totB2BRev;
+  const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=days*META_AD, naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=Math.round(AGENCY_FEE/30*days);
   const profit=totPrf-metaAd-naverAdTotal-agencyFee;
@@ -1236,28 +1274,55 @@ function render(){
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
   document.getElementById('kpiNaver').textContent='₩'+fmt(totN);
   document.getElementById('kpiCoupang').textContent='₩'+fmt(totO);
-  document.getElementById('kpiTotal').textContent='₩'+fmt(totRev);
-  document.getElementById('kpiRate').textContent='수익률 '+(rate*100).toFixed(1)+'%';
+  // 채널 총매출/수익 = 이커머스 + B2B
+  document.getElementById('kpiTotal').textContent='₩'+fmt(grandTotRev);
+  document.getElementById('kpiRate').textContent='수익률 '+(grandTotRev>0?grandTotPrf/grandTotRev*100:0).toFixed(1)+'%';
   // 총수익 (상품 마진 기준)
   const totalProfitEl = document.getElementById('kpiTotalProfit');
   const totalProfitRateEl = document.getElementById('kpiTotalProfitRate');
   if(totalProfitEl){
-    totalProfitEl.textContent='₩'+fmt(Math.round(totPrf));
-    totalProfitEl.style.color = totPrf>=0 ? 'var(--text)' : '#F43F5E';
+    totalProfitEl.textContent='₩'+fmt(Math.round(grandTotPrf));
+    totalProfitEl.style.color = grandTotPrf>=0 ? 'var(--text)' : '#F43F5E';
   }
   if(totalProfitRateEl){
-    const pRate = totRev>0 ? (totPrf/totRev*100).toFixed(1) : '0';
+    const pRate = grandTotRev>0 ? (grandTotPrf/grandTotRev*100).toFixed(1) : '0';
     totalProfitRateEl.textContent = `마진율 ${pRate}% (상품 기준)`;
   }
+  // B2B 카드
+  const b2bEl=document.getElementById('kpiB2B');
+  const b2bPrfEl=document.getElementById('profitB2BVal');
+  const b2bRateEl=document.getElementById('profitB2BRate');
+  const b2bSubEl=document.getElementById('kpiB2BSub');
+  if(b2bEl) b2bEl.textContent='₩'+fmt(Math.round(totB2BRev));
+  if(b2bPrfEl){ b2bPrfEl.textContent=(totB2BPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totB2BPrf))); b2bPrfEl.style.color=totB2BPrf>=0?'var(--text)':'#E24B4A'; }
+  if(b2bRateEl) b2bRateEl.textContent=totB2BRev>0?'수익률 '+(totB2BPrf/totB2BRev*100).toFixed(1)+'%':'납품가-원가';
+  if(b2bSubEl) b2bSubEl.textContent=totB2BRev>0?'유상 납품':'납품 없음';
   const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
+  // 이커머스 손익
   const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
+  // B2B 손익 (광고비/대행료 없음 — 순수 납품이익)
+  const b2bNetProfit = Math.round(totB2BPrf);
+  const b2bNetStr = (b2bNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(b2bNetProfit));
+  // 합산 손익
+  const totalNetProfit = profit + b2bNetProfit;
+  const totalNetStr = (totalNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(totalNetProfit));
+
   document.getElementById('raosC').textContent=roasC;
   document.getElementById('raosN').textContent=roasN;
   document.getElementById('adMeta').textContent='₩'+fmt(metaAd);
   document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
   document.getElementById('adAgency').textContent='₩'+fmt(agencyFee);
-  document.getElementById('profitVal').textContent=profitStr;
+
+  // 이커머스 손익
+  const _pv = document.getElementById('profitVal');
+  if(_pv){ _pv.textContent=profitStr; _pv.style.color=profit>=0?'#fff':'#F43F5E'; }
+  // B2B 손익
+  const _pb = document.getElementById('profitB2BNet');
+  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#60A5FA':'#F43F5E'; }
+  // 합산 손익
+  const _pt = document.getElementById('profitTotal');
+  if(_pt){ _pt.textContent=totalNetStr; _pt.style.color=totalNetProfit>=0?'#fff':'#F43F5E'; }
 
   // 쿠팡 광고비 요약
   const totFulfil=mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0);
@@ -1787,6 +1852,12 @@ function renderInsight(){
     totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
   });
   const totRev=totC+totN+totO;
+  // B2B 해당월 집계
+  const b2bMonth = calcB2BByMonth(month);
+  const totB2BRev = b2bMonth.rev;
+  const totB2BPrf = b2bMonth.prf;
+  const grandTotRev = totRev + totB2BRev;
+  const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=days*META_AD, naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=Math.round(AGENCY_FEE/30*days);
   const netProfit=totPrf-metaAd-naverAdTotal-agencyFee;
@@ -1915,6 +1986,37 @@ function renderInsight(){
   `).join('');
 
   renderSkuProfit(mRecs);
+
+  // B2B 카드 업데이트 (renderInsight 내)
+  const _b2bEl=document.getElementById('kpiB2B');
+  const _b2bPrfEl=document.getElementById('profitB2BVal');
+  const _b2bRateEl=document.getElementById('profitB2BRate');
+  const _b2bSubEl=document.getElementById('kpiB2BSub');
+  if(_b2bEl) _b2bEl.textContent='₩'+fmt(Math.round(totB2BRev));
+  if(_b2bPrfEl){ _b2bPrfEl.textContent=(totB2BPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totB2BPrf))); _b2bPrfEl.style.color=totB2BPrf>=0?'var(--text)':'#E24B4A'; }
+  if(_b2bRateEl) _b2bRateEl.textContent=totB2BRev>0?'수익률 '+(totB2BPrf/totB2BRev*100).toFixed(1)+'%':'납품가-원가';
+  if(_b2bSubEl) _b2bSubEl.textContent=totB2BRev>0?'유상 납품':'납품 없음';
+  // 채널 총매출/수익도 grandTot으로
+  const _totEl=document.getElementById('kpiTotal');
+  const _totPrfEl=document.getElementById('kpiTotalProfit');
+  const _totRateEl=document.getElementById('kpiRate');
+  const _totPrfRateEl=document.getElementById('kpiTotalProfitRate');
+  if(_totEl) _totEl.textContent='₩'+fmt(grandTotRev);
+  if(_totRateEl) _totRateEl.textContent='수익률 '+(grandTotRev>0?(grandTotPrf/grandTotRev*100).toFixed(1):0)+'%';
+  if(_totPrfEl){ _totPrfEl.textContent='₩'+fmt(Math.round(grandTotPrf)); _totPrfEl.style.color=grandTotPrf>=0?'var(--text)':'#F43F5E'; }
+  if(_totPrfRateEl) _totPrfRateEl.textContent=`마진율 ${grandTotRev>0?(grandTotPrf/grandTotRev*100).toFixed(1):0}% (상품 기준)`;
+
+  // 예상 손익 카드 — 이커머스/B2B/합산
+  const _np = netProfit;
+  const _b2bNet = Math.round(totB2BPrf);
+  const _totalNet = _np + _b2bNet;
+  const fmtNet = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
+  const _pv2=document.getElementById('profitVal');
+  const _pb2=document.getElementById('profitB2BNet');
+  const _pt2=document.getElementById('profitTotal');
+  if(_pv2){ _pv2.textContent=fmtNet(_np); _pv2.style.color=_np>=0?'#fff':'#F43F5E'; }
+  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>=0?'#60A5FA':'#F43F5E'; }
+  if(_pt2){ _pt2.textContent=fmtNet(_totalNet); _pt2.style.color=_totalNet>=0?'#fff':'#F43F5E'; }
 }
 
 function renderSkuProfit(mRecs){
@@ -2147,6 +2249,44 @@ function saveStockData(){
   if(window._firestore){
     window._firestore.saveStock(stockInitByMonth, manualOuts, null, stockBatches);
   }
+}
+
+// ── B2B 매출/수익 계산 ──────────────────────────────────
+function calcB2BAll(){
+  // manualOuts 중 isB2B=true인 것만 집계
+  let rev=0, prf=0;
+  const byDate = {};
+  manualOuts.forEach(r=>{
+    const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0);
+    if(!isB2B) return;
+    STOCK_SKUS.forEach(k=>{
+      const qty = r[k]||0;
+      const price = r['price_'+k]||0;
+      if(qty>0 && price>0){
+        rev += qty*price;
+        prf += qty*(price-(UNIT_COSTS[k]||0));
+      }
+    });
+    if(!byDate[r.date]) byDate[r.date]={rev:0,prf:0};
+    STOCK_SKUS.forEach(k=>{
+      const qty=r[k]||0, price=r['price_'+k]||0;
+      if(qty>0&&price>0){ byDate[r.date].rev+=qty*price; byDate[r.date].prf+=qty*(price-(UNIT_COSTS[k]||0)); }
+    });
+  });
+  return {rev, prf, byDate};
+}
+
+function calcB2BByMonth(month){
+  let rev=0, prf=0;
+  manualOuts.filter(r=>r.date.startsWith(month)).forEach(r=>{
+    const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0);
+    if(!isB2B) return;
+    STOCK_SKUS.forEach(k=>{
+      const qty=r[k]||0, price=r['price_'+k]||0;
+      if(qty>0&&price>0){ rev+=qty*price; prf+=qty*(price-(UNIT_COSTS[k]||0)); }
+    });
+  });
+  return {rev, prf};
 }
 
 // ── FIFO 계산 엔진 ──────────────────────────────────
@@ -2686,10 +2826,20 @@ function renderStock(){
       ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>'
       : moSorted.map(r=>{
           const gi=manualOuts.indexOf(r);
+          const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0);
+          const typeColor = isB2B ? '#60A5FA' : '#6B7280';
+          const typeLabel = isB2B ? 'B2B 유상' : '무상';
+          const b2bRev = isB2B ? STOCK_SKUS.reduce((s,k)=>s+(r[k]||0)*(r['price_'+k]||0),0) : 0;
+          const b2bPrf = isB2B ? STOCK_SKUS.reduce((s,k)=>s+(r[k]||0)*((r['price_'+k]||0)-(UNIT_COSTS[k]||0)),0) : 0;
           return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${r.date} · <span style="color:var(--text3)">${r.reason||'기타'}</span></div>
-              <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개`).join(' · ')||'수량 없음'}</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                <span style="font-size:12px;font-weight:600;color:var(--text)">${r.date}</span>
+                <span style="font-size:9px;font-weight:700;color:${typeColor};background:${typeColor}18;padding:1px 6px;border-radius:3px">${typeLabel}</span>
+                <span style="font-size:11px;color:var(--text3)">${r.reason||'기타'}</span>
+              </div>
+              <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개${isB2B&&r['price_'+k]>0?' @'+r['price_'+k].toLocaleString()+'원':''}`).join(' · ')||'수량 없음'}</div>
+              ${isB2B?`<div style="font-size:10px;color:#60A5FA;margin-top:2px">매출 ₩${b2bRev.toLocaleString()} · 이익 ₩${b2bPrf.toLocaleString()}</div>`:''}
             </div>
             <button onclick="deleteManualOut(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px">×</button>
           </div>`;
@@ -2845,13 +2995,18 @@ function saveManualOut(){
   const reason=document.getElementById('mo_reason').value.trim();
   if(!date){ showToast('날짜를 입력해주세요'); return; }
   const entry={date, reason};
-  STOCK_SKUS.forEach(k=>{ entry[k]=parseInt(document.getElementById('mo_'+k)?.value)||0; });
+  STOCK_SKUS.forEach(k=>{
+    entry[k]=parseInt(document.getElementById('mo_'+k)?.value)||0;
+    entry['price_'+k]=parseInt(document.getElementById('mo_price_'+k)?.value)||0;
+  });
   if(!STOCK_SKUS.some(k=>entry[k]>0)){ showToast('출고 수량을 입력해주세요'); return; }
+  // 유상 여부: 단가가 하나라도 0보다 크면 B2B
+  entry.isB2B = STOCK_SKUS.some(k=>entry[k]>0 && entry['price_'+k]>0);
   manualOuts.push(entry);
   saveStockData();
   closeManualOutModal();
   renderStock();
-  showToast(`${date} 수기 출고가 저장되었습니다`);
+  showToast(`${date} ${entry.isB2B?'B2B 유상':'무상'} 출고가 저장되었습니다`);
 }
 
 function deleteBatch(idx){
