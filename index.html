@@ -2589,7 +2589,7 @@ function renderStock(){
 
   const overstockEl = document.getElementById('overstockCard');
   if(overstockEl){
-    const totalRate = calcTotalDailyRate(); // 이커머스 14일 + 수기출고 90일 합산
+    const totalRate = calcTotalDailyRate(); // 이커머스 14일 + 수기출고 해당월 합산
     const overstockData = OVERSTOCK_SKUS.map(k=>{
       const qty = currentStock[k]||0;
       const rate = totalRate[k]||0;
@@ -2876,7 +2876,7 @@ function renderExpiryRisk(batchState, avgSales){
   const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
   const skus = ['shampoo','treatment','bodywash','bodylotion'];
 
-  // calcTotalDailyRate: 이커머스 14일 + 수기출고 90일 합산 속도
+  // calcTotalDailyRate: 이커머스 14일 + 수기출고 해당월 합산 속도
   const combinedRates = calcTotalDailyRate();
 
   // SKU별, 배치별 행 생성
@@ -2954,7 +2954,7 @@ function renderExpiryRisk(batchState, avgSales){
       <div style="font-size:14px;font-weight:700;color:var(--text)">유통기한 내 소진 가능성</div>
       <span style="font-size:9px;font-weight:700;color:${allOk?'#34D399':'#F97316'};background:${allOk?'#34D39912':'#F9731612'};padding:2px 8px;border-radius:4px">${allOk?'전품목 안전':'주의 필요'}</span>
     </div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">이커머스 14일 + 수기출고 90일 합산 평균</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">이커머스 14일 + 수기출고 해당월 합산 평균</div>
     ${rowsHtml}
   </div>`;
 }
