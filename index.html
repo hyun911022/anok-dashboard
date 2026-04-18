@@ -3069,16 +3069,19 @@ function saveOrderData(){
 function calcTotalDailyRate(){
   const ecom = calcAvgDailySales(14); // 최근 14일 이커머스
   const today = getTodayKST();
-  const from90 = new Date(); from90.setDate(from90.getDate()-90);
-  const from90Str = from90.toISOString().split('T')[0];
+  // B2B: 이번 달(selectedMonth) 기준, 해당월 일수로 스무딩
+  const month = selectedMonth || today.slice(0,7);
+  const [my, mm] = month.split('-').map(Number);
+  const daysInMonth = new Date(my, mm, 0).getDate();
 
   const rate = {};
   ORDER_SKUS.forEach(k=>{
-    const manualTotal = manualOuts
-      .filter(r=>r.date>=from90Str && r.date<=today)
-      .reduce((s,r)=>s+(r[k]||0),0);
-    const manualAvg = Math.round(manualTotal/90*10)/10;
-    rate[k] = Math.round((ecom[k] + manualAvg)*10)/10;
+    // 해당월 수기출고 총량 (B2B 유상 + 무상 모두 재고 소진이므로 전체 포함)
+    const b2bTotal = manualOuts
+      .filter(r => r.date.startsWith(month))
+      .reduce((s,r) => s+(r[k]||0), 0);
+    const b2bAvg = Math.round(b2bTotal/daysInMonth*10)/10;
+    rate[k] = Math.round((ecom[k] + b2bAvg)*10)/10;
   });
   return rate;
 }
