@@ -1890,9 +1890,12 @@ function renderInsight(){
   document.getElementById('insightSubtitle').textContent = isPastMonth
     ? `${_im}월 최종 실적`
     : `${_im}월 ${days}일 기준`;
+  // 누적 총손익 = 이커머스 + B2B
+  const grandNetProfit = netProfit + Math.round(totB2BPrf);
+  const _fmtN = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   document.getElementById('insightSummaryText').textContent = isPastMonth
-    ? `최종 매출 ₩${fmt(grandTotRev)} · 일평균 ₩${fmt(avgDaily)}`
-    : `누적 매출 ₩${fmt(grandTotRev)} · 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)}`;
+    ? `최종 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 일평균 매출 ₩${fmt(avgDaily)}`
+    : `누적 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 일평균 매출 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)}`;
 
   const targetDailyAvg = Math.round(targetTotal/daysInMonth);
   const dailyAchRate = targetDailyAvg>0 ? Math.round(avgDaily/targetDailyAvg*100) : 0;
