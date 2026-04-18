@@ -2433,7 +2433,7 @@ function calcAvgDailySales(days=14){
 // ── 렌더링 ──────────────────────────────────────────
 function renderStock(){
   const currentStock = calcCurrentStock();
-  const avgSales = calcAvgDailySales(14);
+  const avgSales = calcTotalDailyRate(); // 이커머스 14일 + B2B 해당월 일수 합산
   const batchState = calcFIFOBatchState();
   const today = getTodayKST();
 
