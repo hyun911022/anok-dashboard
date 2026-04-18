@@ -59,6 +59,7 @@
   .kpi.green{border-left-color:var(--green)}
   .kpi.orange{border-left-color:var(--orange)}
   .kpi.indigo{border-left-color:var(--indigo)}
+  .kpi.blue{border-left-color:#60A5FA}
   .kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
   .kpi-value{font-size:18px;font-weight:700;color:var(--text)}
   .kpi-sub{font-size:11px;margin-top:3px;color:var(--text3)}
@@ -531,7 +532,7 @@
       </div>
 
       <!-- B2B 매출 + 수익 -->
-      <div class="kpi ch-b2b" style="display:flex;flex-direction:column;justify-content:center;background:var(--card);border:1px solid #1E3A5F;border-radius:14px;padding:16px">
+      <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center">
         <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
         <div class="kpi-value" id="kpiB2B" style="margin:4px 0">0</div>
         <div class="kpi-sub" id="kpiB2BSub">유상 납품</div>
@@ -629,7 +630,7 @@
           <div class="adg-profit-hint">탭하여<br>상세보기</div>
         </div>
         <!-- 예상 손익 — B2B -->
-        <div class="adg-profit profit-banner" style="cursor:default">
+        <div class="adg-profit profit-banner profit-banner-hover" onclick="openB2BDetail()" style="cursor:pointer">
           <div>
             <div class="profit-label">B2B 손익</div>
             <div class="profit-val" id="profitB2BNet">-</div>
@@ -895,6 +896,19 @@
     </div>
     <div class="modal-body" style="padding:0">
       <div id="profitDetailBody" style="padding:20px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- B2B 납품 실적 팝업 -->
+<div class="modal-bg" id="b2bDetailBg" onclick="if(event.target===this)closeB2BDetail()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0D1E3A,#1A2E50)">
+      <h2 style="color:#60A5FA">B2B 납품 실적</h2>
+      <button class="modal-close" onclick="closeB2BDetail()" style="color:#60A5FA">×</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="b2bDetailBody" style="padding:20px"></div>
     </div>
   </div>
 </div>
@@ -1884,17 +1898,28 @@ function renderInsight(){
   const dailyAchRate = targetDailyAvg>0 ? Math.round(avgDaily/targetDailyAvg*100) : 0;
 
   const projAchRate = effectiveProjAchRate;
+  // 이커머스 전용 지표
+  const ecAvgDaily = Math.round(totRev/days);
+  const ecDailyAchRate = targetDailyAvg>0 ? Math.round(ecAvgDaily/targetDailyAvg*100) : 0;
+  const ecProjTotal = Math.round(ecAvgDaily*daysInMonth);
+  const ecAchRate = Math.round(totRev/targetTotal*100);
+  const ecEffectiveProjTotal = isPastMonth ? totRev : ecProjTotal;
+  const ecProjAchRate = Math.round(ecEffectiveProjTotal/targetTotal*100);
+  // 순수익 = 이커머스 + B2B 합산
+  const totalNetProfit = netProfit + Math.round(totB2BPrf);
+  const totalNetMargin = grandTotRev>0 ? Math.round(totalNetProfit/grandTotRev*100) : 0;
+
   const kpiItems=[
-    {label:'순수익 (률)',val:'₩'+fmt(netProfit),sub2:netMargin+'%',sub:`총수익 ₩${fmt(totPrf)} − 퍼포광고 ₩${fmt(metaAd+naverAdTotal)} − 대행료 ₩${fmt(agencyFee)}`,color:'#6366F1',icon:'💰',positive:netProfit>=0},
+    {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf))}`,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0},
     {
-      label: isPastMonth ? '목표 달성률 (최종)' : '예상 목표 달성률',
-      val: projAchRate+'%',
+      label: isPastMonth ? '이커머스 목표 달성률 (최종)' : '이커머스 예상 목표 달성률',
+      val: ecProjAchRate+'%',
       sub: isPastMonth
         ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)}`
-        : `예상 월매출 ₩${fmt(projTotal)} / 목표 ₩${fmt(targetTotal)}`,
-      color:'#0EA5E9', icon:'🎯', positive: projAchRate>=100
+        : `예상 월매출 ₩${fmt(ecProjTotal)} / 목표 ₩${fmt(targetTotal)}`,
+      color:'#0EA5E9', icon:'🎯', positive: ecProjAchRate>=100
     },
-    {label:'일평균 매출',val:'₩'+fmt(avgDaily),sub2:dailyAchRate+'%',sub:`목표일평균 ₩${fmt(targetDailyAvg)}`,color:'#16A34A',icon:'📈',positive:avgDaily>=targetDailyAvg},
+    {label:'이커머스 일평균 매출',val:'₩'+fmt(ecAvgDaily),sub2:ecDailyAchRate+'%',sub:`목표일평균 ₩${fmt(targetDailyAvg)}`,color:'#16A34A',icon:'📈',positive:ecAvgDaily>=targetDailyAvg},
     isPastMonth
       ? {
           label:'월 마감',
@@ -1906,7 +1931,7 @@ function renderInsight(){
           positive: totRev>=targetTotal
         }
       : {
-          label:'잔여 목표',
+          label:'이커머스 잔여 목표',
           val:'₩'+fmt(Math.max(0,targetTotal-totRev)),
           sub:`${daysLeft}일 남음 · 일 ₩${daysLeft>0?fmt(Math.round(Math.max(0,targetTotal-totRev)/daysLeft)):0} 필요`,
           color:'#EA580C', icon:'🎯', positive: totRev>=targetTotal
@@ -3779,6 +3804,51 @@ function openProfitDetail(){
 
 function closeProfitDetail(){
   document.getElementById('profitDetailBg').classList.remove('open');
+}
+
+function openB2BDetail(){
+  const month = selectedMonth;
+  const b2bRecs = manualOuts.filter(r => {
+    return r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0);
+  }).sort((a,b) => b.date.localeCompare(a.date));
+
+  const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
+  let totRev=0, totPrf=0;
+
+  const rows = b2bRecs.map(r => {
+    const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0).map(k=>{
+      const rev = r[k]*r['price_'+k];
+      const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
+      totRev += rev; totPrf += prf;
+      return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0">
+        <span>${skuNames[k]||k} ${r[k]}개 @₩${r['price_'+k].toLocaleString()}</span>
+        <span style="color:var(--text2)">₩${rev.toLocaleString()} (이익 ₩${prf.toLocaleString()})</span>
+      </div>`;
+    }).join('');
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">${r.date} · ${r.reason||'B2B 납품'}</div>
+      ${items}
+    </div>`;
+  }).join('');
+
+  const fmt = v => Math.round(v).toLocaleString();
+  const body = b2bRecs.length === 0
+    ? '<div style="text-align:center;color:var(--text3);padding:30px">이번 달 B2B 납품 실적이 없습니다.</div>'
+    : `${rows}
+      <div style="padding:14px 0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:var(--text)">합계</span>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:700;color:#60A5FA">매출 ₩${fmt(totRev)}</div>
+          <div style="font-size:11px;color:${totPrf>=0?'#fff':'#F43F5E'}">이익 ₩${fmt(totPrf)} (마진 ${totRev>0?Math.round(totPrf/totRev*100):0}%)</div>
+        </div>
+      </div>`;
+
+  document.getElementById('b2bDetailBody').innerHTML = body;
+  document.getElementById('b2bDetailBg').classList.add('open');
+}
+
+function closeB2BDetail(){
+  document.getElementById('b2bDetailBg').classList.remove('open');
 }
 
 function showToast(msg){
