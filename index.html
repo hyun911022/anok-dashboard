@@ -1326,7 +1326,7 @@ function render(){
   if(_pv){ _pv.textContent=profitStr; _pv.style.color=profit>=0?'#fff':'#F43F5E'; }
   // B2B 손익
   const _pb = document.getElementById('profitB2BNet');
-  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>0?'#fff':b2bNetProfit<0?'#F43F5E':'#6EAB84'; }
+  if(_pb){ _pb.textContent=b2bNetProfit===0?'-':b2bNetStr; _pb.style.color=b2bNetProfit>=0?'#fff':'#F43F5E'; }
   // 합산 손익
   // profitTotal 제거됨
 
@@ -1512,10 +1512,13 @@ function calcUnitQty(mRecs,sku){
   const sc=(k)=>mRecs.reduce((sum,r)=>sum+(r.cafe[k]||0),0);
   const sn=(k)=>mRecs.reduce((sum,r)=>sum+(r.naver[k]||0),0);
   const so=(k)=>mRecs.reduce((sum,r)=>sum+((r.coupang||{})[k]||0),0);
-  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo');
-  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment');
-  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash');
-  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion');
+  // B2B 수기출고 (해당월 전체 — 단품만 단순 합산)
+  const month = selectedMonth || getTodayKST().slice(0,7);
+  const sb=(k)=>manualOuts.filter(r=>r.date.startsWith(month)).reduce((sum,r)=>sum+(r[k]||0),0);
+  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo')+sb('shampoo');
+  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+sb('treatment');
+  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+sb('bodywash');
+  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+sb('bodylotion');
   return null;
 }
 
@@ -2048,7 +2051,7 @@ function renderInsight(){
   const _pb2=document.getElementById('profitB2BNet');
   const _pt2=document.getElementById('profitTotal');
   if(_pv2){ _pv2.textContent=fmtNet(_np); _pv2.style.color=_np>=0?'#fff':'#F43F5E'; }
-  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>0?'#fff':_b2bNet<0?'#F43F5E':'#6EAB84'; }
+  if(_pb2){ _pb2.textContent=_b2bNet===0?'-':fmtNet(_b2bNet); _pb2.style.color=_b2bNet>=0?'#fff':'#F43F5E'; }
   if(_pt2){ _pt2.textContent=fmtNet(_totalNet); _pt2.style.color=_totalNet>=0?'#fff':'#F43F5E'; }
 }
 
