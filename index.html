@@ -567,7 +567,7 @@
         <div id="achieveWrap" style="padding:8px 0"></div>
       </div>
       <div class="card">
-        <div class="card-title">이커머스 SKU 판매현황</div>
+        <div class="card-title">SKU 판매현황</div>
         <div class="sku-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
         <table class="sku-tbl" style="width:100%;min-width:360px">
           <thead><tr>
@@ -575,6 +575,7 @@
             <th style="text-align:right;white-space:nowrap">자사몰</th>
             <th style="text-align:right;white-space:nowrap">네이버</th>
             <th style="text-align:right;white-space:nowrap">쿠팡</th>
+            <th style="text-align:right;white-space:nowrap;color:#60A5FA">B2B</th>
             <th style="text-align:right;white-space:nowrap">합계</th>
             <th style="text-align:right;white-space:nowrap;color:#60A5FA">단품환산</th>
           </tr></thead>
@@ -1522,46 +1523,58 @@ function renderSkuTable(mRecs){
   const skus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
   const oSkus=['shampoo','treatment','bodywash','bodylotion'];
   const unitSkus=['shampoo','treatment','bodywash','bodylotion'];
+  const month = selectedMonth;
+  const skuNames2 = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+
+  // B2B 이번달 수기출고 (유상+무상 모두, SKU별 합계)
+  const b2bQty = {};
+  STOCK_SKUS.forEach(k=>{ b2bQty[k]=0; });
+  manualOuts.filter(r=>r.date.startsWith(month)).forEach(r=>{
+    STOCK_SKUS.forEach(k=>{ b2bQty[k]+=(r[k]||0); });
+  });
+
   let html='';
   skus.forEach(k=>{
     const c=mRecs.reduce((s,r)=>s+(r.cafe[k]||0),0);
     const n=mRecs.reduce((s,r)=>s+(r.naver[k]||0),0);
     const o=oSkus.includes(k)?mRecs.reduce((s,r)=>s+((r.coupang||{})[k]||0),0):0;
-    const tot=c+n+o;
+    const b=unitSkus.includes(k)?(b2bQty[k]||0):0;
+    const tot=c+n+o+b;
     if(tot===0 && !unitSkus.includes(k)) return;
     const maxTot=Math.max(...skus.map(sk=>{
       const tc=mRecs.reduce((s,r)=>s+(r.cafe[sk]||0),0);
       const tn=mRecs.reduce((s,r)=>s+(r.naver[sk]||0),0);
       const to=oSkus.includes(sk)?mRecs.reduce((s,r)=>s+((r.coupang||{})[sk]||0),0):0;
-      return tc+tn+to;
+      const tb=unitSkus.includes(sk)?(b2bQty[sk]||0):0;
+      return tc+tn+to+tb;
     }),1);
     const pct=Math.round(tot/maxTot*100);
     const uq=unitSkus.includes(k)?calcUnitQty(mRecs,k):null;
     const unitCell=uq!==null
       ?`<td class="num" style="color:#60A5FA;font-weight:600">${uq}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
-    html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td><td class="num">${tot}</td>${unitCell}</tr>`;
+    const bCell=unitSkus.includes(k)
+      ?`<td class="num" style="color:#60A5FA">${b||'-'}</td>`
+      :`<td class="num" style="color:#CBD5E0">-</td>`;
+    html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td>${bCell}<td class="num">${tot}</td>${unitCell}</tr>`;
   });
   // 단품 합계 행
   const totalUnit = unitSkus.reduce((s,k)=>s+(calcUnitQty(mRecs,k)||0),0);
   const totalC = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0),0);
   const totalN = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0),0);
   const totalO = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0),0);
-  const totalTot = unitSkus.reduce((s,k)=>{
-    const c=mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0);
-    const n=mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0);
-    const o=mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0);
-    return s+c+n+o;
-  },0);
+  const totalB = unitSkus.reduce((s,k)=>s+(b2bQty[k]||0),0);
+  const totalTot = totalC+totalN+totalO+totalB;
   const totalRow = `<tr style="border-top:2px solid var(--border);font-weight:700">
     <td style="color:var(--text2)">합계</td>
     <td class="num" style="color:#9B6DFF">${totalC}</td>
     <td class="num" style="color:#34D399">${totalN}</td>
     <td class="num" style="color:#FB923C">${totalO||'-'}</td>
+    <td class="num" style="color:#60A5FA">${totalB||'-'}</td>
     <td class="num">${totalTot}</td>
     <td class="num" style="color:#60A5FA;font-weight:700">${totalUnit}</td>
   </tr>`;
-  document.getElementById('skuBody').innerHTML=(html||'<tr><td colspan="6" class="empty">데이터 없음</td></tr>')+totalRow;
+  document.getElementById('skuBody').innerHTML=(html||'<tr><td colspan="7" class="empty">데이터 없음</td></tr>')+totalRow;
 }
 
 function renderDayTable(mRecs){
