@@ -3450,10 +3450,10 @@ function syncProfitConstants(){
     if(naverPrf!==null) NAVER_PROFITS[p.id] = naverPrf;
     if(coupPrf!==null)  COUP_PROFITS[p.id]  = coupPrf;
     if(musiPrf!==null)  MUSI_PROFITS[p.id]  = musiPrf;
-    CAFE_PRICES[p.id]  = p.channels.cafe?.price    || CAFE_PRICES[p.id];
-    NAVER_PRICES[p.id] = p.channels.naver?.price   || NAVER_PRICES[p.id];
-    COUP_PRICES[p.id]  = p.channels.coupang?.price || COUP_PRICES[p.id];
-    MUSI_PRICES[p.id]  = p.channels.musinsa?.price || MUSI_PRICES[p.id];
+    if(p.channels.cafe?.price)    CAFE_PRICES[p.id]  = p.channels.cafe.price;
+    if(p.channels.naver?.price)   NAVER_PRICES[p.id] = p.channels.naver.price;
+    if(p.channels.coupang?.price) COUP_PRICES[p.id]  = p.channels.coupang.price;
+    if(p.channels.musinsa?.price) MUSI_PRICES[p.id]  = p.channels.musinsa.price;
     UNIT_COSTS[p.id]   = p.cost;
   });
 }
