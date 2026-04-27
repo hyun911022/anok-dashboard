@@ -1149,17 +1149,14 @@ const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:187
 const NAVER_PROFITS  = {shampoo:9274,treatment:9574,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
 const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
 const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655};
-// 무신사 — 자사몰 동일 판매가 기준, 수수료 30%
-const MUSI_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-// 무신사 이익: 판매가 - 부가세(÷11) - 수수료(30%) - 원가 - 택배비 - 포장비 - 부자재 - GWP
-// 샴푸: 19800 - 1800 - 5940 - 5200 - 1050 - 250 - 200 - 0 = 5360
-// 트리트먼트: 19800 - 1800 - 5940 - 4900 - 1050 - 250 - 200 - 0 = 5660
-// 헤어세트: 38700 - 3518 - 11610 - 10100 - 2100 - 500 - 400 - 1300 = 9172
-// 바디워시: 18700 - 1700 - 5610 - 4300 - 1050 - 250 - 200 - 0 = 5590
-// 바디로션: 18700 - 1700 - 5610 - 4500 - 1050 - 250 - 200 - 0 = 5390
-// 바디세트: 36800 - 3345 - 11040 - 8800 - 2100 - 500 - 400 - 1300 = 9315
-// 워시세트: 37800 - 3436 - 11340 - 9500 - 2100 - 500 - 400 - 1300 = 9224
-const MUSI_PROFITS   = {shampoo:5360,treatment:5660,hairset:9172,bodywash:5590,bodylotion:5390,bodyset:9315,washset:9224};
+// 무신사 — 자사몰 동일 판매가, 수수료 30%, 단품만 취급 (세트 없음)
+// 택배비 2,100원 일괄 적용
+// 샴푸: 19800 - 1800 - 5940 - 5200 - 2100 - 250 - 200 - 0 = 4310
+// 트리트먼트: 19800 - 1800 - 5940 - 4900 - 2100 - 250 - 200 - 0 = 4610
+// 바디워시: 18700 - 1700 - 5610 - 4300 - 2100 - 250 - 200 - 0 = 4540
+// 바디로션: 18700 - 1700 - 5610 - 4500 - 2100 - 250 - 200 - 0 = 4340
+const MUSI_PRICES    = {shampoo:19800,treatment:19800,bodywash:18700,bodylotion:18700};
+const MUSI_PROFITS   = {shampoo:4310,treatment:4610,bodywash:4540,bodylotion:4340};
 
 // 단품 원가 (제조원가)
 const UNIT_COSTS = {shampoo:5200, treatment:4900, bodywash:4300, bodylotion:4500};
@@ -3605,7 +3602,7 @@ function renderChDetail(p, ch){
 
   const profit = calcProfit(p, ch);
   const margin = c.price>0 ? Math.round(profit/c.price*100) : 0;
-  const marginColor = margin>=45?'#34D399':margin>=35?'#EAB308':'#EF4444';
+  const marginColor = '#34D399'; // 매출이익은 항상 초록색
 
   if(ch === 'coupang'){
     return `
