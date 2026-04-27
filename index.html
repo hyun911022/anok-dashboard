@@ -1149,6 +1149,17 @@ const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:187
 const NAVER_PROFITS  = {shampoo:9274,treatment:9574,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
 const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
 const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655};
+// 무신사 — 자사몰 동일 판매가 기준, 수수료 30%
+const MUSI_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
+// 무신사 이익: 판매가 - 부가세(÷11) - 수수료(30%) - 원가 - 택배비 - 포장비 - 부자재 - GWP
+// 샴푸: 19800 - 1800 - 5940 - 5200 - 1050 - 250 - 200 - 0 = 5360
+// 트리트먼트: 19800 - 1800 - 5940 - 4900 - 1050 - 250 - 200 - 0 = 5660
+// 헤어세트: 38700 - 3518 - 11610 - 10100 - 2100 - 500 - 400 - 1300 = 9172
+// 바디워시: 18700 - 1700 - 5610 - 4300 - 1050 - 250 - 200 - 0 = 5590
+// 바디로션: 18700 - 1700 - 5610 - 4500 - 1050 - 250 - 200 - 0 = 5390
+// 바디세트: 36800 - 3345 - 11040 - 8800 - 2100 - 500 - 400 - 1300 = 9315
+// 워시세트: 37800 - 3436 - 11340 - 9500 - 2100 - 500 - 400 - 1300 = 9224
+const MUSI_PROFITS   = {shampoo:5360,treatment:5660,hairset:9172,bodywash:5590,bodylotion:5390,bodyset:9315,washset:9224};
 
 // 단품 원가 (제조원가)
 const UNIT_COSTS = {shampoo:5200, treatment:4900, bodywash:4300, bodylotion:4500};
@@ -1212,8 +1223,8 @@ function saveData(){
 }
 
 function calcDay(rec){
-  let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0;
-  const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{};
+  let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0,mRev=0,mPrf=0;
+  const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{}, m=rec.musinsa||{};
   for(const k in CAFE_PRICES){ cRev+=(c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
   for(const k in NAVER_PRICES){ nRev+=(n[k]||0)*NAVER_PRICES[k]; nPrf+=(n[k]||0)*NAVER_PROFITS[k]; }
   for(const k in COUP_PRICES){ oRev+=(o[k]||0)*COUP_PRICES[k]; }
@@ -1221,7 +1232,8 @@ function calcDay(rec){
   const coupon=o.coupon||0, oadcost=o.adcost||0;
   for(const k in COUP_PROFITS) oPrf+=(o[k]||0)*COUP_PROFITS[k];
   oPrf = oPrf - fulfil - coupon - oadcost;
-  return {cRev,cPrf,nRev,nPrf,oRev,oPrf,total:cRev+nRev+oRev,profit:cPrf+nPrf+oPrf};
+  for(const k in MUSI_PRICES){ mRev+=(m[k]||0)*MUSI_PRICES[k]; mPrf+=(m[k]||0)*MUSI_PROFITS[k]; }
+  return {cRev,cPrf,nRev,nPrf,oRev,oPrf,mRev,mPrf,total:cRev+nRev+oRev+mRev,profit:cPrf+nPrf+oPrf+mPrf};
 }
 
 function fmt(n){ return Math.round(n).toLocaleString(); }
@@ -3433,12 +3445,15 @@ function syncProfitConstants(){
     const cafePrf  = calcProfit(p,'cafe');
     const naverPrf = calcProfit(p,'naver');
     const coupPrf  = calcProfit(p,'coupang');
+    const musiPrf  = calcProfit(p,'musinsa');
     if(cafePrf!==null)  CAFE_PROFITS[p.id]  = cafePrf;
     if(naverPrf!==null) NAVER_PROFITS[p.id] = naverPrf;
     if(coupPrf!==null)  COUP_PROFITS[p.id]  = coupPrf;
-    CAFE_PRICES[p.id]  = p.channels.cafe?.price   || CAFE_PRICES[p.id];
-    NAVER_PRICES[p.id] = p.channels.naver?.price  || NAVER_PRICES[p.id];
+    if(musiPrf!==null)  MUSI_PROFITS[p.id]  = musiPrf;
+    CAFE_PRICES[p.id]  = p.channels.cafe?.price    || CAFE_PRICES[p.id];
+    NAVER_PRICES[p.id] = p.channels.naver?.price   || NAVER_PRICES[p.id];
     COUP_PRICES[p.id]  = p.channels.coupang?.price || COUP_PRICES[p.id];
+    MUSI_PRICES[p.id]  = p.channels.musinsa?.price || MUSI_PRICES[p.id];
     UNIT_COSTS[p.id]   = p.cost;
   });
 }
@@ -3508,8 +3523,8 @@ function renderSkuDetail(id){
   const p = products.find(x=>x.id===id);
   if(!p) return;
 
-  const CH_LABELS = {cafe:'자사몰', naver:'네이버', coupang:'쿠팡'};
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+  const CH_LABELS = {cafe:'자사몰', naver:'네이버', coupang:'쿠팡', musinsa:'무신사'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
 
   // 채널 탭 HTML
   const chTabs = Object.keys(CH_LABELS).map((ch,i)=>`
@@ -3578,7 +3593,7 @@ function renderSkuDetail(id){
 
 function renderChDetail(p, ch){
   const c = p.channels[ch];
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
   const color = CH_COLORS[ch];
 
   if(!c){
@@ -3601,6 +3616,26 @@ function renderChDetail(p, ch){
           ${inputRow('판매 수수료', `cp_fee_pct`, Math.round(c.fee*100), '%', color, '쿠팡 9.6%')}
           ${inputRow('대화 → 쿠팡', `cp_toLogistics`, c.toLogistics, '₩', color)}
           ${inputRow('후가공(OPP)', `cp_opp`, c.opp, '₩', color)}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
+          <div id="profitBreakdownArea">${profitBreakdown(p, ch, profit, margin, marginColor)}</div>
+        </div>
+      </div>`;
+  }
+
+  if(ch === 'musinsa'){
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">판매 설정</div>
+          ${inputRow('정상가', `cp_normalPrice`, c.normalPrice||p.normalPrice, '₩', color)}
+          ${inputRow('판매가', `cp_price`, c.price, '₩', color)}
+          ${inputRow('수수료', `cp_fee_pct`, Math.round((c.fee||0.3)*100), '%', color, '30%')}
+          ${inputRow('택배비', `cp_delivery`, c.delivery, '₩', color, '단품 1,050 / 세트 2,100')}
+          ${inputRow('포장비', `cp_packaging`, c.packaging, '₩', color)}
+          ${inputRow('부자재', `cp_materials`, c.materials, '₩', color)}
+          ${inputRow('GWP', `cp_gwp`, c.gwp, '₩', color, '세트 1,300 / 단품 0')}
         </div>
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">매출이익 계산</div>
@@ -3709,9 +3744,9 @@ function selectChTab(skuId, ch){
   currentDetailCh = ch;
   const p = products.find(x=>x.id===skuId);
   if(!p) return;
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
   // 탭 스타일 업데이트
-  ['cafe','naver','coupang'].forEach(c=>{
+  ['cafe','naver','coupang','musinsa'].forEach(c=>{
     const btn = document.getElementById('chtab_'+c);
     if(!btn) return;
     if(c===ch){
@@ -3740,6 +3775,14 @@ function updateProfitPreview(){
     c.fee   = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
     c.toLogistics = parseInt(document.getElementById('cp_toLogistics')?.value)||0;
     c.opp   = parseInt(document.getElementById('cp_opp')?.value)||0;
+  } else if(ch==='musinsa'){
+    c.normalPrice = parseInt(document.getElementById('cp_normalPrice')?.value)||0;
+    c.price    = price;
+    c.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    c.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
+    c.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
+    c.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
+    c.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
   } else {
     c.price    = price;
     c.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
