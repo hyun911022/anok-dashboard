@@ -845,11 +845,29 @@
         <div id="skuListSet" style="display:flex;flex-direction:column;gap:4px"></div>
       </div>
 
-      <!-- 오른쪽: 상세 편집 -->
-      <div id="skuDetailPanel">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;color:var(--text3)">
-          <div style="font-size:28px;margin-bottom:12px">📦</div>
-          <div style="font-size:13px">왼쪽에서 SKU를 선택하세요</div>
+      <!-- 오른쪽: 상세 편집 + 판매가관리 탭 -->
+      <div>
+        <!-- 서브탭 버튼 -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button id="prodSubTab_edit" onclick="switchProdSubTab('edit')"
+            style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:8px;border:none;cursor:pointer;background:#6366F1;color:#fff">
+            SKU 설정
+          </button>
+          <button id="prodSubTab_price" onclick="switchProdSubTab('price')"
+            style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:8px;border:none;cursor:pointer;background:var(--card);color:var(--text3);border:1px solid var(--border)">
+            판매가 관리
+          </button>
+        </div>
+        <!-- SKU 설정 패널 -->
+        <div id="skuDetailPanel">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;color:var(--text3)">
+            <div style="font-size:28px;margin-bottom:12px">📦</div>
+            <div style="font-size:13px">왼쪽에서 SKU를 선택하세요</div>
+          </div>
+        </div>
+        <!-- 판매가 관리 패널 -->
+        <div id="priceManagerPanel" style="display:none">
+          <div id="priceManagerBody"></div>
         </div>
       </div>
 
@@ -3626,7 +3644,6 @@ function renderChDetail(p, ch){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px">판매 설정</div>
-          ${inputRow('정상가', `cp_normalPrice`, c.normalPrice||p.normalPrice, '₩', color)}
           ${inputRow('판매가', `cp_price`, c.price, '₩', color)}
           ${inputRow('수수료', `cp_fee_pct`, Math.round((c.fee||0.3)*100), '%', color, '30%')}
           ${inputRow('택배비', `cp_delivery`, c.delivery, '₩', color, '단품 1,050 / 세트 2,100')}
@@ -3923,6 +3940,71 @@ function openB2BDetail(){
 
 function closeB2BDetail(){
   document.getElementById('b2bDetailBg').classList.remove('open');
+}
+
+// ── 판매가 관리 ─────────────────────────────────────
+function switchProdSubTab(tab){
+  const isEdit = tab === 'edit';
+  document.getElementById('skuDetailPanel').style.display   = isEdit ? '' : 'none';
+  document.getElementById('priceManagerPanel').style.display = isEdit ? 'none' : '';
+  document.getElementById('prodSubTab_edit').style.background  = isEdit ? '#6366F1' : 'var(--card)';
+  document.getElementById('prodSubTab_edit').style.color       = isEdit ? '#fff' : 'var(--text3)';
+  document.getElementById('prodSubTab_edit').style.border      = isEdit ? 'none' : '1px solid var(--border)';
+  document.getElementById('prodSubTab_price').style.background = isEdit ? 'var(--card)' : '#6366F1';
+  document.getElementById('prodSubTab_price').style.color      = isEdit ? 'var(--text3)' : '#fff';
+  document.getElementById('prodSubTab_price').style.border     = isEdit ? '1px solid var(--border)' : 'none';
+  if(!isEdit) renderPriceManager();
+}
+
+function renderPriceManager(){
+  const channels = [
+    {key:'cafe',    label:'자사몰',  color:'#9B6DFF'},
+    {key:'naver',   label:'네이버',  color:'#34D399'},
+    {key:'coupang', label:'쿠팡',    color:'#FB923C'},
+    {key:'musinsa', label:'무신사',  color:'#FF6B35'},
+  ];
+
+  const skuOrder = ['shampoo','treatment','bodywash','bodylotion','hairset','bodyset','washset'];
+  const skuName  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
+
+  let html = `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600">SKU</th>
+          <th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600">정상가</th>`;
+
+  channels.forEach(ch => {
+    html += `<th style="padding:12px 16px;text-align:center;color:${ch.color};font-weight:600">${ch.label}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  skuOrder.forEach((id, i) => {
+    const p = products.find(x => x.id === id);
+    if(!p) return;
+    const bg = i%2===0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+    html += `<tr style="border-bottom:1px solid var(--border);background:${bg}">
+      <td style="padding:12px 16px;font-weight:600;color:var(--text)">${skuName[id]||id}</td>
+      <td style="padding:12px 16px;text-align:center;color:var(--text2)">₩${(p.normalPrice||0).toLocaleString()}</td>`;
+
+    channels.forEach(ch => {
+      const c = p.channels[ch.key];
+      if(!c || !c.price){
+        html += `<td style="padding:12px 16px;text-align:center;color:var(--text3)">-</td>`;
+        return;
+      }
+      const discount = p.normalPrice > 0 ? Math.round((1 - c.price/p.normalPrice)*100) : 0;
+      const discStr  = discount > 0 ? `<div style="font-size:10px;color:#EAB308;margin-top:2px">${discount}% 할인</div>` : `<div style="font-size:10px;color:var(--text3);margin-top:2px">정상가</div>`;
+      html += `<td style="padding:12px 16px;text-align:center">
+        <div style="font-weight:600;color:${ch.color}">₩${c.price.toLocaleString()}</div>
+        ${discStr}
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  document.getElementById('priceManagerBody').innerHTML = html;
 }
 
 function showToast(msg){
