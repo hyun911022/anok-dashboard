@@ -1161,8 +1161,8 @@ function getTodayKST(){
 
 const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
 const CAFE_PROFITS   = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
-const NAVER_PRICES   = {shampoo:19700,treatment:19700,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-const NAVER_PROFITS  = {shampoo:9274,treatment:9574,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
+const NAVER_PRICES   = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
+const NAVER_PROFITS  = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
 const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
 const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655};
 // 무신사 — 자사몰 동일 판매가, 수수료 30%, 단품만 취급 (세트 없음)
@@ -1239,7 +1239,14 @@ function calcDay(rec){
   let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0,mRev=0,mPrf=0;
   const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{}, m=rec.musinsa||{};
   for(const k in CAFE_PRICES){ cRev+=(c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
-  for(const k in NAVER_PRICES){ nRev+=(n[k]||0)*NAVER_PRICES[k]; nPrf+=(n[k]||0)*NAVER_PROFITS[k]; }
+  // 네이버 샴푸/트리트먼트: 4/28부터 19,800원으로 인상 (이전: 19,700원)
+  // 이익도 날짜 기준으로 분기 (인상분 +100원 = 이익에 +100원)
+  const naverPriceAdj = rec.date >= '2026-04-28';
+  for(const k in NAVER_PRICES){
+    const price = naverPriceAdj && (k==='shampoo'||k==='treatment') ? NAVER_PRICES[k]+100 : NAVER_PRICES[k];
+    const profit = naverPriceAdj && (k==='shampoo'||k==='treatment') ? NAVER_PROFITS[k]+86 : NAVER_PROFITS[k]; // +100원 인상 시 부가세+수수료 차감 후 실이익 +86원
+    nRev+=(n[k]||0)*price; nPrf+=(n[k]||0)*profit;
+  }
   for(const k in COUP_PRICES){ oRev+=(o[k]||0)*COUP_PRICES[k]; }
   const fulfil=(o.fulfil||0)/1.1;
   const coupon=o.coupon||0, oadcost=o.adcost||0;
