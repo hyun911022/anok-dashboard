@@ -4108,75 +4108,192 @@ function renderPriceManager(){
   document.getElementById('priceManagerBody').innerHTML = tabHtml + bodyHtml;
 }
 
+// ── 캘린더 상태 ──────────────────────────────────────────
+const _phCal = { year:0, month:0, from:'', to:'', selecting:false };
+
 function openAddPriceHistory(skuId, ch){
-  // 기존 모달 제거
   const old = document.getElementById('addPriceHistoryModal');
   if(old) old.remove();
 
   const chColors = {cafe:'#9B6DFF',naver:'#34D399',coupang:'#FB923C',musinsa:'#FF6B35'};
-  const color = chColors[ch] || '#fff';
+  const color = chColors[ch] || '#6366F1';
   const today = getTodayKST();
+  const [ty, tm] = today.split('-').map(Number);
+  _phCal.year = ty; _phCal.month = tm;
+  _phCal.from = ''; _phCal.to = ''; _phCal.selecting = false;
+  _phCal.skuId = skuId; _phCal.ch = ch; _phCal.color = color;
+
   const p = products.find(x=>x.id===skuId);
   const defaultPrice = p?.channels?.[ch]?.price || 0;
+  const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
+  const chLabels = {cafe:'자사몰',naver:'네이버',coupang:'쿠팡',musinsa:'무신사'};
 
   const modal = document.createElement('div');
   modal.id = 'addPriceHistoryModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px';
   modal.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;max-width:90vw">
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:20px">행사 추가</div>
+    <div style="background:#1A1D27;border:1px solid #2A2D3E;border-radius:18px;padding:24px;width:360px;max-width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:15px;font-weight:700;color:#fff">행사 추가</div>
+        <button onclick="document.getElementById('addPriceHistoryModal').remove()"
+          style="background:none;border:none;color:#6B7280;cursor:pointer;font-size:18px;line-height:1">×</button>
+      </div>
+      <div style="font-size:11px;color:#6B7280;margin-bottom:18px">${skuNames[skuId]||skuId} · ${chLabels[ch]||ch}</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">시작일 <span style="color:#EF4444">*</span></div>
-          <input id="ph_from" type="date" value="${today}"
-            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+      <!-- 캘린더 -->
+      <div id="ph_cal_wrap" style="margin-bottom:16px"></div>
+
+      <!-- 선택된 기간 표시 -->
+      <div id="ph_range_display" style="display:flex;gap:8px;margin-bottom:14px">
+        <div style="flex:1;background:#0F1117;border:1px solid #2A2D3E;border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:#6B7280;margin-bottom:2px">시작일</div>
+          <div id="ph_from_label" style="font-size:12px;font-weight:600;color:#fff">-</div>
         </div>
-        <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">종료일 <span style="color:#EF4444">*</span></div>
-          <input id="ph_to" type="date" placeholder="필수"
-            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;color:#6B7280;font-size:14px">→</div>
+        <div style="flex:1;background:#0F1117;border:1px solid #2A2D3E;border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:#6B7280;margin-bottom:2px">종료일 <span style="color:#EF4444">*</span></div>
+          <div id="ph_to_label" style="font-size:12px;font-weight:600;color:#fff">-</div>
         </div>
       </div>
 
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">행사 판매가 <span style="color:#EF4444">*</span></div>
-        <input id="ph_price" type="number" placeholder="${defaultPrice}" value="${defaultPrice}"
-          style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
-      </div>
-
-      <div style="margin-bottom:20px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">행사명</div>
-        <input id="ph_label" type="text" placeholder="예: 무신사 72시간 특가"
-          style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+      <!-- 판매가 / 행사명 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div>
+          <div style="font-size:10px;color:#6B7280;margin-bottom:4px">행사 판매가 <span style="color:#EF4444">*</span></div>
+          <input id="ph_price" type="number" value="${defaultPrice}"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #2A2D3E;background:#0F1117;color:#fff;font-size:13px;font-weight:600;box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:10px;color:#6B7280;margin-bottom:4px">행사명</div>
+          <input id="ph_label" type="text" placeholder="예: 특가"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #2A2D3E;background:#0F1117;color:#fff;font-size:12px;box-sizing:border-box">
+        </div>
       </div>
 
       <div id="ph_error" style="font-size:11px;color:#EF4444;margin-bottom:10px;display:none"></div>
 
       <div style="display:flex;gap:8px">
         <button onclick="savePriceHistory('${skuId}','${ch}')"
-          style="flex:1;padding:10px;border-radius:8px;border:none;background:${color};color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          style="flex:1;padding:11px;border-radius:9px;border:none;background:${color};color:#fff;font-size:13px;font-weight:600;cursor:pointer">
           저장
         </button>
         <button onclick="document.getElementById('addPriceHistoryModal').remove()"
-          style="padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:13px;cursor:pointer">
+          style="padding:11px 18px;border-radius:9px;border:1px solid #2A2D3E;background:transparent;color:#9CA3AF;font-size:13px;cursor:pointer">
           취소
         </button>
       </div>
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  renderPhCalendar();
+}
+
+function renderPhCalendar(){
+  const { year, month, from, to, color } = _phCal;
+  const today = getTodayKST();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDow = new Date(year, month-1, 1).getDay(); // 0=Sun
+  const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const dayLabels = ['일','월','화','수','목','금','토'];
+
+  let html = `
+    <div style="background:#0F1117;border:1px solid #2A2D3E;border-radius:12px;padding:14px">
+      <!-- 헤더 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button onclick="_phCalMove(-1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:16px;padding:2px 8px">‹</button>
+        <span style="font-size:13px;font-weight:700;color:#fff">${year}년 ${monthNames[month-1]}</span>
+        <button onclick="_phCalMove(1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:16px;padding:2px 8px">›</button>
+      </div>
+      <!-- 요일 헤더 -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px">
+        ${dayLabels.map((d,i)=>`<div style="text-align:center;font-size:10px;font-weight:600;color:${i===0?'#EF4444':i===6?'#60A5FA':'#6B7280'};padding:2px">${d}</div>`).join('')}
+      </div>
+      <!-- 날짜 그리드 -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
+
+  // 빈 칸 (첫 주 앞부분)
+  for(let i=0; i<firstDow; i++) html += `<div></div>`;
+
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === today;
+    const isFrom  = dateStr === from;
+    const isTo    = dateStr === to;
+    const inRange = from && to && dateStr > from && dateStr < to;
+    const dow = (firstDow + d - 1) % 7;
+
+    let bg = 'transparent';
+    let textColor = dow===0?'#EF4444':dow===6?'#60A5FA':'#E5E7EB';
+    let fontWeight = '400';
+    let borderRadius = '6px';
+
+    if(isFrom || isTo){
+      bg = _phCal.color || '#6366F1';
+      textColor = '#fff';
+      fontWeight = '700';
+      borderRadius = isFrom ? '6px 0 0 6px' : '0 6px 6px 0';
+    } else if(inRange){
+      bg = (_phCal.color || '#6366F1') + '30';
+      borderRadius = '0';
+    }
+    if(isToday && !isFrom && !isTo && !inRange){
+      textColor = '#fff';
+      fontWeight = '700';
+    }
+
+    html += `<div onclick="_phCalClick('${dateStr}')"
+      style="text-align:center;padding:5px 2px;cursor:pointer;border-radius:${borderRadius};
+      background:${bg};color:${textColor};font-size:12px;font-weight:${fontWeight};
+      ${isToday && !isFrom && !isTo ? 'text-decoration:underline;' : ''}
+      user-select:none;-webkit-user-select:none">
+      ${d}
+    </div>`;
+  }
+  html += `</div></div>`;
+
+  const wrap = document.getElementById('ph_cal_wrap');
+  if(wrap) wrap.innerHTML = html;
+}
+
+function _phCalMove(dir){
+  _phCal.month += dir;
+  if(_phCal.month > 12){ _phCal.month = 1; _phCal.year++; }
+  if(_phCal.month < 1) { _phCal.month = 12; _phCal.year--; }
+  renderPhCalendar();
+}
+
+function _phCalClick(dateStr){
+  if(!_phCal.from || (_phCal.from && _phCal.to)){
+    // 첫 클릭 — 시작일 설정
+    _phCal.from = dateStr;
+    _phCal.to = '';
+  } else {
+    // 두 번째 클릭 — 종료일 설정
+    if(dateStr < _phCal.from){
+      _phCal.to = _phCal.from;
+      _phCal.from = dateStr;
+    } else {
+      _phCal.to = dateStr;
+    }
+  }
+  // 표시 업데이트
+  const fl = document.getElementById('ph_from_label');
+  const tl = document.getElementById('ph_to_label');
+  if(fl) fl.textContent = _phCal.from ? _phCal.from.slice(5).replace('-','/') : '-';
+  if(tl) tl.textContent = _phCal.to   ? _phCal.to.slice(5).replace('-','/')   : '클릭하여 선택';
+  if(tl && _phCal.to) tl.style.color = '#fff';
+  renderPhCalendar();
 }
 
 async function savePriceHistory(skuId, ch){
-  const from  = document.getElementById('ph_from')?.value;
-  const to    = document.getElementById('ph_to')?.value;
+  const from  = _phCal.from;
+  const to    = _phCal.to;
   const price = parseInt(document.getElementById('ph_price')?.value)||0;
   const label = document.getElementById('ph_label')?.value.trim();
   const errEl = document.getElementById('ph_error');
 
-  if(!from){ errEl.textContent='시작일을 입력해주세요.'; errEl.style.display='block'; return; }
-  if(!to){   errEl.textContent='종료일은 필수입니다.'; errEl.style.display='block'; return; }
+  if(!from){ errEl.textContent='시작일을 선택해주세요.'; errEl.style.display='block'; return; }
+  if(!to){   errEl.textContent='종료일은 필수입니다. 캘린더에서 종료일을 선택해주세요.'; errEl.style.display='block'; return; }
   if(to < from){ errEl.textContent='종료일이 시작일보다 빠릅니다.'; errEl.style.display='block'; return; }
   if(!price){ errEl.textContent='행사 판매가를 입력해주세요.'; errEl.style.display='block'; return; }
 
