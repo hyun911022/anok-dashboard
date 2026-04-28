@@ -4200,30 +4200,19 @@ function openAddPriceHistory(skuId, ch){
 }
 
 function renderPhCalendar(){
-  const { year, month, from, to, color } = _phCal;
+  const { year, month, from, to } = _phCal;
   const today = getTodayKST();
   const daysInMonth = new Date(year, month, 0).getDate();
-  const firstDow = new Date(year, month-1, 1).getDay(); // 0=Sun
+  const firstDow = new Date(year, month-1, 1).getDay();
   const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   const dayLabels = ['일','월','화','수','목','금','토'];
+  const color = _phCal.color || '#6366F1';
 
-  let html = `
-    <div style="background:#0F1117;border:1px solid #2A2D3E;border-radius:12px;padding:14px">
-      <!-- 헤더 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <button onclick="_phCalMove(-1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:16px;padding:2px 8px">‹</button>
-        <span style="font-size:13px;font-weight:700;color:#fff">${year}년 ${monthNames[month-1]}</span>
-        <button onclick="_phCalMove(1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:16px;padding:2px 8px">›</button>
-      </div>
-      <!-- 요일 헤더 -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px">
-        ${dayLabels.map((d,i)=>`<div style="text-align:center;font-size:10px;font-weight:600;color:${i===0?'#EF4444':i===6?'#60A5FA':'#6B7280'};padding:2px">${d}</div>`).join('')}
-      </div>
-      <!-- 날짜 그리드 -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
-
-  // 빈 칸 (첫 주 앞부분)
-  for(let i=0; i<firstDow; i++) html += `<div></div>`;
+  // table 기반으로 구현 (모바일 grid 렌더링 이슈 방지)
+  let rows = '';
+  let cells = '';
+  // 빈칸
+  for(let i=0; i<firstDow; i++) cells += `<td></td>`;
 
   for(let d=1; d<=daysInMonth; d++){
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -4234,33 +4223,53 @@ function renderPhCalendar(){
     const dow = (firstDow + d - 1) % 7;
 
     let bg = 'transparent';
-    let textColor = dow===0?'#EF4444':dow===6?'#60A5FA':'#E5E7EB';
-    let fontWeight = '400';
-    let borderRadius = '6px';
+    let textColor = dow===0?'#EF4444':dow===6?'#60A5FA':'#D1D5DB';
+    let fw = '400';
+    let br = '6px';
+    let td = isToday && !isFrom && !isTo ? 'underline' : 'none';
 
     if(isFrom || isTo){
-      bg = _phCal.color || '#6366F1';
-      textColor = '#fff';
-      fontWeight = '700';
-      borderRadius = isFrom ? '6px 0 0 6px' : '0 6px 6px 0';
+      bg = color; textColor = '#fff'; fw = '700';
+      br = isFrom && to ? '6px 0 0 6px' : isTo && from ? '0 6px 6px 0' : '6px';
     } else if(inRange){
-      bg = (_phCal.color || '#6366F1') + '30';
-      borderRadius = '0';
-    }
-    if(isToday && !isFrom && !isTo && !inRange){
-      textColor = '#fff';
-      fontWeight = '700';
+      bg = color+'28'; br = '0';
     }
 
-    html += `<div onclick="_phCalClick('${dateStr}')"
-      style="text-align:center;padding:5px 2px;cursor:pointer;border-radius:${borderRadius};
-      background:${bg};color:${textColor};font-size:12px;font-weight:${fontWeight};
-      ${isToday && !isFrom && !isTo ? 'text-decoration:underline;' : ''}
-      user-select:none;-webkit-user-select:none">
-      ${d}
-    </div>`;
+    cells += `<td onclick="_phCalClick('${dateStr}')"
+      style="text-align:center;width:14.28%;padding:6px 0;cursor:pointer;
+      background:${bg};border-radius:${br};
+      color:${textColor};font-size:13px;font-weight:${fw};
+      text-decoration:${td};user-select:none;-webkit-user-select:none">${d}</td>`;
+
+    if(dow === 6 || d === daysInMonth){
+      // 마지막 주 빈칸 채우기
+      if(d === daysInMonth){
+        const remaining = 6 - dow;
+        for(let i=0; i<remaining; i++) cells += `<td></td>`;
+      }
+      rows += `<tr>${cells}</tr>`;
+      cells = '';
+    }
   }
-  html += `</div></div>`;
+
+  // 요일 헤더
+  const dayHeader = dayLabels.map((d,i)=>
+    `<th style="text-align:center;padding:4px 0;font-size:11px;font-weight:600;
+    color:${i===0?'#EF4444':i===6?'#60A5FA':'#6B7280'};width:14.28%">${d}</th>`
+  ).join('');
+
+  const html = `
+    <div style="background:#0F1117;border:1px solid #2A2D3E;border-radius:12px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button onclick="_phCalMove(-1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:18px;padding:2px 10px;line-height:1">‹</button>
+        <span style="font-size:13px;font-weight:700;color:#fff">${year}년 ${monthNames[month-1]}</span>
+        <button onclick="_phCalMove(1)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:18px;padding:2px 10px;line-height:1">›</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <thead><tr>${dayHeader}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 
   const wrap = document.getElementById('ph_cal_wrap');
   if(wrap) wrap.innerHTML = html;
