@@ -1526,6 +1526,11 @@ function updateTrendChart(mRecs){
     el.style.left = x + 'px';
     el.style.top  = y + 'px';
   });
+
+  // 스크롤 시 툴팁 숨기기
+  window.addEventListener('scroll', function() {
+    el.style.opacity = '0';
+  }, true); // capture phase — 모든 스크롤 이벤트 캐치
 })();
 
 function updateDonutChart(c,n,o){
