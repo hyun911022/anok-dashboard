@@ -1249,12 +1249,23 @@ function calcDay(rec){
     cRev+=(c[k]||0)*price; cPrf+=(c[k]||0)*profit;
   }
 
-  // 네이버 — priceHistory 우선 (4/28 가격 인상도 priceHistory로 관리)
+  // 네이버 — priceHistory 우선, 없으면 날짜 기반 기본가 적용
+  // 샴푸/트리트먼트: 4/28 이전은 19,700원 (판매가 인상 전)
   for(const k in NAVER_PRICES){
     const p = products.find(x=>x.id===k);
     const ph = getPriceOnDate(p,'naver',date);
-    const price  = ph !== null ? ph : NAVER_PRICES[k];
-    const profit = ph !== null ? (getProfitOnDate(p,'naver',date) ?? NAVER_PROFITS[k]) : NAVER_PROFITS[k];
+    let price, profit;
+    if(ph !== null){
+      price  = ph;
+      profit = getProfitOnDate(p,'naver',date) ?? NAVER_PROFITS[k];
+    } else if(date < '2026-04-28' && (k==='shampoo'||k==='treatment')){
+      // 4/28 이전 — 19,700원 기준 (판매가 인상 전)
+      price  = NAVER_PRICES[k] - 100; // 19,700
+      profit = NAVER_PROFITS[k] - 86; // 이익도 이전 기준
+    } else {
+      price  = NAVER_PRICES[k];
+      profit = NAVER_PROFITS[k];
+    }
     nRev+=(n[k]||0)*price; nPrf+=(n[k]||0)*profit;
   }
 
