@@ -827,12 +827,12 @@
   <div id="tabProducts" style="display:none">
 
     <!-- 헤더 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:20px;flex-wrap:nowrap">
+      <div style="min-width:0">
         <div style="font-size:16px;font-weight:700;color:var(--text)">상품관리</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">SKU별 원가·판매가·채널 비용 설정 — 저장 시 전체 대시보드에 즉시 반영</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">SKU별 원가·판매가·채널 비용 설정</div>
       </div>
-      <button onclick="openAddSkuModal()" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">+ SKU 추가</button>
+      <button onclick="openAddSkuModal()" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0">+ SKU 추가</button>
     </div>
 
     <!-- SKU 목록 + 상세 편집 영역 -->
