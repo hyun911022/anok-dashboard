@@ -1238,21 +1238,52 @@ function saveData(){
 function calcDay(rec){
   let cRev=0,cPrf=0,nRev=0,nPrf=0,oRev=0,oPrf=0,mRev=0,mPrf=0;
   const c=rec.cafe||{}, n=rec.naver||{}, o=rec.coupang||{}, m=rec.musinsa||{};
-  for(const k in CAFE_PRICES){ cRev+=(c[k]||0)*CAFE_PRICES[k]; cPrf+=(c[k]||0)*CAFE_PROFITS[k]; }
-  // 네이버 샴푸/트리트먼트: 4/28부터 19,800원으로 인상 (이전: 19,700원)
-  // 이익도 날짜 기준으로 분기 (인상분 +100원 = 이익에 +100원)
-  const naverPriceAdj = rec.date >= '2026-04-28';
+  const date = rec.date;
+
+  // 자사몰 — priceHistory 우선, 없으면 전역 상수
+  for(const k in CAFE_PRICES){
+    const p = products.find(x=>x.id===k);
+    const ph = getPriceOnDate(p,'cafe',date);
+    const price  = ph !== null ? ph : CAFE_PRICES[k];
+    const profit = ph !== null ? (getProfitOnDate(p,'cafe',date) ?? CAFE_PROFITS[k]) : CAFE_PROFITS[k];
+    cRev+=(c[k]||0)*price; cPrf+=(c[k]||0)*profit;
+  }
+
+  // 네이버 — priceHistory 우선 (4/28 가격 인상도 priceHistory로 관리)
   for(const k in NAVER_PRICES){
-    const price = naverPriceAdj && (k==='shampoo'||k==='treatment') ? NAVER_PRICES[k]+100 : NAVER_PRICES[k];
-    const profit = naverPriceAdj && (k==='shampoo'||k==='treatment') ? NAVER_PROFITS[k]+86 : NAVER_PROFITS[k]; // +100원 인상 시 부가세+수수료 차감 후 실이익 +86원
+    const p = products.find(x=>x.id===k);
+    const ph = getPriceOnDate(p,'naver',date);
+    const price  = ph !== null ? ph : NAVER_PRICES[k];
+    const profit = ph !== null ? (getProfitOnDate(p,'naver',date) ?? NAVER_PROFITS[k]) : NAVER_PROFITS[k];
     nRev+=(n[k]||0)*price; nPrf+=(n[k]||0)*profit;
   }
-  for(const k in COUP_PRICES){ oRev+=(o[k]||0)*COUP_PRICES[k]; }
+
+  // 쿠팡 — priceHistory 우선
+  for(const k in COUP_PRICES){
+    const p = products.find(x=>x.id===k);
+    const ph = getPriceOnDate(p,'coupang',date);
+    const price = ph !== null ? ph : COUP_PRICES[k];
+    oRev+=(o[k]||0)*price;
+  }
   const fulfil=(o.fulfil||0)/1.1;
   const coupon=o.coupon||0, oadcost=o.adcost||0;
-  for(const k in COUP_PROFITS) oPrf+=(o[k]||0)*COUP_PROFITS[k];
+  for(const k in COUP_PROFITS){
+    const p = products.find(x=>x.id===k);
+    const ph = getProfitOnDate(p,'coupang',date);
+    const profit = ph !== null ? ph : COUP_PROFITS[k];
+    oPrf+=(o[k]||0)*profit;
+  }
   oPrf = oPrf - fulfil - coupon - oadcost;
-  for(const k in MUSI_PRICES){ mRev+=(m[k]||0)*MUSI_PRICES[k]; mPrf+=(m[k]||0)*MUSI_PROFITS[k]; }
+
+  // 무신사 — priceHistory 우선
+  for(const k in MUSI_PRICES){
+    const p = products.find(x=>x.id===k);
+    const ph = getPriceOnDate(p,'musinsa',date);
+    const price  = ph !== null ? ph : MUSI_PRICES[k];
+    const profit = ph !== null ? (getProfitOnDate(p,'musinsa',date) ?? MUSI_PROFITS[k]) : MUSI_PROFITS[k];
+    mRev+=(m[k]||0)*price; mPrf+=(m[k]||0)*profit;
+  }
+
   return {cRev,cPrf,nRev,nPrf,oRev,oPrf,mRev,mPrf,total:cRev+nRev+oRev+mRev,profit:cPrf+nPrf+oPrf+mPrf};
 }
 
@@ -2331,6 +2362,27 @@ function saveStockData(){
   if(window._firestore){
     window._firestore.saveStock(stockInitByMonth, manualOuts, null, stockBatches);
   }
+}
+
+// ── 날짜 기반 가격 조회 (priceHistory) ──────────────────
+function getPriceOnDate(p, ch, date){
+  const history = p?.channels?.[ch]?.priceHistory;
+  if(history && history.length > 0){
+    const entry = history.find(h => date >= h.from && date <= h.to);
+    if(entry) return entry.price;
+  }
+  return p?.channels?.[ch]?.price || null;
+}
+
+function getProfitOnDate(p, ch, date){
+  const price = getPriceOnDate(p, ch, date);
+  if(price === null) return null;
+  // 채널 설정 복사 후 price만 교체해서 calcProfit 계산
+  const c = p.channels[ch];
+  if(!c) return null;
+  const tmp = Object.assign({}, c, { price });
+  const tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [ch]: tmp }) });
+  return calcProfit(tmpP, ch);
 }
 
 // ── B2B 매출/수익 계산 ──────────────────────────────────
@@ -3781,57 +3833,72 @@ function selectChTab(skuId, ch){
   document.getElementById('chDetailArea').innerHTML = renderChDetail(p, ch);
 }
 
+function readInputsToChannel(p, ch){
+  // 입력 필드에서 읽어 임시 객체 반환 (in-memory 수정 안 함)
+  const c = p.channels[ch];
+  if(!c) return null;
+  const price = parseInt(document.getElementById('cp_price')?.value)||0;
+  const tmp = Object.assign({}, c); // 복사본
+  if(ch==='coupang'){
+    tmp.price = price;
+    tmp.fee   = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    tmp.toLogistics = parseInt(document.getElementById('cp_toLogistics')?.value)||0;
+    tmp.opp   = parseInt(document.getElementById('cp_opp')?.value)||0;
+  } else if(ch==='musinsa'){
+    tmp.normalPrice = parseInt(document.getElementById('cp_normalPrice')?.value)||0;
+    tmp.price    = price;
+    tmp.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    tmp.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
+    tmp.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
+    tmp.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
+    tmp.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
+  } else {
+    tmp.price    = price;
+    tmp.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
+    tmp.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
+    tmp.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
+    tmp.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
+    tmp.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
+  }
+  return tmp;
+}
+
 function updateProfitPreview(){
+  // 미리보기만 담당 — in-memory products 수정 안 함
   if(!selectedSkuId) return;
   const p = products.find(x=>x.id===selectedSkuId);
   if(!p) return;
   const ch = currentDetailCh;
-  const c = p.channels[ch];
-  if(!c) return;
+  if(!p.channels[ch]) return;
 
-  // 입력값 읽기
-  const price = parseInt(document.getElementById('cp_price')?.value)||0;
-  if(ch==='coupang'){
-    c.price = price;
-    c.fee   = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
-    c.toLogistics = parseInt(document.getElementById('cp_toLogistics')?.value)||0;
-    c.opp   = parseInt(document.getElementById('cp_opp')?.value)||0;
-  } else if(ch==='musinsa'){
-    c.normalPrice = parseInt(document.getElementById('cp_normalPrice')?.value)||0;
-    c.price    = price;
-    c.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
-    c.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
-    c.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
-    c.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
-    c.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
-  } else {
-    c.price    = price;
-    c.fee      = (parseInt(document.getElementById('cp_fee_pct')?.value)||0)/100;
-    c.delivery = parseInt(document.getElementById('cp_delivery')?.value)||0;
-    c.packaging= parseInt(document.getElementById('cp_packaging')?.value)||0;
-    c.materials= parseInt(document.getElementById('cp_materials')?.value)||0;
-    c.gwp      = parseInt(document.getElementById('cp_gwp')?.value)||0;
-  }
+  const tmp = readInputsToChannel(p, ch);
+  if(!tmp) return;
+  const price = tmp.price || 0;
 
-  // 이익 미리보기 재계산
-  const profit = calcProfit(p, ch);
+  // 임시 객체로 이익 계산 (원본 p 수정 안 함)
+  const tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [ch]: tmp }) });
+  const profit = calcProfit(tmpP, ch);
   const margin = price>0?Math.round(profit/price*100):0;
-  const marginColor = margin>=45?'#34D399':margin>=35?'#EAB308':'#EF4444';
+  const marginColor = '#34D399';
 
-  // breakdown 영역 직접 업데이트
   const bdEl = document.getElementById('profitBreakdownArea');
-  if(bdEl) bdEl.innerHTML = profitBreakdown(p, ch, profit, margin, marginColor);
+  if(bdEl) bdEl.innerHTML = profitBreakdown(tmpP, ch, profit, margin, marginColor);
 }
 
 function saveSku(id){
   const p = products.find(x=>x.id===id);
   if(!p) return;
-  // 기본 정보
+  // 기본 정보 저장
   p.name        = document.getElementById('prod_name')?.value || p.name;
   p.normalPrice = parseInt(document.getElementById('prod_normalPrice')?.value)||p.normalPrice;
   p.cost        = parseInt(document.getElementById('prod_cost')?.value)||p.cost;
-  // 현재 열려있는 채널 데이터도 저장
-  updateProfitPreview();
+  // 현재 열린 채널 데이터 → 이때만 in-memory 반영
+  const ch = currentDetailCh;
+  if(p.channels[ch]){
+    const tmp = readInputsToChannel(p, ch);
+    if(tmp) Object.assign(p.channels[ch], tmp);
+  }
+  syncProfitConstants();
   saveProducts();
   showToast(`${p.name} 저장 완료 ✓`);
   renderProducts();
@@ -3955,6 +4022,9 @@ function switchProdSubTab(tab){
   if(tab === 'price') switchTab('pricing');
 }
 
+// ── 판매가 관리 (행사 포함) ──────────────────────────────
+let pricingCh = 'cafe'; // 현재 선택된 채널
+
 function renderPriceManager(){
   const channels = [
     {key:'cafe',    label:'자사몰',  color:'#9B6DFF'},
@@ -3962,48 +4032,172 @@ function renderPriceManager(){
     {key:'coupang', label:'쿠팡',    color:'#FB923C'},
     {key:'musinsa', label:'무신사',  color:'#FF6B35'},
   ];
-
   const skuOrder = ['shampoo','treatment','bodywash','bodylotion','hairset','bodyset','washset'];
   const skuName  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
 
-  let html = `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden">
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="border-bottom:1px solid var(--border)">
-          <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600">SKU</th>
-          <th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600">정상가</th>`;
-
+  // 채널 탭
+  let tabHtml = `<div style="display:flex;gap:8px;margin-bottom:20px">`;
   channels.forEach(ch => {
-    html += `<th style="padding:12px 16px;text-align:center;color:${ch.color};font-weight:600">${ch.label}</th>`;
+    const active = pricingCh === ch.key;
+    tabHtml += `<button onclick="pricingCh='${ch.key}';renderPriceManager()"
+      style="font-size:12px;font-weight:600;padding:6px 16px;border-radius:8px;border:none;cursor:pointer;
+      background:${active ? ch.color : 'var(--card)'};color:${active ? '#fff' : 'var(--text3)'};
+      ${active ? '' : 'border:1px solid var(--border)'}">
+      ${ch.label}
+    </button>`;
   });
-  html += `</tr></thead><tbody>`;
+  tabHtml += `</div>`;
 
-  skuOrder.forEach((id, i) => {
-    const p = products.find(x => x.id === id);
-    if(!p) return;
-    const bg = i%2===0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-    html += `<tr style="border-bottom:1px solid var(--border);background:${bg}">
-      <td style="padding:12px 16px;font-weight:600;color:var(--text)">${skuName[id]||id}</td>
-      <td style="padding:12px 16px;text-align:center;color:var(--text2)">₩${(p.normalPrice||0).toLocaleString()}</td>`;
+  const chInfo = channels.find(c=>c.key===pricingCh);
 
-    channels.forEach(ch => {
-      const c = p.channels[ch.key];
-      if(!c || !c.price){
-        html += `<td style="padding:12px 16px;text-align:center;color:var(--text3)">-</td>`;
-        return;
-      }
-      const discount = p.normalPrice > 0 ? Math.round((1 - c.price/p.normalPrice)*100) : 0;
-      const discStr  = discount > 0 ? `<div style="font-size:10px;color:#EAB308;margin-top:2px">${discount}% 할인</div>` : `<div style="font-size:10px;color:var(--text3);margin-top:2px">정상가</div>`;
-      html += `<td style="padding:12px 16px;text-align:center">
-        <div style="font-weight:600;color:${ch.color}">₩${c.price.toLocaleString()}</div>
-        ${discStr}
-      </td>`;
+  // SKU별 판매가 + 행사 목록
+  let bodyHtml = '';
+  skuOrder.forEach(id => {
+    const p = products.find(x=>x.id===id);
+    if(!p || !p.channels[pricingCh]) return;
+    const c = p.channels[pricingCh];
+    if(!c.price) return;
+
+    const history = c.priceHistory || [];
+    const today = getTodayKST();
+
+    // 현재 활성 가격
+    const activeEntry = history.find(h => today >= h.from && today <= h.to);
+    const currentPrice = activeEntry ? activeEntry.price : c.price;
+    const isOnSale = !!activeEntry;
+
+    let rowsHtml = '';
+    history.sort((a,b)=>b.from.localeCompare(a.from)).forEach((h, i) => {
+      const isPast = h.to < today;
+      const isActive = today >= h.from && today <= h.to;
+      const isFuture = h.from > today;
+      const statusColor = isActive ? '#34D399' : isPast ? 'var(--text3)' : '#EAB308';
+      const statusLabel = isActive ? '진행 중' : isPast ? '종료' : '예정';
+      rowsHtml += `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:11px;font-weight:700;color:${chInfo.color}">₩${h.price.toLocaleString()}</span>
+              <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusColor}18;padding:1px 6px;border-radius:3px">${statusLabel}</span>
+              <span style="font-size:11px;color:var(--text2);font-weight:600">${h.label||''}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">${h.from} ~ ${h.to}</div>
+          </div>
+          <button onclick="deletePriceHistory('${id}','${pricingCh}',${i})"
+            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px">×</button>
+        </div>`;
     });
-    html += `</tr>`;
+
+    bodyHtml += `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${skuName[id]||id}</span>
+            <span style="font-size:11px;color:var(--text3);margin-left:8px">기본 판매가 ₩${c.price.toLocaleString()}</span>
+            ${isOnSale ? `<span style="font-size:10px;font-weight:700;color:#34D399;background:#34D39918;padding:1px 8px;border-radius:4px;margin-left:6px">행사 중 ₩${currentPrice.toLocaleString()}</span>` : ''}
+          </div>
+          <button onclick="openAddPriceHistory('${id}','${pricingCh}')"
+            style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;border:1px solid ${chInfo.color};color:${chInfo.color};background:transparent;cursor:pointer">
+            + 행사 추가
+          </button>
+        </div>
+        ${rowsHtml || `<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">등록된 행사가 없어요</div>`}
+      </div>`;
   });
 
-  html += `</tbody></table></div>`;
-  document.getElementById('priceManagerBody').innerHTML = html;
+  document.getElementById('priceManagerBody').innerHTML = tabHtml + bodyHtml;
+}
+
+function openAddPriceHistory(skuId, ch){
+  // 기존 모달 제거
+  const old = document.getElementById('addPriceHistoryModal');
+  if(old) old.remove();
+
+  const chColors = {cafe:'#9B6DFF',naver:'#34D399',coupang:'#FB923C',musinsa:'#FF6B35'};
+  const color = chColors[ch] || '#fff';
+  const today = getTodayKST();
+  const p = products.find(x=>x.id===skuId);
+  const defaultPrice = p?.channels?.[ch]?.price || 0;
+
+  const modal = document.createElement('div');
+  modal.id = 'addPriceHistoryModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;max-width:90vw">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:20px">행사 추가</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">시작일 <span style="color:#EF4444">*</span></div>
+          <input id="ph_from" type="date" value="${today}"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">종료일 <span style="color:#EF4444">*</span></div>
+          <input id="ph_to" type="date" placeholder="필수"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">행사 판매가 <span style="color:#EF4444">*</span></div>
+        <input id="ph_price" type="number" placeholder="${defaultPrice}" value="${defaultPrice}"
+          style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">행사명</div>
+        <input id="ph_label" type="text" placeholder="예: 무신사 72시간 특가"
+          style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box">
+      </div>
+
+      <div id="ph_error" style="font-size:11px;color:#EF4444;margin-bottom:10px;display:none"></div>
+
+      <div style="display:flex;gap:8px">
+        <button onclick="savePriceHistory('${skuId}','${ch}')"
+          style="flex:1;padding:10px;border-radius:8px;border:none;background:${color};color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          저장
+        </button>
+        <button onclick="document.getElementById('addPriceHistoryModal').remove()"
+          style="padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:13px;cursor:pointer">
+          취소
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+}
+
+async function savePriceHistory(skuId, ch){
+  const from  = document.getElementById('ph_from')?.value;
+  const to    = document.getElementById('ph_to')?.value;
+  const price = parseInt(document.getElementById('ph_price')?.value)||0;
+  const label = document.getElementById('ph_label')?.value.trim();
+  const errEl = document.getElementById('ph_error');
+
+  if(!from){ errEl.textContent='시작일을 입력해주세요.'; errEl.style.display='block'; return; }
+  if(!to){   errEl.textContent='종료일은 필수입니다.'; errEl.style.display='block'; return; }
+  if(to < from){ errEl.textContent='종료일이 시작일보다 빠릅니다.'; errEl.style.display='block'; return; }
+  if(!price){ errEl.textContent='행사 판매가를 입력해주세요.'; errEl.style.display='block'; return; }
+
+  const p = products.find(x=>x.id===skuId);
+  if(!p || !p.channels[ch]) return;
+  if(!p.channels[ch].priceHistory) p.channels[ch].priceHistory = [];
+
+  p.channels[ch].priceHistory.push({ from, to, price, label: label||'' });
+  await saveProducts();
+  document.getElementById('addPriceHistoryModal')?.remove();
+  showToast('행사가 저장됐어요 ✓');
+  renderPriceManager();
+}
+
+async function deletePriceHistory(skuId, ch, idx){
+  const p = products.find(x=>x.id===skuId);
+  if(!p?.channels?.[ch]?.priceHistory) return;
+  p.channels[ch].priceHistory.splice(idx, 1);
+  await saveProducts();
+  showToast('행사가 삭제됐어요');
+  renderPriceManager();
 }
 
 function showToast(msg){
