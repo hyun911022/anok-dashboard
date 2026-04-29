@@ -4251,6 +4251,7 @@ function openProfitDetail(){
     ${row('자사몰 매출이익', totCprf, '#9B6DFF', true, `수수료·택배·포장·부자재·GWP 차감`)}
     ${row('네이버 매출이익', totNprf, '#34D399', true, `수수료·택배·포장·부자재·GWP 차감`)}
     ${row('쿠팡 매출이익', totOprf, '#FB923C', true, `풀필 -₩${totFulfil.toLocaleString()} · 쿠폰 -₩${totCoupon.toLocaleString()} 차감`)}
+    ${totMprf2>0?row('무신사 매출이익', totMprf2, '#06B6D4', true, `수수료·택배·포장·부자재 차감`):''}
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border)">
       <div style="font-size:13px;font-weight:700;color:var(--text)">합계 매출이익</div>
       <div style="font-size:14px;font-weight:700;color:var(--text)">+₩${Math.round(totPrf).toLocaleString()}</div>
