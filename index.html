@@ -1423,7 +1423,7 @@ function render(){
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const profit=totPrf-metaAd-naverAdTotal-agencyFee;
+  const profit=(totPrf+totMprf)-metaAd-naverAdTotal-agencyFee; // 이커머스 전체 (무신사 포함)
   const rate=totRev>0?totPrf/totRev:0;
 
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
@@ -2148,7 +2148,7 @@ function renderInsight(){
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee;
+  const netProfit=(totPrf+totMprf)-metaAd-naverAdTotal-agencyFee; // 이커머스 전체 (무신사 포함)
   // 이커머스+B2B 합산 기준 일평균/예상월매출
   const avgDaily=Math.round(grandTotRev/days);
   const projTotal=Math.round(avgDaily*daysInMonth);
@@ -4225,12 +4225,11 @@ function openProfitDetail(){
   const daysInMonth = new Date(iy,im,0).getDate();
 
   let totPrf=0, totCprf=0, totNprf=0, totOprf=0, totMprf2=0;
-  // totMprf2: 무신사 수익 집계 (SKU별 수익성 분석용)
-  mRecs.forEach(r=>{ const d=calcDay(r); totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; });
+  mRecs.forEach(r=>{ const d=calcDay(r); totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; totMprf2+=d.mPrf||0; });
 
   const metaAd=calcMetaAd(mRecs), naverAd=calcNaverAd(mRecs);
   const agencyDaily=calcAgencyFee(mRecs);
-  const netProfit=Math.round(totPrf-metaAd-naverAd-agencyDaily);
+  const netProfit=Math.round(totPrf-metaAd-naverAd-agencyDaily); // totPrf에 무신사 포함됨
   const isPos = netProfit>=0;
 
   const totFulfil=Math.round(mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0)/1.1);
