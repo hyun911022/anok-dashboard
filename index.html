@@ -1141,10 +1141,35 @@
         <label>날짜</label>
         <input type="date" id="mo_date">
       </div>
+
+      <!-- 거래처 선택 -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">거래처</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="mo_client" onchange="onClientSelect()"
+            style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#12151F">
+            <option value="">— 선택 안함 (무상/샘플) —</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);white-space:nowrap;cursor:pointer">
+            <input type="checkbox" id="mo_newClient" onchange="onNewClientToggle()" style="cursor:pointer">
+            신규 등록
+          </label>
+        </div>
+      </div>
+
+      <!-- 신규 거래처명 (체크 시 표시) -->
+      <div id="mo_newClientWrap" style="display:none;margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">거래처명 <span style="color:#EF4444">*</span></label>
+        <input type="text" id="mo_clientName" placeholder="예: 노태그"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#12151F;box-sizing:border-box">
+      </div>
+
+      <!-- 출고 사유 -->
       <div class="modal-date" style="margin-bottom:12px">
         <label>출고 사유</label>
         <input type="text" id="mo_reason" placeholder="예: 공구, 샘플, 파손 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
       </div>
+
       <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 · 납품단가(공급가액) — 단가 0이면 무상(샘플)</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="sku-input"><label>샴푸 수량</label><input type="number" id="mo_shampoo" value="0" min="0"></div>
@@ -3289,10 +3314,19 @@ function saveStockInit(){
 }
 
 function openManualOutModal(){
-  const [y,m]=selectedMonth.split('-');
-  document.getElementById('mo_date').value=`${y}-${m}-01`;
+  document.getElementById('mo_date').value=getTodayKST();
   document.getElementById('mo_reason').value='';
-  STOCK_SKUS.forEach(k=>{ const el=document.getElementById('mo_'+k); if(el) el.value=0; });
+  // 거래처 초기화
+  const sel=document.getElementById('mo_client'); if(sel) sel.value='';
+  const newCheck=document.getElementById('mo_newClient'); if(newCheck) newCheck.checked=false;
+  const newWrap=document.getElementById('mo_newClientWrap'); if(newWrap) newWrap.style.display='none';
+  const nameEl=document.getElementById('mo_clientName'); if(nameEl) nameEl.value='';
+  // 수량/단가 초기화
+  STOCK_SKUS.forEach(k=>{
+    const qEl=document.getElementById('mo_'+k); if(qEl) qEl.value=0;
+    const pEl=document.getElementById('mo_price_'+k); if(pEl) pEl.value=0;
+  });
+  updateClientDropdown();
   document.getElementById('manualOutModalBg').classList.add('open');
 }
 function closeManualOutModal(){ document.getElementById('manualOutModalBg').classList.remove('open'); }
@@ -3300,14 +3334,42 @@ function saveManualOut(){
   const date=document.getElementById('mo_date').value;
   const reason=document.getElementById('mo_reason').value.trim();
   if(!date){ showToast('날짜를 입력해주세요'); return; }
+
+  const isNewClient = document.getElementById('mo_newClient')?.checked;
+  const newClientName = document.getElementById('mo_clientName')?.value.trim();
+  const selectedClientId = document.getElementById('mo_client')?.value;
+
+  // 신규 거래처 등록 체크 시 거래처명 필수
+  if(isNewClient && !newClientName){ showToast('거래처명을 입력해주세요'); return; }
+
   const entry={date, reason};
   STOCK_SKUS.forEach(k=>{
     entry[k]=parseInt(document.getElementById('mo_'+k)?.value)||0;
     entry['price_'+k]=parseInt(document.getElementById('mo_price_'+k)?.value)||0;
   });
   if(!STOCK_SKUS.some(k=>entry[k]>0)){ showToast('출고 수량을 입력해주세요'); return; }
-  // 유상 여부: 단가가 하나라도 0보다 크면 B2B
   entry.isB2B = STOCK_SKUS.some(k=>entry[k]>0 && entry['price_'+k]>0);
+
+  // 거래처 정보 저장
+  if(isNewClient && newClientName){
+    // 신규 거래처 등록
+    const newClient = {
+      id: 'client_' + Date.now(),
+      name: newClientName,
+      prices: {},
+      createdAt: date
+    };
+    STOCK_SKUS.forEach(k=>{ newClient.prices[k] = entry['price_'+k]||0; });
+    b2bClients.push(newClient);
+    entry.clientId = newClient.id;
+    entry.clientName = newClientName;
+    saveB2BClients();
+    updateClientDropdown();
+  } else if(selectedClientId){
+    const client = b2bClients.find(c=>c.id===selectedClientId);
+    if(client){ entry.clientId = client.id; entry.clientName = client.name; }
+  }
+
   manualOuts.push(entry);
   saveStockData();
   closeManualOutModal();
@@ -3324,6 +3386,75 @@ function deleteManualOut(idx){
   if(!confirm('이 출고 내역을 삭제할까요?')) return;
   manualOuts.splice(idx,1);
   saveStockData(); renderStock(); showToast('삭제되었습니다');
+}
+
+// ══════════════════════════════════════════════════
+// B2B 거래처 관리
+// ══════════════════════════════════════════════════
+let b2bClients = []; // [{id, name, prices:{shampoo,treatment,bodywash,bodylotion}, createdAt}]
+
+async function loadB2BClients(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'b2bClients'));
+    if(snap.exists() && snap.data()?.clients) b2bClients = snap.data().clients;
+    updateClientDropdown();
+  } catch(e){ console.log('b2bClients load error:', e); }
+}
+
+async function saveB2BClients(){
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'b2bClients'), { clients: b2bClients });
+  } catch(e){ console.log('b2bClients save error:', e); }
+}
+
+function updateClientDropdown(){
+  const sel = document.getElementById('mo_client');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— 선택 안함 (무상/샘플) —</option>';
+  b2bClients.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value = cur;
+}
+
+function onClientSelect(){
+  const sel = document.getElementById('mo_client');
+  const clientId = sel?.value;
+  if(!clientId) return;
+  const client = b2bClients.find(c=>c.id===clientId);
+  if(!client) return;
+  // 납품단가 프리셋 자동 입력
+  STOCK_SKUS.forEach(k=>{
+    const el = document.getElementById('mo_price_'+k);
+    if(el) el.value = client.prices[k] || 0;
+  });
+}
+
+function onNewClientToggle(){
+  const checked = document.getElementById('mo_newClient')?.checked;
+  const wrap = document.getElementById('mo_newClientWrap');
+  const sel = document.getElementById('mo_client');
+  if(wrap) wrap.style.display = checked ? 'block' : 'none';
+  if(checked){
+    // 신규 등록 시 거래처 드랍다운 초기화
+    if(sel) sel.value = '';
+    // 단가 초기화
+    STOCK_SKUS.forEach(k=>{
+      const el = document.getElementById('mo_price_'+k);
+      if(el) el.value = 0;
+    });
+  }
 }
 // ══════════════════════════════════════════════════
 // 발주관리
@@ -4516,7 +4647,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); }, 500);
 </script>
 </body>
 </html>
