@@ -1405,8 +1405,8 @@ function render(){
   document.getElementById('kpiNaver').textContent='₩'+fmt(totN);
   document.getElementById('kpiCoupang').textContent='₩'+fmt(totO);
   const _km=document.getElementById('kpiMusinsa'); if(_km) _km.textContent='₩'+fmt(totM);
-  const _pm=document.getElementById('profitMusinsaVal'); if(_pm){ _pm.textContent=fmtPrf(totMprf); _pm.style.color=totMprf>=0?'var(--text)':'#E24B4A'; }
-  const _pmr=document.getElementById('profitMusinsaRate'); if(_pmr) _pmr.textContent='수익률 '+fmtRt(totMprf,totM);
+  const _pm=document.getElementById('profitMusinsaVal'); if(_pm){ _pm.textContent=(totMprf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totMprf))); _pm.style.color=totMprf>=0?'var(--text)':'#E24B4A'; }
+  const _pmr=document.getElementById('profitMusinsaRate'); if(_pmr) _pmr.textContent=totM>0?'수익률 '+(totMprf/totM*100).toFixed(1)+'%':'수익률 -';
   // 채널 총매출/수익 = 이커머스 + B2B
   document.getElementById('kpiTotal').textContent='₩'+fmt(grandTotRev);
   document.getElementById('kpiRate').textContent='수익률 '+(grandTotRev>0?grandTotPrf/grandTotRev*100:0).toFixed(1)+'%';
