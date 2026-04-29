@@ -3265,7 +3265,7 @@ function renderExpiryRisk(batchState, avgSales){
       <div style="font-size:14px;font-weight:700;color:var(--text)">유통기한 내 소진 가능성</div>
       <span style="font-size:9px;font-weight:700;color:${allOk?'#34D399':'#F97316'};background:${allOk?'#34D39912':'#F9731612'};padding:2px 8px;border-radius:4px">${allOk?'전품목 안전':'주의 필요'}</span>
     </div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">이커머스 14일 + 수기출고 해당월 합산 평균</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:2px">이커머스 14일 + 수기출고·무신사 해당월 합산 평균</div>
     ${rowsHtml}
   </div>`;
 }
@@ -3493,15 +3493,19 @@ function calcTotalDailyRate(){
   const month = selectedMonth || today.slice(0,7);
   const [my, mm] = month.split('-').map(Number);
   const daysInMonth = new Date(my, mm, 0).getDate();
+  const monthRecs = records.filter(r => r.date.startsWith(month));
 
   const rate = {};
   ORDER_SKUS.forEach(k=>{
-    // 해당월 수기출고 총량 (B2B 유상 + 무상 모두 재고 소진이므로 전체 포함)
+    // B2B 수기출고 (해당월 ÷ 월 일수)
     const b2bTotal = manualOuts
       .filter(r => r.date.startsWith(month))
       .reduce((s,r) => s+(r[k]||0), 0);
     const b2bAvg = Math.round(b2bTotal/daysInMonth*10)/10;
-    rate[k] = Math.round((ecom[k] + b2bAvg)*10)/10;
+    // 무신사 (해당월 ÷ 월 일수)
+    const musiTotal = monthRecs.reduce((s,r) => s+((r.musinsa||{})[k]||0), 0);
+    const musiAvg = Math.round(musiTotal/daysInMonth*10)/10;
+    rate[k] = Math.round((ecom[k] + b2bAvg + musiAvg)*10)/10;
   });
   return rate;
 }
