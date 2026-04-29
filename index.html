@@ -441,7 +441,7 @@
         </div>
       </div>
       <div class="ch-section">
-        <div class="ch-title" style="color:#FF6B35;border-left-color:#FF6B35">무신사</div>
+        <div class="ch-title" style="color:#06B6D4;border-left-color:#06B6D4">무신사</div>
         <div class="sku-grid">
           <div class="sku-input"><label>샴푸</label><input type="number" id="mu_shampoo" value="0" min="0"></div>
           <div class="sku-input"><label>트리트먼트</label><input type="number" id="mu_treatment" value="0" min="0"></div>
@@ -542,12 +542,12 @@
       </div>
 
       <!-- 무신사 매출 + 수익 -->
-      <div class="kpi ch-musinsa" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #FF6B35;border-top:none;border-right:none;border-bottom:none">
-        <div class="kpi-label" style="color:#FF6B35">무신사 매출</div>
+      <div class="kpi ch-musinsa" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #06B6D4;border-top:none;border-right:none;border-bottom:none">
+        <div class="kpi-label" style="color:#06B6D4">무신사 매출</div>
         <div class="kpi-value" id="kpiMusinsa">0</div>
         <div class="kpi-sub">musinsa</div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #3A2010">
-          <div class="kpi-label" style="color:#FF6B35">무신사 수익</div>
+          <div class="kpi-label" style="color:#06B6D4">무신사 수익</div>
           <div class="kpi-value" id="profitMusinsaVal">-</div>
           <div class="kpi-sub" id="profitMusinsaRate">수익률 -</div>
         </div>
@@ -579,7 +579,7 @@
           <span class="leg"><span class="leg-dot" style="background:#7C3AED"></span><span id="legCafe">자사몰</span></span>
           <span class="leg"><span class="leg-dot" style="background:#16A34A"></span><span id="legNaver">네이버</span></span>
           <span class="leg"><span class="leg-dot" style="background:#EA580C"></span><span id="legCoupang">쿠팡</span></span>
-          <span class="leg"><span class="leg-dot" style="background:#FF6B35"></span><span id="legMusinsa">무신사</span></span>
+          <span class="leg"><span class="leg-dot" style="background:#06B6D4"></span><span id="legMusinsa">무신사</span></span>
         </div>
       </div>
     </div>
@@ -598,7 +598,7 @@
             <th style="text-align:right;white-space:nowrap">자사몰</th>
             <th style="text-align:right;white-space:nowrap">네이버</th>
             <th style="text-align:right;white-space:nowrap">쿠팡</th>
-            <th style="text-align:right;white-space:nowrap;color:#FF6B35">무신사</th>
+            <th style="text-align:right;white-space:nowrap;color:#06B6D4">무신사</th>
             <th style="text-align:right;white-space:nowrap;color:#60A5FA">B2B</th>
             <th style="text-align:right;white-space:nowrap">합계</th>
             <th style="text-align:right;white-space:nowrap;color:#60A5FA">단품환산</th>
@@ -740,8 +740,8 @@
       <!-- 무신사 -->
       <div style="background:#1A1D2E;border-radius:12px;padding:14px 16px;border:1px solid #2A3050">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#FF6B35"></div>
-          <div style="font-size:13px;font-weight:700;color:#FF6B35">무신사</div>
+          <div style="width:8px;height:8px;border-radius:2px;background:#06B6D4"></div>
+          <div style="font-size:13px;font-weight:700;color:#06B6D4">무신사</div>
         </div>
         <div class="day-table-wrap">
           <table class="day-tbl">
@@ -1706,7 +1706,7 @@ function renderSkuTable(mRecs){
       ?`<td class="num" style="color:#60A5FA">${b||'-'}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     const muCell=unitSkus.includes(k)
-      ?`<td class="num" style="color:#FF6B35">${mu||'-'}</td>`
+      ?`<td class="num" style="color:#06B6D4">${mu||'-'}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td>${muCell}${bCell}<td class="num">${tot}</td>${unitCell}</tr>`;
   });
@@ -1723,7 +1723,7 @@ function renderSkuTable(mRecs){
     <td class="num" style="color:#9B6DFF">${totalC}</td>
     <td class="num" style="color:#34D399">${totalN}</td>
     <td class="num" style="color:#FB923C">${totalO||'-'}</td>
-    <td class="num" style="color:#FF6B35">${totalMu||'-'}</td>
+    <td class="num" style="color:#06B6D4">${totalMu||'-'}</td>
     <td class="num" style="color:#60A5FA">${totalB||'-'}</td>
     <td class="num">${totalTot}</td>
     <td class="num" style="color:#60A5FA;font-weight:700">${totalUnit}</td>
@@ -1876,7 +1876,7 @@ function initCharts(){
         {label:'자사몰',data:[],backgroundColor:'#9B6DFF',stack:'sales'},
         {label:'네이버',data:[],backgroundColor:'#34D399',stack:'sales'},
         {label:'쿠팡',data:[],backgroundColor:'#FB923C',stack:'sales'},
-        {label:'무신사',data:[],backgroundColor:'#FF6B35',stack:'sales'}
+        {label:'무신사',data:[],backgroundColor:'#06B6D4',stack:'sales'}
       ]
     },
     options:{
@@ -1923,7 +1923,7 @@ function initCharts(){
   });
   donutChart=new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
-    data:{labels:['자사몰','네이버','쿠팡','무신사'],datasets:[{data:[1,0,0,0],backgroundColor:['#9B6DFF','#34D399','#FB923C','#FF6B35'],borderWidth:0}]},
+    data:{labels:['자사몰','네이버','쿠팡','무신사'],datasets:[{data:[1,0,0,0],backgroundColor:['#9B6DFF','#34D399','#FB923C','#06B6D4'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': ₩'+Math.round(c.raw).toLocaleString()}}}}
   });
 }
@@ -3698,7 +3698,7 @@ function renderSkuDetail(id){
   if(!p) return;
 
   const CH_LABELS = {cafe:'자사몰', naver:'네이버', coupang:'쿠팡', musinsa:'무신사'};
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#06B6D4'};
 
   // 채널 탭 HTML
   const chTabs = Object.keys(CH_LABELS).map((ch,i)=>`
@@ -3767,7 +3767,7 @@ function renderSkuDetail(id){
 
 function renderChDetail(p, ch){
   const c = p.channels[ch];
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#06B6D4'};
   const color = CH_COLORS[ch];
 
   if(!c){
@@ -3917,7 +3917,7 @@ function selectChTab(skuId, ch){
   currentDetailCh = ch;
   const p = products.find(x=>x.id===skuId);
   if(!p) return;
-  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#FF6B35'};
+  const CH_COLORS = {cafe:'#9B6DFF', naver:'#34D399', coupang:'#FB923C', musinsa:'#06B6D4'};
   // 탭 스타일 업데이트
   ['cafe','naver','coupang','musinsa'].forEach(c=>{
     const btn = document.getElementById('chtab_'+c);
@@ -4131,7 +4131,7 @@ function renderPriceManager(){
     {key:'cafe',    label:'자사몰',  color:'#9B6DFF'},
     {key:'naver',   label:'네이버',  color:'#34D399'},
     {key:'coupang', label:'쿠팡',    color:'#FB923C'},
-    {key:'musinsa', label:'무신사',  color:'#FF6B35'},
+    {key:'musinsa', label:'무신사',  color:'#06B6D4'},
   ];
   const skuOrder = ['shampoo','treatment','bodywash','bodylotion','hairset','bodyset','washset'];
   const skuName  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
@@ -4216,7 +4216,7 @@ function openAddPriceHistory(skuId, ch){
   const old = document.getElementById('addPriceHistoryModal');
   if(old) old.remove();
 
-  const chColors = {cafe:'#9B6DFF',naver:'#34D399',coupang:'#FB923C',musinsa:'#FF6B35'};
+  const chColors = {cafe:'#9B6DFF',naver:'#34D399',coupang:'#FB923C',musinsa:'#06B6D4'};
   const color = chColors[ch] || '#6366F1';
   const today = getTodayKST();
   const [ty, tm] = today.split('-').map(Number);
