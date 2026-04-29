@@ -440,6 +440,15 @@
           <div class="sku-input"><label>쿠팡광고비</label><input type="number" id="o_adcost" value="0" min="0"></div>
         </div>
       </div>
+      <div class="ch-section">
+        <div class="ch-title" style="color:#FF6B35;border-left-color:#FF6B35">무신사</div>
+        <div class="sku-grid">
+          <div class="sku-input"><label>샴푸</label><input type="number" id="mu_shampoo" value="0" min="0"></div>
+          <div class="sku-input"><label>트리트먼트</label><input type="number" id="mu_treatment" value="0" min="0"></div>
+          <div class="sku-input"><label>바디워시</label><input type="number" id="mu_bodywash" value="0" min="0"></div>
+          <div class="sku-input"><label>바디로션</label><input type="number" id="mu_bodylotion" value="0" min="0"></div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">취소</button>
@@ -482,7 +491,7 @@
     </div>
 
     <!-- 채널 매출 + 수익 통합 그리드 -->
-    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;grid-template-rows:auto;gap:12px;margin-bottom:20px">
+    <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;grid-template-rows:auto;gap:12px;margin-bottom:20px">
 
       <!-- 채널 총매출 -->
       <div class="kpi indigo total-card ch-total" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #0EA5E9;border-top:none;border-right:none;border-bottom:none">
@@ -532,6 +541,18 @@
         </div>
       </div>
 
+      <!-- 무신사 매출 + 수익 -->
+      <div class="kpi ch-musinsa" style="display:flex;flex-direction:column;justify-content:center;border-left:3px solid #FF6B35;border-top:none;border-right:none;border-bottom:none">
+        <div class="kpi-label" style="color:#FF6B35">무신사 매출</div>
+        <div class="kpi-value" id="kpiMusinsa">0</div>
+        <div class="kpi-sub">musinsa</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #3A2010">
+          <div class="kpi-label" style="color:#FF6B35">무신사 수익</div>
+          <div class="kpi-value" id="profitMusinsaVal">-</div>
+          <div class="kpi-sub" id="profitMusinsaRate">수익률 -</div>
+        </div>
+      </div>
+
       <!-- B2B 매출 + 수익 -->
       <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center">
         <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
@@ -558,6 +579,7 @@
           <span class="leg"><span class="leg-dot" style="background:#7C3AED"></span><span id="legCafe">자사몰</span></span>
           <span class="leg"><span class="leg-dot" style="background:#16A34A"></span><span id="legNaver">네이버</span></span>
           <span class="leg"><span class="leg-dot" style="background:#EA580C"></span><span id="legCoupang">쿠팡</span></span>
+          <span class="leg"><span class="leg-dot" style="background:#FF6B35"></span><span id="legMusinsa">무신사</span></span>
         </div>
       </div>
     </div>
@@ -576,6 +598,7 @@
             <th style="text-align:right;white-space:nowrap">자사몰</th>
             <th style="text-align:right;white-space:nowrap">네이버</th>
             <th style="text-align:right;white-space:nowrap">쿠팡</th>
+            <th style="text-align:right;white-space:nowrap;color:#FF6B35">무신사</th>
             <th style="text-align:right;white-space:nowrap;color:#60A5FA">B2B</th>
             <th style="text-align:right;white-space:nowrap">합계</th>
             <th style="text-align:right;white-space:nowrap;color:#60A5FA">단품환산</th>
@@ -711,6 +734,19 @@
           <table class="day-tbl">
             <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
             <tbody id="dayCoupangBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 무신사 -->
+      <div style="background:#1A1D2E;border-radius:12px;padding:14px 16px;border:1px solid #2A3050">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#FF6B35"></div>
+          <div style="font-size:13px;font-weight:700;color:#FF6B35">무신사</div>
+        </div>
+        <div class="day-table-wrap">
+          <table class="day-tbl">
+            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
+            <tbody id="dayMusinsaBody"></tbody>
           </table>
         </div>
       </div>
@@ -1346,17 +1382,18 @@ function render(){
   const mRecs = records.filter(r=>r.date.startsWith(month));
   const days = mRecs.length;
 
-  let totC=0,totN=0,totO=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0;
+  let totC=0,totN=0,totO=0,totM=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0,totMprf=0;
   mRecs.forEach(r=>{
     const d=calcDay(r);
-    totC+=d.cRev; totN+=d.nRev; totO+=d.oRev;
-    totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
+    totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totM+=d.mRev||0;
+    totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; totMprf+=d.mPrf||0;
   });
-  const totRev=totC+totN+totO;
+  const totRev=totC+totN+totO+totM;
   // B2B 해당월 집계
   const b2bMonth = calcB2BByMonth(month);
   const totB2BRev = b2bMonth.rev;
   const totB2BPrf = b2bMonth.prf;
+  // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
   const grandTotRev = totRev + totB2BRev;
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
@@ -1367,6 +1404,9 @@ function render(){
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
   document.getElementById('kpiNaver').textContent='₩'+fmt(totN);
   document.getElementById('kpiCoupang').textContent='₩'+fmt(totO);
+  const _km=document.getElementById('kpiMusinsa'); if(_km) _km.textContent='₩'+fmt(totM);
+  const _pm=document.getElementById('profitMusinsaVal'); if(_pm){ _pm.textContent=fmtPrf(totMprf); _pm.style.color=totMprf>=0?'var(--text)':'#E24B4A'; }
+  const _pmr=document.getElementById('profitMusinsaRate'); if(_pmr) _pmr.textContent='수익률 '+fmtRt(totMprf,totM);
   // 채널 총매출/수익 = 이커머스 + B2B
   document.getElementById('kpiTotal').textContent='₩'+fmt(grandTotRev);
   document.getElementById('kpiRate').textContent='수익률 '+(grandTotRev>0?grandTotPrf/grandTotRev*100:0).toFixed(1)+'%';
@@ -1429,15 +1469,18 @@ function render(){
   if(el) el.innerHTML=coupHtml;
 
   const totPct=totRev>0;
-  const cPct=totPct?Math.round(totC/totRev*100):0;
-  const nPct=totPct?Math.round(totN/totRev*100):0;
-  const oPct=totPct?Math.round(totO/totRev*100):0;
+  const totPctBase = totC+totN+totO+totM;
+  const cPct=totPctBase?Math.round(totC/totPctBase*100):0;
+  const nPct=totPctBase?Math.round(totN/totPctBase*100):0;
+  const oPct=totPctBase?Math.round(totO/totPctBase*100):0;
+  const mPct=totPctBase?Math.round(totM/totPctBase*100):0;
   document.getElementById('legCafe').textContent=`자사몰 ${cPct}%`;
   document.getElementById('legNaver').textContent=`네이버 ${nPct}%`;
   document.getElementById('legCoupang').textContent=`쿠팡 ${oPct}%`;
+  const legMus=document.getElementById('legMusinsa'); if(legMus) legMus.textContent=`무신사 ${mPct}%`;
 
   updateTrendChart(mRecs);
-  updateDonutChart(totC,totN,totO);
+  updateDonutChart(totC,totN,totO,totM);
   renderAchieve(mRecs);
   renderSkuTable(mRecs);
 
@@ -1465,6 +1508,7 @@ function updateTrendChart(mRecs){
   const cData=Array(daysInMonth).fill(null);
   const nData=Array(daysInMonth).fill(null);
   const oData=Array(daysInMonth).fill(null);
+  const mData=Array(daysInMonth).fill(null);
   const tickColors=Array(daysInMonth).fill('#8898AA');
   const _dailyBEP=Math.round(TARGET_TOTAL/daysInMonth);
   mRecs.forEach(r=>{
@@ -1474,6 +1518,7 @@ function updateTrendChart(mRecs){
       if(d.cRev>0) cData[day]=d.cRev;
       if(d.nRev>0) nData[day]=d.nRev;
       if(d.oRev>0) oData[day]=d.oRev;
+      if((d.mRev||0)>0) mData[day]=d.mRev;
       tickColors[day]=d.total>=_dailyBEP?'#E24B4A':'#2563EB';
     }
   });
@@ -1481,6 +1526,7 @@ function updateTrendChart(mRecs){
   trendChart.data.datasets[0].data=cData;
   trendChart.data.datasets[1].data=nData;
   trendChart.data.datasets[2].data=oData;
+  if(trendChart.data.datasets[3]) trendChart.data.datasets[3].data=mData;
   trendChart.options.scales.x.ticks.color=tickColors;
   trendChart.update();
 }
@@ -1533,9 +1579,9 @@ function updateTrendChart(mRecs){
   }, true); // capture phase — 모든 스크롤 이벤트 캐치
 })();
 
-function updateDonutChart(c,n,o){
+function updateDonutChart(c,n,o,m){
   if(donutChart){
-    donutChart.data.datasets[0].data=[c||1,n||0,o||0];
+    donutChart.data.datasets[0].data=[c||1,n||0,o||0,m||0];
     donutChart.update();
   }
 }
@@ -1543,8 +1589,8 @@ function updateDonutChart(c,n,o){
 function renderAchieve(mRecs){
   const wrap=document.getElementById('achieveWrap');
   if(!wrap) return;
-  let totC=0,totN=0,totO=0;
-  mRecs.forEach(r=>{const d=calcDay(r);totC+=d.cRev;totN+=d.nRev;totO+=d.oRev;});
+  let totC=0,totN=0,totO=0,totM=0;
+  mRecs.forEach(r=>{const d=calcDay(r);totC+=d.cRev;totN+=d.nRev;totO+=d.oRev;totM+=d.mRev||0;});
 
   const [_ry,_rm]=selectedMonth.split('-').map(Number);
   const daysInMonth=new Date(_ry,_rm,0).getDate();
@@ -1552,7 +1598,8 @@ function renderAchieve(mRecs){
   const projC=Math.round(totC/enteredDays*daysInMonth);
   const projN=Math.round(totN/enteredDays*daysInMonth);
   const projO=Math.round(totO/enteredDays*daysInMonth);
-  const projTotal=projC+projN+projO;
+  const projM=Math.round(totM/enteredDays*daysInMonth);
+  const projTotal=projC+projN+projO+projM; // 이커머스 전체 (무신사 포함)
 
   const channels=[
     {label:'자사몰  (cafe24)',      actual:totC, target:TARGETS.cafe,    proj:projC, color:'#7C3AED'},
@@ -1606,10 +1653,11 @@ function calcUnitQty(mRecs,sku){
   // B2B 수기출고 (해당월 전체 — 단품만 단순 합산)
   const month = selectedMonth || getTodayKST().slice(0,7);
   const sb=(k)=>manualOuts.filter(r=>r.date.startsWith(month)).reduce((sum,r)=>sum+(r[k]||0),0);
-  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo')+sb('shampoo');
-  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+sb('treatment');
-  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+sb('bodywash');
-  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+sb('bodylotion');
+  const smu=(k)=>mRecs.reduce((sum,r)=>sum+((r.musinsa||{})[k]||0),0);
+  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo')+smu('shampoo')+sb('shampoo');
+  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+smu('treatment')+sb('treatment');
+  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+smu('bodywash')+sb('bodywash');
+  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+smu('bodylotion')+sb('bodylotion');
   return null;
 }
 
@@ -1620,6 +1668,11 @@ function renderSkuTable(mRecs){
   const month = selectedMonth;
   const skuNames2 = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
 
+  // 무신사 이번달 판매 집계
+  const musiQty = {};
+  ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
+    musiQty[k] = mRecs.reduce((s,r)=>s+((r.musinsa||{})[k]||0),0);
+  });
   // B2B 이번달 수기출고 (유상+무상 모두, SKU별 합계)
   const b2bQty = {};
   STOCK_SKUS.forEach(k=>{ b2bQty[k]=0; });
@@ -1633,14 +1686,16 @@ function renderSkuTable(mRecs){
     const n=mRecs.reduce((s,r)=>s+(r.naver[k]||0),0);
     const o=oSkus.includes(k)?mRecs.reduce((s,r)=>s+((r.coupang||{})[k]||0),0):0;
     const b=unitSkus.includes(k)?(b2bQty[k]||0):0;
-    const tot=c+n+o+b;
+    const mu=unitSkus.includes(k)?(musiQty[k]||0):0;
+    const tot=c+n+o+mu+b;
     if(tot===0 && !unitSkus.includes(k)) return;
     const maxTot=Math.max(...skus.map(sk=>{
       const tc=mRecs.reduce((s,r)=>s+(r.cafe[sk]||0),0);
       const tn=mRecs.reduce((s,r)=>s+(r.naver[sk]||0),0);
       const to=oSkus.includes(sk)?mRecs.reduce((s,r)=>s+((r.coupang||{})[sk]||0),0):0;
+      const tmu=unitSkus.includes(sk)?(musiQty[sk]||0):0;
       const tb=unitSkus.includes(sk)?(b2bQty[sk]||0):0;
-      return tc+tn+to+tb;
+      return tc+tn+to+tmu+tb;
     }),1);
     const pct=Math.round(tot/maxTot*100);
     const uq=unitSkus.includes(k)?calcUnitQty(mRecs,k):null;
@@ -1650,25 +1705,30 @@ function renderSkuTable(mRecs){
     const bCell=unitSkus.includes(k)
       ?`<td class="num" style="color:#60A5FA">${b||'-'}</td>`
       :`<td class="num" style="color:#CBD5E0">-</td>`;
-    html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td>${bCell}<td class="num">${tot}</td>${unitCell}</tr>`;
+    const muCell=unitSkus.includes(k)
+      ?`<td class="num" style="color:#FF6B35">${mu||'-'}</td>`
+      :`<td class="num" style="color:#CBD5E0">-</td>`;
+    html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#FB923C">${o||'-'}</td>${muCell}${bCell}<td class="num">${tot}</td>${unitCell}</tr>`;
   });
   // 단품 합계 행
   const totalUnit = unitSkus.reduce((s,k)=>s+(calcUnitQty(mRecs,k)||0),0);
   const totalC = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0),0);
   const totalN = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0),0);
   const totalO = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0),0);
+  const totalMu = unitSkus.reduce((s,k)=>s+(musiQty[k]||0),0);
   const totalB = unitSkus.reduce((s,k)=>s+(b2bQty[k]||0),0);
-  const totalTot = totalC+totalN+totalO+totalB;
+  const totalTot = totalC+totalN+totalO+totalMu+totalB;
   const totalRow = `<tr style="border-top:2px solid var(--border);font-weight:700">
     <td style="color:var(--text2)">합계</td>
     <td class="num" style="color:#9B6DFF">${totalC}</td>
     <td class="num" style="color:#34D399">${totalN}</td>
     <td class="num" style="color:#FB923C">${totalO||'-'}</td>
+    <td class="num" style="color:#FF6B35">${totalMu||'-'}</td>
     <td class="num" style="color:#60A5FA">${totalB||'-'}</td>
     <td class="num">${totalTot}</td>
     <td class="num" style="color:#60A5FA;font-weight:700">${totalUnit}</td>
   </tr>`;
-  document.getElementById('skuBody').innerHTML=(html||'<tr><td colspan="7" class="empty">데이터 없음</td></tr>')+totalRow;
+  document.getElementById('skuBody').innerHTML=(html||'<tr><td colspan="8" class="empty">데이터 없음</td></tr>')+totalRow;
 }
 
 function renderDayTable(mRecs){
@@ -1704,13 +1764,25 @@ function renderDayTable(mRecs){
   document.getElementById('dayNaverBody').innerHTML=nHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
 
   let oHtml=''; let tOr=0,tOp=0;
+  let muHtml=''; let tMr=0,tMp=0;
   sorted.forEach(r=>{
     const d=calcDay(r); tOr+=d.oRev; tOp+=d.oPrf;
     const rate=d.oRev>0?((d.oPrf/d.oRev)*100).toFixed(1)+'%':'-';
     oHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td><td>${rate}</td></tr>`;
   });
   if(sorted.length>0) oHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tOr)}</td><td>₩${fmt(tOp)}</td><td>${tOr>0?((tOp/tOr)*100).toFixed(1)+'%':'-'}</td></tr>`;
+  // 무신사
+  sorted.forEach(r=>{
+    const d=calcDay(r);
+    if(!d.mRev) return;
+    tMr+=d.mRev; tMp+=d.mPrf;
+    const rate=d.mRev>0?((d.mPrf/d.mRev)*100).toFixed(1)+'%':'-';
+    muHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.mRev)}</td><td>₩${fmt(d.mPrf)}</td><td>${rate}</td></tr>`;
+  });
+  if(sorted.length>0 && tMr>0) muHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tMr)}</td><td>₩${fmt(tMp)}</td><td>${tMr>0?((tMp/tMr)*100).toFixed(1)+'%':'-'}</td></tr>`;
   document.getElementById('dayCoupangBody').innerHTML=oHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+  const dayMusEl = document.getElementById('dayMusinsaBody');
+  if(dayMusEl) dayMusEl.innerHTML=muHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
 
   let qcHtml=''; let tcS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
   sorted.forEach(r=>{
@@ -1803,7 +1875,8 @@ function initCharts(){
       datasets:[
         {label:'자사몰',data:[],backgroundColor:'#9B6DFF',stack:'sales'},
         {label:'네이버',data:[],backgroundColor:'#34D399',stack:'sales'},
-        {label:'쿠팡',data:[],backgroundColor:'#FB923C',stack:'sales'}
+        {label:'쿠팡',data:[],backgroundColor:'#FB923C',stack:'sales'},
+        {label:'무신사',data:[],backgroundColor:'#FF6B35',stack:'sales'}
       ]
     },
     options:{
@@ -1850,7 +1923,7 @@ function initCharts(){
   });
   donutChart=new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
-    data:{labels:['자사몰','네이버','쿠팡'],datasets:[{data:[1,0,0],backgroundColor:['#9B6DFF','#34D399','#FB923C'],borderWidth:0}]},
+    data:{labels:['자사몰','네이버','쿠팡','무신사'],datasets:[{data:[1,0,0,0],backgroundColor:['#9B6DFF','#34D399','#FB923C','#FF6B35'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': ₩'+Math.round(c.raw).toLocaleString()}}}}
   });
 }
@@ -1858,15 +1931,17 @@ function initCharts(){
 function fillModalByDate(date){
   ['c_shampoo','c_treatment','c_hairset','c_bodywash','c_bodylotion','c_bodyset','c_washset',
    'n_shampoo','n_treatment','n_hairset','n_bodywash','n_bodylotion','n_bodyset','n_washset',
-   'o_shampoo','o_treatment','o_bodywash','o_bodylotion','o_fulfil','o_coupon','o_adcost'].forEach(id=>{
-    document.getElementById(id).value=0;
+   'o_shampoo','o_treatment','o_bodywash','o_bodylotion','o_fulfil','o_coupon','o_adcost',
+   'mu_shampoo','mu_treatment','mu_bodywash','mu_bodylotion'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value=0;
   });
   const existing=records.find(r=>r.date===date);
   if(existing){
-    const c=existing.cafe||{}, n=existing.naver||{}, o=existing.coupang||{};
+    const c=existing.cafe||{}, n=existing.naver||{}, o=existing.coupang||{}, mu=existing.musinsa||{};
     for(const k in c) if(document.getElementById('c_'+k)) document.getElementById('c_'+k).value=c[k]||0;
     for(const k in n) if(document.getElementById('n_'+k)) document.getElementById('n_'+k).value=n[k]||0;
     for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
+    for(const k in mu) if(document.getElementById('mu_'+k)) document.getElementById('mu_'+k).value=mu[k]||0;
   }
 }
 function openModal(){
@@ -1902,7 +1977,8 @@ async function saveDay(){
     date,
     cafe:{shampoo:gv('c_shampoo'),treatment:gv('c_treatment'),hairset:gv('c_hairset'),bodywash:gv('c_bodywash'),bodylotion:gv('c_bodylotion'),bodyset:gv('c_bodyset'),washset:gv('c_washset')},
     naver:{shampoo:gv('n_shampoo'),treatment:gv('n_treatment'),hairset:gv('n_hairset'),bodywash:gv('n_bodywash'),bodylotion:gv('n_bodylotion'),bodyset:gv('n_bodyset'),washset:gv('n_washset')},
-    coupang:{shampoo:gv('o_shampoo'),treatment:gv('o_treatment'),bodywash:gv('o_bodywash'),bodylotion:gv('o_bodylotion'),fulfil:gv('o_fulfil'),coupon:gv('o_coupon'),adcost:gv('o_adcost')}
+    coupang:{shampoo:gv('o_shampoo'),treatment:gv('o_treatment'),bodywash:gv('o_bodywash'),bodylotion:gv('o_bodylotion'),fulfil:gv('o_fulfil'),coupon:gv('o_coupon'),adcost:gv('o_adcost')},
+    musinsa:{shampoo:gv('mu_shampoo'),treatment:gv('mu_treatment'),bodywash:gv('mu_bodywash'),bodylotion:gv('mu_bodylotion')}
   };
   // 저장 전 Firebase에서 최신 records를 먼저 가져와서 해당 날짜만 업데이트
   // 다른 기기에서 추가된 데이터를 덮어쓰지 않기 위함
@@ -1959,17 +2035,18 @@ function renderInsight(){
     return;
   }
 
-  let totC=0,totN=0,totO=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0;
+  let totC=0,totN=0,totO=0,totM=0,totPrf=0,totCprf=0,totNprf=0,totOprf=0,totMprf=0;
   mRecs.forEach(r=>{
     const d=calcDay(r);
-    totC+=d.cRev; totN+=d.nRev; totO+=d.oRev;
-    totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf;
+    totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totM+=d.mRev||0;
+    totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; totMprf+=d.mPrf||0;
   });
-  const totRev=totC+totN+totO;
+  const totRev=totC+totN+totO+totM;
   // B2B 해당월 집계
   const b2bMonth = calcB2BByMonth(month);
   const totB2BRev = b2bMonth.rev;
   const totB2BPrf = b2bMonth.prf;
+  // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
   const grandTotRev = totRev + totB2BRev;
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
@@ -2115,6 +2192,13 @@ function renderInsight(){
   `).join('');
 
   renderSkuProfit(mRecs);
+
+  // 무신사 카드 업데이트
+  const _musEl=document.getElementById('kpiMusinsa'); if(_musEl) _musEl.textContent='₩'+fmt(totM);
+  const _musPrfEl=document.getElementById('profitMusinsaVal');
+  if(_musPrfEl){ _musPrfEl.textContent=(totMprf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totMprf))); _musPrfEl.style.color=totMprf>=0?'var(--text)':'#E24B4A'; }
+  const _musRateEl=document.getElementById('profitMusinsaRate');
+  if(_musRateEl) _musRateEl.textContent=totM>0?'수익률 '+(totMprf/totM*100).toFixed(1)+'%':'수익률 -';
 
   // B2B 카드 업데이트 (renderInsight 내)
   const _b2bEl=document.getElementById('kpiB2B');
@@ -3933,7 +4017,8 @@ function openProfitDetail(){
   const days = mRecs.length;
   const daysInMonth = new Date(iy,im,0).getDate();
 
-  let totPrf=0, totCprf=0, totNprf=0, totOprf=0;
+  let totPrf=0, totCprf=0, totNprf=0, totOprf=0, totMprf2=0;
+  // totMprf2: 무신사 수익 집계 (SKU별 수익성 분석용)
   mRecs.forEach(r=>{ const d=calcDay(r); totPrf+=d.profit; totCprf+=d.cPrf; totNprf+=d.nPrf; totOprf+=d.oPrf; });
 
   const metaAd=calcMetaAd(mRecs), naverAd=calcNaverAd(mRecs);
