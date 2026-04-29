@@ -1763,18 +1763,19 @@ function renderDayTable(mRecs){
     return {recentHtml, olderHtml, tR, tP};
   }
 
-  // older 펼치기 버튼 생성
+  // older 펼치기 버튼 생성 — tr class 방식 (tbody 중첩 불가)
   function olderSection(id, olderHtml, colSpan=4){
     if(!olderHtml || !older.length) return '';
-    return `
-      <tr id="olderToggle_${id}">
+    // 이전 행에 class 추가해서 숨기기
+    const hiddenRows = olderHtml.replace(/<tr>/g, `<tr class="older-row older-${id}" style="display:none">`);
+    return `${hiddenRows}
+      <tr id="olderToggle_${id}" class="older-toggle-row">
         <td colspan="${colSpan}" style="text-align:center;padding:8px;cursor:pointer" onclick="toggleOlder('${id}')">
           <span style="font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:4px 12px;display:inline-block">
             ▲ 이전 ${older.length}일 기록 보기
           </span>
         </td>
-      </tr>
-      <tbody id="olderRows_${id}" style="display:none">${olderHtml}</tbody>`;
+      </tr>`;
   }
 
   // ── 자사몰 ──
@@ -1873,13 +1874,17 @@ function renderDayTable(mRecs){
 }
 
 function toggleOlder(id){
-  const rows = document.getElementById('olderRows_'+id);
+  const rows = document.querySelectorAll(`.older-${id}`);
   const btn  = document.getElementById('olderToggle_'+id);
-  if(!rows) return;
-  const isHidden = rows.style.display === 'none';
-  rows.style.display = isHidden ? '' : 'none';
-  if(btn) btn.querySelector('span').textContent =
-    isHidden ? `▼ 이전 기록 접기` : `▲ 이전 ${rows.querySelectorAll('tr').length}일 기록 보기`;
+  if(!rows.length) return;
+  const isHidden = rows[0].style.display === 'none';
+  rows.forEach(r => r.style.display = isHidden ? '' : 'none');
+  if(btn){
+    const span = btn.querySelector('span');
+    if(span) span.textContent = isHidden
+      ? `▼ 이전 기록 접기`
+      : `▲ 이전 ${rows.length}일 기록 보기`;
+  }
 }
 
 function calcPrevMonthMargin(){
