@@ -1605,6 +1605,7 @@ function renderAchieve(mRecs){
     {label:'자사몰  (cafe24)',      actual:totC, target:TARGETS.cafe,    proj:projC, color:'#7C3AED'},
     {label:'네이버  스마트스토어',   actual:totN, target:TARGETS.naver,   proj:projN, color:'#16A34A'},
     {label:'쿠팡',                  actual:totO, target:TARGETS.coupang, proj:projO, color:'#EA580C'},
+    {label:'무신사',                actual:totM, target:TARGETS.musinsa, proj:projM, color:'#06B6D4'},
   ];
 
   const projHtml=`<div style="background:#1E2236;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
@@ -1737,6 +1738,10 @@ function renderDayTable(mRecs){
   const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
   const oSkus=['shampoo','treatment','bodywash','bodylotion'];
 
+  // 최근 14일 / 이전 분리
+  const recent = sorted.slice(-14);
+  const older  = sorted.slice(0, sorted.length - 14);
+
   const dateCell=(date)=>{
     const _dt=new Date(date+'T00:00:00+09:00');
     const _di=_dt.getDay();
@@ -1745,74 +1750,136 @@ function renderDayTable(mRecs){
     return `<td>${day}일 <span style="color:${_dc};font-weight:600">(${_dow[_di]})</span></td>`;
   };
 
-  let cHtml=''; let tCr=0,tCp=0;
-  sorted.forEach(r=>{
+  // 채널별 HTML 생성 함수 (recent/older 분리)
+  function buildRevHtml(rows, getRevPrf, colSpan=4){
+    let recentHtml='', olderHtml='', tR=0, tP=0;
+    rows.forEach((r, isOld) => {
+      const {rev, prf} = getRevPrf(r);
+      tR += rev; tP += prf;
+      const rate = rev>0 ? ((prf/rev)*100).toFixed(1)+'%' : '-';
+      const row = `<tr>${dateCell(r.date)}<td>₩${fmt(rev)}</td><td>₩${fmt(prf)}</td><td>${rate}</td></tr>`;
+      if(isOld) olderHtml += row; else recentHtml += row;
+    });
+    return {recentHtml, olderHtml, tR, tP};
+  }
+
+  // older 펼치기 버튼 생성
+  function olderSection(id, olderHtml, colSpan=4){
+    if(!olderHtml || !older.length) return '';
+    return `
+      <tr id="olderToggle_${id}">
+        <td colspan="${colSpan}" style="text-align:center;padding:8px;cursor:pointer" onclick="toggleOlder('${id}')">
+          <span style="font-size:11px;color:var(--text3);border:1px solid var(--border);border-radius:6px;padding:4px 12px;display:inline-block">
+            ▲ 이전 ${older.length}일 기록 보기
+          </span>
+        </td>
+      </tr>
+      <tbody id="olderRows_${id}" style="display:none">${olderHtml}</tbody>`;
+  }
+
+  // ── 자사몰 ──
+  let tCr=0, tCp=0;
+  let cRecent='', cOlder='';
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const d=calcDay(r); tCr+=d.cRev; tCp+=d.cPrf;
     const rate=d.cRev>0?((d.cPrf/d.cRev)*100).toFixed(1)+'%':'-';
-    cHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td><td>${rate}</td></tr>`;
+    const row=`<tr>${dateCell(r.date)}<td>₩${fmt(d.cRev)}</td><td>₩${fmt(d.cPrf)}</td><td>${rate}</td></tr>`;
+    if(isOld) cOlder+=row; else cRecent+=row;
   });
-  if(sorted.length>0) cHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tCr)}</td><td>₩${fmt(tCp)}</td><td>${tCr>0?((tCp/tCr)*100).toFixed(1)+'%':'-'}</td></tr>`;
-  document.getElementById('dayCafeBody').innerHTML=cHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+  const cTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td><td>₩${fmt(tCr)}</td><td>₩${fmt(tCp)}</td><td>${tCr>0?((tCp/tCr)*100).toFixed(1)+'%':'-'}</td></tr>` : '';
+  document.getElementById('dayCafeBody').innerHTML =
+    olderSection('cafe', cOlder) + cRecent + cTotal || '<tr><td colspan="4" class="empty">-</td></tr>';
 
-  let nHtml=''; let tNr=0,tNp=0;
-  sorted.forEach(r=>{
+  // ── 네이버 ──
+  let tNr=0, tNp=0;
+  let nRecent='', nOlder='';
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const d=calcDay(r); tNr+=d.nRev; tNp+=d.nPrf;
     const rate=d.nRev>0?((d.nPrf/d.nRev)*100).toFixed(1)+'%':'-';
-    nHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td><td>${rate}</td></tr>`;
+    const row=`<tr>${dateCell(r.date)}<td>₩${fmt(d.nRev)}</td><td>₩${fmt(d.nPrf)}</td><td>${rate}</td></tr>`;
+    if(isOld) nOlder+=row; else nRecent+=row;
   });
-  if(sorted.length>0) nHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tNr)}</td><td>₩${fmt(tNp)}</td><td>${tNr>0?((tNp/tNr)*100).toFixed(1)+'%':'-'}</td></tr>`;
-  document.getElementById('dayNaverBody').innerHTML=nHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+  const nTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td><td>₩${fmt(tNr)}</td><td>₩${fmt(tNp)}</td><td>${tNr>0?((tNp/tNr)*100).toFixed(1)+'%':'-'}</td></tr>` : '';
+  document.getElementById('dayNaverBody').innerHTML =
+    olderSection('naver', nOlder) + nRecent + nTotal || '<tr><td colspan="4" class="empty">-</td></tr>';
 
-  let oHtml=''; let tOr=0,tOp=0;
-  let muHtml=''; let tMr=0,tMp=0;
-  sorted.forEach(r=>{
+  // ── 쿠팡 ──
+  let tOr=0, tOp=0;
+  let oRecent='', oOlder='';
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const d=calcDay(r); tOr+=d.oRev; tOp+=d.oPrf;
     const rate=d.oRev>0?((d.oPrf/d.oRev)*100).toFixed(1)+'%':'-';
-    oHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td><td>${rate}</td></tr>`;
+    const row=`<tr>${dateCell(r.date)}<td>₩${fmt(d.oRev)}</td><td>₩${fmt(d.oPrf)}</td><td>${rate}</td></tr>`;
+    if(isOld) oOlder+=row; else oRecent+=row;
   });
-  if(sorted.length>0) oHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tOr)}</td><td>₩${fmt(tOp)}</td><td>${tOr>0?((tOp/tOr)*100).toFixed(1)+'%':'-'}</td></tr>`;
-  // 무신사
-  sorted.forEach(r=>{
+  const oTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td><td>₩${fmt(tOr)}</td><td>₩${fmt(tOp)}</td><td>${tOr>0?((tOp/tOr)*100).toFixed(1)+'%':'-'}</td></tr>` : '';
+  document.getElementById('dayCoupangBody').innerHTML =
+    olderSection('coupang', oOlder) + oRecent + oTotal || '<tr><td colspan="4" class="empty">-</td></tr>';
+
+  // ── 무신사 ──
+  let tMr=0, tMp=0;
+  let muRecent='', muOlder='';
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const d=calcDay(r);
-    if(!d.mRev) return;
+    if(!(d.mRev||0)) return;
     tMr+=d.mRev; tMp+=d.mPrf;
     const rate=d.mRev>0?((d.mPrf/d.mRev)*100).toFixed(1)+'%':'-';
-    muHtml+=`<tr>${dateCell(r.date)}<td>₩${fmt(d.mRev)}</td><td>₩${fmt(d.mPrf)}</td><td>${rate}</td></tr>`;
+    const row=`<tr>${dateCell(r.date)}<td>₩${fmt(d.mRev)}</td><td>₩${fmt(d.mPrf)}</td><td>${rate}</td></tr>`;
+    if(isOld) muOlder+=row; else muRecent+=row;
   });
-  if(sorted.length>0 && tMr>0) muHtml+=`<tr class="total-row"><td>합계</td><td>₩${fmt(tMr)}</td><td>₩${fmt(tMp)}</td><td>${tMr>0?((tMp/tMr)*100).toFixed(1)+'%':'-'}</td></tr>`;
-  document.getElementById('dayCoupangBody').innerHTML=oHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+  const muTotal = tMr>0 ? `<tr class="total-row"><td>합계</td><td>₩${fmt(tMr)}</td><td>₩${fmt(tMp)}</td><td>${tMr>0?((tMp/tMr)*100).toFixed(1)+'%':'-'}</td></tr>` : '';
   const dayMusEl = document.getElementById('dayMusinsaBody');
-  if(dayMusEl) dayMusEl.innerHTML=muHtml||'<tr><td colspan="4" class="empty">-</td></tr>';
+  if(dayMusEl) dayMusEl.innerHTML =
+    olderSection('musinsa', muOlder) + muRecent + muTotal || '<tr><td colspan="4" class="empty">-</td></tr>';
 
-  let qcHtml=''; let tcS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
-  sorted.forEach(r=>{
+  // ── 수량: 자사몰 ──
+  let qcHtml='', qcOlder=''; let tcS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const c=r.cafe||{};
     cSkus.forEach(k=>tcS[k]+=(c[k]||0));
     const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
-    qcHtml+=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(c[k]||0)).join('')}</tr>`;
+    const row=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(c[k]||0)).join('')}</tr>`;
+    if(isOld) qcOlder+=row; else qcHtml+=row;
   });
-  if(sorted.length>0) qcHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tcS[k]?`<td style="font-weight:700">${tcS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
-  document.getElementById('dayQtyCafeBody').innerHTML=qcHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
+  const qcTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td>${cSkus.map(k=>tcS[k]?`<td style="font-weight:700">${tcS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>` : '';
+  document.getElementById('dayQtyCafeBody').innerHTML =
+    olderSection('qtyCafe', qcOlder, 8) + qcHtml + qcTotal || '<tr><td colspan="8" class="empty">-</td></tr>';
 
-  let qnHtml=''; let tnS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
-  sorted.forEach(r=>{
+  // ── 수량: 네이버 ──
+  let qnHtml='', qnOlder=''; let tnS={shampoo:0,treatment:0,hairset:0,bodywash:0,bodylotion:0,bodyset:0,washset:0};
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const n=r.naver||{};
     cSkus.forEach(k=>tnS[k]+=(n[k]||0));
     const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
-    qnHtml+=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(n[k]||0)).join('')}</tr>`;
+    const row=`<tr>${dateCell(r.date)}${cSkus.map(k=>cell(n[k]||0)).join('')}</tr>`;
+    if(isOld) qnOlder+=row; else qnHtml+=row;
   });
-  if(sorted.length>0) qnHtml+=`<tr class="total-row"><td>합계</td>${cSkus.map(k=>tnS[k]?`<td style="font-weight:700">${tnS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
-  document.getElementById('dayQtyNaverBody').innerHTML=qnHtml||'<tr><td colspan="8" class="empty">-</td></tr>';
+  const qnTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td>${cSkus.map(k=>tnS[k]?`<td style="font-weight:700">${tnS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>` : '';
+  document.getElementById('dayQtyNaverBody').innerHTML =
+    olderSection('qtyNaver', qnOlder, 8) + qnHtml + qnTotal || '<tr><td colspan="8" class="empty">-</td></tr>';
 
-  let qoHtml=''; let toS={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
-  sorted.forEach(r=>{
+  // ── 수량: 쿠팡 ──
+  let qoHtml='', qoOlder=''; let toS={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
+  [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const o=r.coupang||{};
     oSkus.forEach(k=>toS[k]+=(o[k]||0));
     const cell=v=>v?`<td style="font-weight:600">${v}</td>`:`<td style="color:#CBD5E1">-</td>`;
-    qoHtml+=`<tr>${dateCell(r.date)}${oSkus.map(k=>cell(o[k]||0)).join('')}</tr>`;
+    const row=`<tr>${dateCell(r.date)}${oSkus.map(k=>cell(o[k]||0)).join('')}</tr>`;
+    if(isOld) qoOlder+=row; else qoHtml+=row;
   });
-  if(sorted.length>0) qoHtml+=`<tr class="total-row"><td>합계</td>${oSkus.map(k=>toS[k]?`<td style="font-weight:700">${toS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>`;
-  document.getElementById('dayQtyCoupangBody').innerHTML=qoHtml||'<tr><td colspan="5" class="empty">-</td></tr>';
+  const qoTotal = sorted.length>0 ? `<tr class="total-row"><td>합계</td>${oSkus.map(k=>toS[k]?`<td style="font-weight:700">${toS[k]}</td>`:`<td style="color:#CBD5E1">-</td>`).join('')}</tr>` : '';
+  document.getElementById('dayQtyCoupangBody').innerHTML =
+    olderSection('qtyCoupang', qoOlder, 5) + qoHtml + qoTotal || '<tr><td colspan="5" class="empty">-</td></tr>';
+}
+
+function toggleOlder(id){
+  const rows = document.getElementById('olderRows_'+id);
+  const btn  = document.getElementById('olderToggle_'+id);
+  if(!rows) return;
+  const isHidden = rows.style.display === 'none';
+  rows.style.display = isHidden ? '' : 'none';
+  if(btn) btn.querySelector('span').textContent =
+    isHidden ? `▼ 이전 기록 접기` : `▲ 이전 ${rows.querySelectorAll('tr').length}일 기록 보기`;
 }
 
 function calcPrevMonthMargin(){
@@ -1859,12 +1926,12 @@ function calcChannelShares(){
 }
 
 let TARGET_TOTAL = Math.round((META_AD_DAILY*19+NAVER_AD_DAILY*13+Math.round(AGENCY_FEE/30*20)+1000000)/0.47); // 4월 실제 기준
-let TARGETS={cafe:Math.round(TARGET_TOTAL*0.66),naver:Math.round(TARGET_TOTAL*0.29),coupang:Math.round(TARGET_TOTAL*0.05)};
+let TARGETS={cafe:Math.round(TARGET_TOTAL*0.60),naver:Math.round(TARGET_TOTAL*0.28),coupang:Math.round(TARGET_TOTAL*0.05),musinsa:Math.round(TARGET_TOTAL*0.07)};
 
 function refreshTargets(){
   TARGET_TOTAL = calcTargetTotal();
   const sh = calcChannelShares();
-  TARGETS = {cafe:Math.round(TARGET_TOTAL*sh.c),naver:Math.round(TARGET_TOTAL*sh.n),coupang:Math.round(TARGET_TOTAL*sh.o)};
+  TARGETS = {cafe:Math.round(TARGET_TOTAL*sh.c),naver:Math.round(TARGET_TOTAL*sh.n),coupang:Math.round(TARGET_TOTAL*sh.o),musinsa:Math.round(TARGET_TOTAL*(sh.m||0.07))};
 }
 
 function initCharts(){
