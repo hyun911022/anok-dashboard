@@ -1423,7 +1423,7 @@ function render(){
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const profit=(totPrf+totMprf)-metaAd-naverAdTotal-agencyFee; // 이커머스 전체 (무신사 포함)
+  const profit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
   const rate=totRev>0?totPrf/totRev:0;
 
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
@@ -2148,7 +2148,7 @@ function renderInsight(){
   const grandTotPrf = totPrf + totB2BPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const netProfit=(totPrf+totMprf)-metaAd-naverAdTotal-agencyFee; // 이커머스 전체 (무신사 포함)
+  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
   // 이커머스+B2B 합산 기준 일평균/예상월매출
   const avgDaily=Math.round(grandTotRev/days);
   const projTotal=Math.round(avgDaily*daysInMonth);
