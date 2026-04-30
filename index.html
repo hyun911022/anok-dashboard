@@ -1627,12 +1627,23 @@ function renderAchieve(mRecs){
 
   const [_ry,_rm]=selectedMonth.split('-').map(Number);
   const daysInMonth=new Date(_ry,_rm,0).getDate();
-  const enteredDays=mRecs.length||1;
-  const projC=Math.round(totC/enteredDays*daysInMonth);
-  const projN=Math.round(totN/enteredDays*daysInMonth);
-  const projO=Math.round(totO/enteredDays*daysInMonth);
-  const projM=Math.round(totM/enteredDays*daysInMonth);
-  const projTotal=projC+projN+projO+projM; // 이커머스 전체 (무신사 포함)
+
+  // 일평균: 최근 14일 기준 (월 탭과 무관하게 오늘 기준 14일)
+  const ecom14 = calcAvgDailySales(14); // {shampoo, treatment, ...} → 채널별 아님
+  // calcAvgDailySales는 SKU별이라 채널별 일평균은 최근 14일 records로 직접 계산
+  const today = getTodayKST();
+  const from14 = new Date(today); from14.setDate(from14.getDate()-13);
+  const from14Str = from14.toISOString().split('T')[0];
+  const recent14 = records.filter(r=>r.date>=from14Str && r.date<=today);
+  const r14days = recent14.length || 1;
+  let r14C=0,r14N=0,r14O=0,r14M=0;
+  recent14.forEach(r=>{const d=calcDay(r);r14C+=d.cRev;r14N+=d.nRev;r14O+=d.oRev;r14M+=d.mRev||0;});
+
+  const projC=Math.round(r14C/r14days*daysInMonth);
+  const projN=Math.round(r14N/r14days*daysInMonth);
+  const projO=Math.round(r14O/r14days*daysInMonth);
+  const projM=Math.round(r14M/r14days*daysInMonth);
+  const projTotal=projC+projN+projO+projM;
 
   const channels=[
     {label:'자사몰  (cafe24)',      actual:totC, target:TARGETS.cafe,    proj:projC, color:'#7C3AED'},
@@ -3502,25 +3513,28 @@ function saveOrderData(){
 
 // 이커머스 + 수기출고 합산 일평균 소진 속도
 function calcTotalDailyRate(){
-  const ecom = calcAvgDailySales(14); // 최근 14일 이커머스
+  // 모두 최근 14일 기준으로 통일
   const today = getTodayKST();
-  // B2B: 이번 달(selectedMonth) 기준, 해당월 일수로 스무딩
-  const month = selectedMonth || today.slice(0,7);
-  const [my, mm] = month.split('-').map(Number);
-  const daysInMonth = new Date(my, mm, 0).getDate();
-  const monthRecs = records.filter(r => r.date.startsWith(month));
+  const from14 = new Date(today); from14.setDate(from14.getDate()-13);
+  const from14Str = from14.toISOString().split('T')[0];
+  const recent14 = records.filter(r => r.date >= from14Str && r.date <= today);
+  const days14 = recent14.length || 1;
 
   const rate = {};
   ORDER_SKUS.forEach(k=>{
-    // B2B 수기출고 (해당월 ÷ 월 일수)
+    // 이커머스 (cafe+naver+coupang) 최근 14일 평균
+    const ecomTotal = recent14.reduce((s,r)=>{
+      const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+      return s+(c[k]||0)+(n[k]||0)+(o[k]||0);
+    },0);
+    // 무신사 최근 14일 평균
+    const musiTotal = recent14.reduce((s,r)=>s+((r.musinsa||{})[k]||0),0);
+    // B2B 수기출고 최근 14일 평균
     const b2bTotal = manualOuts
-      .filter(r => r.date.startsWith(month))
+      .filter(r => r.date >= from14Str && r.date <= today)
       .reduce((s,r) => s+(r[k]||0), 0);
-    const b2bAvg = Math.round(b2bTotal/daysInMonth*10)/10;
-    // 무신사 (해당월 ÷ 월 일수)
-    const musiTotal = monthRecs.reduce((s,r) => s+((r.musinsa||{})[k]||0), 0);
-    const musiAvg = Math.round(musiTotal/daysInMonth*10)/10;
-    rate[k] = Math.round((ecom[k] + b2bAvg + musiAvg)*10)/10;
+    const total = ecomTotal + musiTotal + b2bTotal;
+    rate[k] = Math.round(total/days14*10)/10;
   });
   return rate;
 }
