@@ -3101,6 +3101,7 @@ function renderStock(){
             제조 ${fmtDate(b.mfgDate)} · 유통 ${fmtDate(b.expiry)}${pctBadge}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+            <span style="font-size:10px;color:var(--text3)">일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</span>
             <span style="font-size:13px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</span>
             <span style="font-size:9px;font-weight:700;color:${tagColor};background:${tagColor}18;padding:2px 7px;border-radius:4px;white-space:nowrap">${tag}</span>
           </div>
