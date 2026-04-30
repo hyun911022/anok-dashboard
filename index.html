@@ -1407,6 +1407,8 @@ function render(){
 
   // 드롭다운 재구성
   initMonthSelect();
+  // selectedMonth 확정 후 TARGET_TOTAL 재계산
+  refreshTargets();
 
   const month = selectedMonth;
   const [selYear, selMonthNum] = month.split('-').map(Number);
