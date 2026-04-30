@@ -1208,15 +1208,13 @@ function calcNaverAd(mRecs){
 }
 function calcMetaAd(mRecs){
   // 4월: 4/19까지 / 5월~: 0
-  if(!mRecs.length) return 0;
-  const month = mRecs[0].date.slice(0,7);
+  const month = mRecs.length ? mRecs[0].date.slice(0,7) : (selectedMonth||getTodayKST().slice(0,7));
   if(month < '2026-05') return mRecs.filter(r=>r.date<='2026-04-19').length * META_AD_DAILY;
   return 0;
 }
 function calcAgencyFee(mRecs){
   // 4월: 4/20까지 / 5월~: 0
-  if(!mRecs.length) return 0;
-  const month = mRecs[0].date.slice(0,7);
+  const month = mRecs.length ? mRecs[0].date.slice(0,7) : (selectedMonth||getTodayKST().slice(0,7));
   if(month < '2026-05') return Math.round(AGENCY_FEE/30*mRecs.filter(r=>r.date<='2026-04-20').length);
   return 0;
 }
@@ -1936,9 +1934,9 @@ function calcPrevMonthMargin(){
 
 function calcTargetTotal(){
   const margin = calcPrevMonthMargin(); // 전월 실제 마진율 자동 사용
-  const curMonth = getTodayKST().slice(0,7);
+  const viewMonth = selectedMonth || getTodayKST().slice(0,7);
   // 4월: 실제 광고+대행료 / 5월~: 광고비 0
-  const monthlyFixed = curMonth < '2026-05'
+  const monthlyFixed = viewMonth < '2026-05'
     ? META_AD_DAILY*19 + NAVER_AD_DAILY*13 + Math.round(AGENCY_FEE/30*20)
     : 0;
   return Math.round((monthlyFixed + 1000000) / margin);
@@ -1967,11 +1965,9 @@ function calcChannelShares(){
   return {c:0.48, n:0.34, o:0.18}; // 3월 실적 기본값
 }
 
-// TARGET_TOTAL: (월 고정비 + 목표이익 100만) ÷ 전월실제마진율
-// 5월: 광고비 0, 마진율 = 4월 실제 47.3%
-// 매달 전월 실제 마진율로 자동 업데이트 (calcPrevMonthMargin 사용)
-let TARGET_TOTAL = Math.round(1000000 / 0.473); // 5월 기준 ≈ ₩2,114,000
-// 채널별 목표: 4월 오가닉 실적 비중 기준 (자사몰7%, 네이버57%, 쿠팡30%, 무신사6%)
+// TARGET_TOTAL: selectedMonth 기준으로 자동 계산
+// 4월 탭 → 4월 기준 (광고비 포함) / 5월~ → 광고비 0
+let TARGET_TOTAL = calcTargetTotal();
 let TARGETS={cafe:Math.round(TARGET_TOTAL*0.071),naver:Math.round(TARGET_TOTAL*0.566),coupang:Math.round(TARGET_TOTAL*0.304),musinsa:Math.round(TARGET_TOTAL*0.059)};
 
 function refreshTargets(){
