@@ -1966,8 +1966,8 @@ function calcChannelShares(){
 }
 
 // TARGET_TOTAL: selectedMonth 기준으로 자동 계산
-// 4월 탭 → 4월 기준 (광고비 포함) / 5월~ → 광고비 0
-let TARGET_TOTAL = calcTargetTotal();
+// 초기값은 임시 — refreshTargets()에서 selectedMonth 확정 후 재계산됨
+let TARGET_TOTAL = Math.round((META_AD_DAILY*19 + NAVER_AD_DAILY*13 + Math.round(AGENCY_FEE/30*20) + 1000000) / 0.47); // 4월 기본값
 let TARGETS={cafe:Math.round(TARGET_TOTAL*0.071),naver:Math.round(TARGET_TOTAL*0.566),coupang:Math.round(TARGET_TOTAL*0.304),musinsa:Math.round(TARGET_TOTAL*0.059)};
 
 function refreshTargets(){
