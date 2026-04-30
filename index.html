@@ -3278,7 +3278,7 @@ function renderExpiryRisk(batchState, avgSales){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:12px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</div>
-          ${bi===0 ? `<div style="font-size:9px;color:var(--text3)">${daily>0?daily.toFixed(1)+'개/일':'데이터없음'}</div>` : ''}
+          <div style="font-size:9px;color:var(--text3)">${daily>0?daily.toFixed(1)+'개/일':'데이터없음'}</div>
         </div>
       </div>`;
     }).join('');
