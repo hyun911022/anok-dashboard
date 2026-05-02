@@ -1635,7 +1635,7 @@ function renderAchieve(mRecs){
   const from14 = new Date(today); from14.setDate(from14.getDate()-13);
   const from14Str = from14.toISOString().split('T')[0];
   const recent14 = records.filter(r=>r.date>=from14Str && r.date<=today);
-  const r14days = recent14.length || 1;
+  const r14days = 14; // 항상 14일로 고정 (매출 없는 날도 포함)
   let r14C=0,r14N=0,r14O=0,r14M=0;
   recent14.forEach(r=>{const d=calcDay(r);r14C+=d.cRev;r14N+=d.nRev;r14O+=d.oRev;r14M+=d.mRev||0;});
 
@@ -3518,7 +3518,7 @@ function calcTotalDailyRate(){
   const from14 = new Date(today); from14.setDate(from14.getDate()-13);
   const from14Str = from14.toISOString().split('T')[0];
   const recent14 = records.filter(r => r.date >= from14Str && r.date <= today);
-  const days14 = recent14.length || 1;
+  const days14 = 14; // 항상 14일 고정 (매출 없는 날도 포함)
 
   // SKU별 단품 환산 집계 (세트 포함)
   const totals = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
