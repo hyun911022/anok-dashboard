@@ -2295,7 +2295,7 @@ function renderInsight(){
   let setQty=0,singleQty=0,setRev=0;
   mRecs.forEach(r=>{
     setSkus.forEach(k=>{setQty+=(r.cafe[k]||0)+(r.naver[k]||0); setRev+=((r.cafe[k]||0)*CAFE_PRICES[k])||0;});
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0));});
+    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0))+((r.musinsa||{})[k]||0);});
   });
   const totalQty=setQty+singleQty;
   const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
@@ -2411,7 +2411,7 @@ function renderSkuProfit(mRecs){
 
   // 집계
   const stats = {};
-  allItems.forEach(s=>{ stats[s.key]={ qty:0, rev:0, prf:0, cafe:0, naver:0, coup:0 }; });
+  allItems.forEach(s=>{ stats[s.key]={ qty:0, rev:0, prf:0, cafe:0, naver:0, coup:0, musi:0 }; });
 
   mRecs.forEach(r=>{
     const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
@@ -2465,7 +2465,17 @@ function renderSkuProfit(mRecs){
       stats[s.key].prf  += q * (COUP_PROFITS[s.key]||0) - deduct;
       stats[s.key].coup += q;
     });
-  });
+
+    // 무신사 단품 (세트 없음)
+    const m = r.musinsa||{};
+    SKUS.forEach(s=>{
+      const q = m[s.key]||0;
+      if(!MUSI_PRICES[s.key]) return; // 무신사 미취급 SKU 스킵
+      stats[s.key].qty  += q;
+      stats[s.key].rev  += q * (MUSI_PRICES[s.key]||0);
+      stats[s.key].prf  += q * (MUSI_PROFITS[s.key]||0);
+      stats[s.key].musi += q;
+    });
 
   // 수익 기여도 기준 정렬
   const sorted = allItems
@@ -2507,6 +2517,7 @@ function renderSkuProfit(mRecs){
       s.cafe  ? `<span style="font-size:9px;color:#9B6DFF;background:#9B6DFF18;padding:1px 5px;border-radius:3px">자사몰 ${s.cafe}개</span>` : '',
       s.naver ? `<span style="font-size:9px;color:#34D399;background:#34D39918;padding:1px 5px;border-radius:3px">네이버 ${s.naver}개</span>` : '',
       s.coup  ? `<span style="font-size:9px;color:#FB923C;background:#FB923C18;padding:1px 5px;border-radius:3px">쿠팡 ${s.coup}개</span>` : '',
+      s.musi  ? `<span style="font-size:9px;color:#06B6D4;background:#06B6D418;padding:1px 5px;border-radius:3px">무신사 ${s.musi}개</span>` : '',
     ].filter(Boolean).join(' ');
 
     return `
@@ -2547,6 +2558,7 @@ function renderSkuProfit(mRecs){
       <span style="font-size:10px;color:#9B6DFF">■ 자사몰</span>
       <span style="font-size:10px;color:#34D399">■ 네이버</span>
       <span style="font-size:10px;color:#FB923C">■ 쿠팡</span>
+      <span style="font-size:10px;color:#06B6D4">■ 무신사</span>
     </div>`;
 
   el.innerHTML = summaryHtml + rowsHtml + legendHtml;
