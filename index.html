@@ -2476,6 +2476,7 @@ function renderSkuProfit(mRecs){
       stats[s.key].prf  += q * (MUSI_PROFITS[s.key]||0);
       stats[s.key].musi += q;
     });
+  }); // mRecs.forEach 끝
 
   // 수익 기여도 기준 정렬
   const sorted = allItems
