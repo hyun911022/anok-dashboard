@@ -441,7 +441,7 @@
         </div>
       </div>
       <div class="ch-section">
-        <div class="ch-title" style="color:#06B6D4;border-left-color:#06B6D4">무신사</div>
+        <div class="ch-title" style="background:#06B6D4;color:#fff;border-left-color:#06B6D4">무신사</div>
         <div class="sku-grid">
           <div class="sku-input"><label>샴푸</label><input type="number" id="mu_shampoo" value="0" min="0"></div>
           <div class="sku-input"><label>트리트먼트</label><input type="number" id="mu_treatment" value="0" min="0"></div>
@@ -2719,11 +2719,11 @@ function calcManualOutAll(){
 function calcCumulativeSold(uptoDate){
   const sold={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   records.filter(r=>r.date<=uptoDate).forEach(r=>{
-    const c=r.cafe||{},n=r.naver||{},o=r.coupang||{};
-    sold.shampoo   +=(c.shampoo||0)+(c.hairset||0)+(c.washset||0)+(n.shampoo||0)+(n.hairset||0)+(n.washset||0)+(o.shampoo||0);
-    sold.treatment +=(c.treatment||0)+(c.hairset||0)+(n.treatment||0)+(n.hairset||0)+(o.treatment||0);
-    sold.bodywash  +=(c.bodywash||0)+(c.bodyset||0)+(c.washset||0)+(n.bodywash||0)+(n.bodyset||0)+(n.washset||0)+(o.bodywash||0);
-    sold.bodylotion+=(c.bodylotion||0)+(c.bodyset||0)+(n.bodylotion||0)+(n.bodyset||0)+(o.bodylotion||0);
+    const c=r.cafe||{},n=r.naver||{},o=r.coupang||{},m=r.musinsa||{};
+    sold.shampoo   +=(c.shampoo||0)+(c.hairset||0)+(c.washset||0)+(n.shampoo||0)+(n.hairset||0)+(n.washset||0)+(o.shampoo||0)+(m.shampoo||0);
+    sold.treatment +=(c.treatment||0)+(c.hairset||0)+(n.treatment||0)+(n.hairset||0)+(o.treatment||0)+(m.treatment||0);
+    sold.bodywash  +=(c.bodywash||0)+(c.bodyset||0)+(c.washset||0)+(n.bodywash||0)+(n.bodyset||0)+(n.washset||0)+(o.bodywash||0)+(m.bodywash||0);
+    sold.bodylotion+=(c.bodylotion||0)+(c.bodyset||0)+(n.bodylotion||0)+(n.bodyset||0)+(o.bodylotion||0)+(m.bodylotion||0);
   });
   manualOuts.filter(r=>r.date<=uptoDate).forEach(r=>{
     STOCK_SKUS.forEach(k=>sold[k]+=(r[k]||0));
