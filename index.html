@@ -4517,44 +4517,35 @@ function renderPhProfitPreview(skuId, ch){
   const newPrice   = parseInt(document.getElementById('ph_price')?.value) || 0;
   const newGwpCost = parseInt(document.getElementById('ph_gwp_cost')?.value) || 0;
 
-  // 정가 기준 수익
+  // 정상가 기준 수익
   const origPrice  = p.channels[ch].price || 0;
   const origProfit = calcProfit(p, ch) || 0;
+  const origMarginPct = origPrice > 0 ? Math.round(origProfit/origPrice*100) : 0;
 
   // 행사가 기준 수익 (GWP 단가 override 포함)
   const tmp  = Object.assign({}, p.channels[ch], { price: newPrice, gwp: newGwpCost });
   const tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [ch]: tmp }) });
   const newProfit = newPrice > 0 ? (calcProfit(tmpP, ch) || 0) : 0;
+  const newMarginPct = newPrice > 0 ? Math.round(newProfit/newPrice*100) : 0;
 
-  const priceDelta     = newPrice  - origPrice;
-  const profitDelta    = newProfit - origProfit;
-  const priceDeltaPct  = origPrice  > 0 ? Math.round(priceDelta /origPrice  * 100) : 0;
-  const profitDeltaPct = origProfit !== 0 ? Math.round(profitDelta/Math.abs(origProfit) * 100) : 0;
-  const profitMarginPct = newPrice > 0 ? Math.round(newProfit/newPrice*100) : 0;
-
-  const deltaColor   = (v) => v < 0 ? '#F87171' : (v > 0 ? '#34D399' : '#6B7280');
-  const profitColor  = newProfit >= 0 ? '#fff' : '#F87171';
-  const sign         = (v) => v >= 0 ? '+' : '';
+  const newProfitColor = newProfit >= 0 ? '#fff' : '#F87171';
 
   previewEl.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="font-size:10px;color:#6B7280;font-weight:600;letter-spacing:0.3px">수익 미리보기</div>
-      <div style="font-size:9px;color:#6B7280">정가 ₩${origPrice.toLocaleString()} 기준</div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="font-size:10px;color:#6B7280;font-weight:600;letter-spacing:0.3px;margin-bottom:10px">수익 미리보기</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div>
-        <div style="font-size:9px;color:#6B7280;margin-bottom:3px">행사 판매가</div>
-        <div style="font-size:13px;font-weight:700;color:#fff">₩${newPrice.toLocaleString()}</div>
-        <div style="font-size:9px;color:${deltaColor(priceDelta)};margin-top:2px">
-          ${sign(priceDelta)}₩${Math.abs(priceDelta).toLocaleString()} (${sign(priceDeltaPct)}${priceDeltaPct}%)
-        </div>
+        <div style="font-size:9px;color:#9CA3AF;font-weight:700;margin-bottom:6px">행사가 기준</div>
+        <div style="font-size:9px;color:#6B7280;margin-bottom:2px">판매가</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">₩${newPrice.toLocaleString()}</div>
+        <div style="font-size:9px;color:#6B7280;margin-bottom:2px">단위 수익 (마진율 ${newMarginPct}%)</div>
+        <div style="font-size:13px;font-weight:700;color:${newProfitColor}">₩${newProfit.toLocaleString()}</div>
       </div>
-      <div>
-        <div style="font-size:9px;color:#6B7280;margin-bottom:3px">단위 수익 (마진율 ${profitMarginPct}%)</div>
-        <div style="font-size:13px;font-weight:700;color:${profitColor}">₩${newProfit.toLocaleString()}</div>
-        <div style="font-size:9px;color:${deltaColor(profitDelta)};margin-top:2px">
-          ${sign(profitDelta)}₩${Math.abs(profitDelta).toLocaleString()} (${sign(profitDeltaPct)}${profitDeltaPct}%)
-        </div>
+      <div style="border-left:1px solid #2A2D3E;padding-left:14px">
+        <div style="font-size:9px;color:#6B7280;font-weight:700;margin-bottom:6px">정상가 기준</div>
+        <div style="font-size:9px;color:#6B7280;margin-bottom:2px">판매가</div>
+        <div style="font-size:13px;font-weight:700;color:#9CA3AF;margin-bottom:8px">₩${origPrice.toLocaleString()}</div>
+        <div style="font-size:9px;color:#6B7280;margin-bottom:2px">단위 수익 (마진율 ${origMarginPct}%)</div>
+        <div style="font-size:13px;font-weight:700;color:#9CA3AF">₩${origProfit.toLocaleString()}</div>
       </div>
     </div>
   `;
