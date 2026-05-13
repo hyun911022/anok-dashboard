@@ -2638,12 +2638,14 @@ function getPriceOnDate(p, ch, date){
 }
 
 function getProfitOnDate(p, ch, date){
-  const price = getPriceOnDate(p, ch, date);
-  if(price === null) return null;
-  // 채널 설정 복사 후 price만 교체해서 calcProfit 계산
+  const history = p?.channels?.[ch]?.priceHistory;
+  const entry = history && history.find(h => date >= h.from && date <= h.to);
+  if(!entry) return null;
   const c = p.channels[ch];
   if(!c) return null;
-  const tmp = Object.assign({}, c, { price });
+  const tmp = Object.assign({}, c, { price: entry.price });
+  // 행사 entry에 GWP 단가가 있으면 채널 기본 GWP 대신 사용
+  if(typeof entry.gwpCost === 'number') tmp.gwp = entry.gwpCost;
   const tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [ch]: tmp }) });
   return calcProfit(tmpP, ch);
 }
@@ -3899,7 +3901,7 @@ function calcProfit(p, chKey){
   const vat   = price / 11;
   if(chKey === 'coupang'){
     const fee = price * (ch.fee||0);
-    return Math.round(price - vat - p.cost - (ch.toLogistics||0) - (ch.opp||0) - fee);
+    return Math.round(price - vat - p.cost - (ch.toLogistics||0) - (ch.opp||0) - fee - (ch.gwp||0));
   } else {
     const fee  = price * (ch.fee||0);
     return Math.round(price - vat - p.cost - fee - (ch.delivery||0) - (ch.packaging||0) - (ch.materials||0) - (ch.gwp||0));
@@ -4474,6 +4476,7 @@ function renderPriceManager(){
               <span style="font-size:11px;font-weight:700;color:${chInfo.color}">₩${h.price.toLocaleString()}</span>
               <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusColor}18;padding:1px 6px;border-radius:3px">${statusLabel}</span>
               <span style="font-size:11px;color:var(--text2);font-weight:600">${h.label||''}</span>
+              ${h.gwpName ? `<span style="font-size:9px;color:var(--text3);background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px">🎁 ${h.gwpName} ₩${(h.gwpCost||0).toLocaleString()}</span>` : ''}
             </div>
             <div style="font-size:10px;color:var(--text3)">${h.from} ~ ${h.to}</div>
           </div>
@@ -4561,6 +4564,20 @@ function openAddPriceHistory(skuId, ch){
           <div style="font-size:10px;color:#6B7280;margin-bottom:4px">행사명</div>
           <input id="ph_label" type="text" placeholder="예: 특가"
             style="width:100%;padding:8px;border-radius:8px;border:1px solid #2A2D3E;background:#0F1117;color:#fff;font-size:12px;box-sizing:border-box">
+        </div>
+      </div>
+
+      <!-- GWP -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div>
+          <div style="font-size:10px;color:#6B7280;margin-bottom:4px">GWP 사은품명</div>
+          <input id="ph_gwp_name" type="text" placeholder="예: 미니키트"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #2A2D3E;background:#0F1117;color:#fff;font-size:12px;box-sizing:border-box">
+        </div>
+        <div>
+          <div style="font-size:10px;color:#6B7280;margin-bottom:4px">GWP 단가 (원)</div>
+          <input id="ph_gwp_cost" type="number" placeholder="0"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #2A2D3E;background:#0F1117;color:#fff;font-size:13px;font-weight:600;box-sizing:border-box">
         </div>
       </div>
 
@@ -4693,6 +4710,8 @@ async function savePriceHistory(skuId, ch){
   const to    = _phCal.to;
   const price = parseInt(document.getElementById('ph_price')?.value)||0;
   const label = document.getElementById('ph_label')?.value.trim();
+  const gwpName = document.getElementById('ph_gwp_name')?.value.trim() || '';
+  const gwpCost = parseInt(document.getElementById('ph_gwp_cost')?.value) || 0;
   const errEl = document.getElementById('ph_error');
 
   if(!from){ errEl.textContent='시작일을 선택해주세요.'; errEl.style.display='block'; return; }
@@ -4704,7 +4723,7 @@ async function savePriceHistory(skuId, ch){
   if(!p || !p.channels[ch]) return;
   if(!p.channels[ch].priceHistory) p.channels[ch].priceHistory = [];
 
-  p.channels[ch].priceHistory.push({ from, to, price, label: label||'' });
+  p.channels[ch].priceHistory.push({ from, to, price, label: label||'', gwpName, gwpCost });
   await saveProducts();
   document.getElementById('addPriceHistoryModal')?.remove();
   showToast('행사가 저장됐어요 ✓');
