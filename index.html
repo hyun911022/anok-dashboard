@@ -4472,14 +4472,21 @@ function renderPriceManager(){
       const isFuture = h.from > today;
       const statusColor = isActive ? '#34D399' : isPast ? 'var(--text3)' : '#EAB308';
       const statusLabel = isActive ? '진행 중' : isPast ? '종료' : '예정';
+      // 행사 단위 수익 계산 (priceHistory entry의 가격/GWP override 반영)
+      const _tmpCh = Object.assign({}, c, { price: h.price, gwp: h.gwpCost||0 });
+      const _tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [pricingCh]: _tmpCh }) });
+      const _entryProfit = calcProfit(_tmpP, pricingCh) || 0;
+      const _entryMargin = h.price > 0 ? Math.round(_entryProfit/h.price*100) : 0;
+      const _profitColor = _entryProfit < 0 ? '#F87171' : (_entryMargin < 20 ? '#FBBF24' : 'var(--text2)');
       rowsHtml += `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap">
               <span style="font-size:11px;font-weight:700;color:${chInfo.color}">₩${h.price.toLocaleString()}</span>
               <span style="font-size:9px;font-weight:700;color:${statusColor};background:${statusColor}18;padding:1px 6px;border-radius:3px">${statusLabel}</span>
               <span style="font-size:11px;color:var(--text2);font-weight:600">${h.label||''}</span>
               ${h.gwpName ? `<span style="font-size:9px;color:var(--text3);background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px">🎁 ${h.gwpName} ₩${(h.gwpCost||0).toLocaleString()}</span>` : ''}
+              <span style="font-size:9px;color:${_profitColor};background:rgba(255,255,255,0.04);padding:1px 5px;border-radius:3px;font-weight:700">💰 수익 ₩${_entryProfit.toLocaleString()} (${_entryMargin}%)</span>
             </div>
             <div style="font-size:10px;color:var(--text3)">${h.from} ~ ${h.to}</div>
           </div>
