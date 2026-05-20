@@ -4477,7 +4477,7 @@ function renderPriceManager(){
       const _tmpP = Object.assign({}, p, { channels: Object.assign({}, p.channels, { [pricingCh]: _tmpCh }) });
       const _entryProfit = calcProfit(_tmpP, pricingCh) || 0;
       const _entryMargin = h.price > 0 ? Math.round(_entryProfit/h.price*100) : 0;
-      const _profitColor = _entryProfit < 0 ? '#F87171' : (_entryMargin < 20 ? '#FBBF24' : 'var(--text2)');
+      const _profitColor = _entryProfit >= 0 ? '#EF4444' : '#3B82F6';
       rowsHtml += `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="flex:1">
@@ -4490,8 +4490,10 @@ function renderPriceManager(){
             </div>
             <div style="font-size:10px;color:var(--text3)">${h.from} ~ ${h.to}</div>
           </div>
+          <button onclick="openAddPriceHistory('${id}','${pricingCh}',${i})"
+            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 6px" title="수정">✏️</button>
           <button onclick="deletePriceHistory('${id}','${pricingCh}',${i})"
-            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px">×</button>
+            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px" title="삭제">×</button>
         </div>`;
     });
 
@@ -4516,6 +4518,7 @@ function renderPriceManager(){
 }
 
 // ── 캘린더 상태 ──────────────────────────────────────────
+let _phEditIdx = null;
 const _phCal = { year:0, month:0, from:'', to:'', selecting:false };
 
 function renderPhProfitPreview(skuId, ch){
@@ -4561,16 +4564,31 @@ function renderPhProfitPreview(skuId, ch){
   `;
 }
 
-function openAddPriceHistory(skuId, ch){
+function openAddPriceHistory(skuId, ch, editIdx){
   const old = document.getElementById('addPriceHistoryModal');
   if(old) old.remove();
+
+  // 수정 모드 여부 결정 (editIdx가 숫자면 수정, 아니면 신규)
+  _phEditIdx = (typeof editIdx === 'number') ? editIdx : null;
+  const editing = _phEditIdx !== null;
 
   const chColors = {cafe:'#9B6DFF',naver:'#34D399',coupang:'#F87171',musinsa:'#06B6D4'};
   const color = chColors[ch] || '#6366F1';
   const today = getTodayKST();
   const [ty, tm] = today.split('-').map(Number);
-  _phCal.year = ty; _phCal.month = tm;
-  _phCal.from = ''; _phCal.to = ''; _phCal.selecting = false;
+
+  // 수정 모드면 기존 entry로 캘린더 상태 초기화, 아니면 빈 값
+  const existingEntry = editing ? (products.find(x=>x.id===skuId)?.channels?.[ch]?.priceHistory?.[_phEditIdx]) : null;
+  if(existingEntry){
+    const [fy, fm] = existingEntry.from.split('-').map(Number);
+    _phCal.year = fy; _phCal.month = fm;
+    _phCal.from = existingEntry.from;
+    _phCal.to   = existingEntry.to;
+  } else {
+    _phCal.year = ty; _phCal.month = tm;
+    _phCal.from = ''; _phCal.to = '';
+  }
+  _phCal.selecting = false;
   _phCal.skuId = skuId; _phCal.ch = ch; _phCal.color = color;
 
   const p = products.find(x=>x.id===skuId);
@@ -4584,7 +4602,7 @@ function openAddPriceHistory(skuId, ch){
   modal.innerHTML = `
     <div style="background:#1A1D27;border:1px solid #2A2D3E;border-radius:18px;padding:24px;width:360px;max-width:100%">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="font-size:15px;font-weight:700;color:#fff">행사 추가</div>
+        <div style="font-size:15px;font-weight:700;color:#fff">${editing ? '행사 수정' : '행사 추가'}</div>
         <button onclick="document.getElementById('addPriceHistoryModal').remove()"
           style="background:none;border:none;color:#6B7280;cursor:pointer;font-size:18px;line-height:1">×</button>
       </div>
@@ -4642,7 +4660,7 @@ function openAddPriceHistory(skuId, ch){
       <div style="display:flex;gap:8px">
         <button onclick="savePriceHistory('${skuId}','${ch}')"
           style="flex:1;padding:11px;border-radius:9px;border:none;background:${color};color:#fff;font-size:13px;font-weight:600;cursor:pointer">
-          저장
+          ${editing ? '수정' : '저장'}
         </button>
         <button onclick="document.getElementById('addPriceHistoryModal').remove()"
           style="padding:11px 18px;border-radius:9px;border:1px solid #2A2D3E;background:transparent;color:#9CA3AF;font-size:13px;cursor:pointer">
@@ -4652,6 +4670,18 @@ function openAddPriceHistory(skuId, ch){
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+
+  // 수정 모드: 기존 entry 데이터로 입력 필드 채우기
+  if(editing && existingEntry){
+    const priceEl = document.getElementById('ph_price');
+    const labelEl = document.getElementById('ph_label');
+    const gwpNameEl = document.getElementById('ph_gwp_name');
+    const gwpCostEl = document.getElementById('ph_gwp_cost');
+    if(priceEl)   priceEl.value   = existingEntry.price;
+    if(labelEl)   labelEl.value   = existingEntry.label || '';
+    if(gwpNameEl) gwpNameEl.value = existingEntry.gwpName || '';
+    if(gwpCostEl) gwpCostEl.value = existingEntry.gwpCost || 0;
+  }
 
   // 입력값 변경 시 실시간 수익 미리보기 갱신
   ['ph_price','ph_gwp_cost'].forEach(id=>{
@@ -4786,7 +4816,13 @@ async function savePriceHistory(skuId, ch){
   if(!p || !p.channels[ch]) return;
   if(!p.channels[ch].priceHistory) p.channels[ch].priceHistory = [];
 
-  p.channels[ch].priceHistory.push({ from, to, price, label: label||'', gwpName, gwpCost });
+  const entryData = { from, to, price, label: label||'', gwpName, gwpCost };
+  if(_phEditIdx !== null && _phEditIdx >= 0 && p.channels[ch].priceHistory[_phEditIdx]){
+    p.channels[ch].priceHistory[_phEditIdx] = entryData;
+  } else {
+    p.channels[ch].priceHistory.push(entryData);
+  }
+  _phEditIdx = null;
   await saveProducts();
   document.getElementById('addPriceHistoryModal')?.remove();
   showToast('행사가 저장됐어요 ✓');
