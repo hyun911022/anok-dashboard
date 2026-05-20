@@ -1682,11 +1682,16 @@ function renderAchieve(mRecs){
   const todayDay = parseInt(getTodayKST().split('-')[2]);
   const elapsedPct = Math.min(Math.round(todayDay/daysInMonth2*100), 100);
 
+  // 트랙 폭 계산용: 4채널 중 최대 목표값
+  const maxTarget = Math.max(...channels.map(c=>c.target), 1);
+
   wrap.innerHTML=projHtml+channels.map(ch=>{
     const rawPct=ch.target>0?ch.actual/ch.target*100:0;
     const fillPct=Math.min(Math.round(rawPct),100);
     const pctLabel=Math.round(rawPct)+'%';
     const fillColor=rawPct>=100?'#16A34A':ch.color;
+    // 트랙 폭 = 그 채널 목표 / 최대 목표 비율 (최소 10% 보장)
+    const trackWidthPct = Math.max(ch.target/maxTarget*100, 10);
     return `<div class="ach-row">
       <div class="ach-header">
         <span class="ach-label">${ch.label}</span>
@@ -1696,7 +1701,7 @@ function renderAchieve(mRecs){
           &nbsp;&nbsp;<span style="font-size:10px;color:var(--text3)">목표</span> <span style="color:${ch.color};font-weight:700">₩${Math.round(ch.target).toLocaleString()}</span>
         </span>
       </div>
-      <div class="ach-track">
+      <div class="ach-track" style="width:${trackWidthPct}%">
         <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}"></div>
         <span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>
         <!-- 경과일 인디케이터 -->
