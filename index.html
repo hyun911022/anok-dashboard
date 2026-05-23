@@ -1689,7 +1689,7 @@ function renderAchieve(mRecs){
     const rawPct=ch.target>0?ch.actual/ch.target*100:0;
     const fillPct=Math.min(Math.round(rawPct),100);
     const pctLabel=Math.round(rawPct)+'%';
-    const fillColor=rawPct>=100?'#16A34A':ch.color;
+    const fillColor=ch.color;
     // 트랙 폭 = 그 채널 목표 / 최대 목표 비율 (최소 10% 보장)
     const trackWidthPct = Math.max(ch.target/maxTarget*100, 10);
     return `<div class="ach-row">
