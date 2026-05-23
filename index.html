@@ -851,6 +851,7 @@
               <th style="text-align:right;padding:8px 10px;color:#9B6DFF;font-size:10px;font-weight:600;letter-spacing:0.5px">자사몰</th>
               <th style="text-align:right;padding:8px 10px;color:#34D399;font-size:10px;font-weight:600;letter-spacing:0.5px">네이버</th>
               <th style="text-align:right;padding:8px 10px;color:#F87171;font-size:10px;font-weight:600;letter-spacing:0.5px">쿠팡</th>
+              <th style="text-align:right;padding:8px 10px;color:#06B6D4;font-size:10px;font-weight:600;letter-spacing:0.5px">무신사</th>
               <th style="text-align:right;padding:8px 10px;color:var(--text3);font-size:10px;font-weight:600;letter-spacing:0.5px">수기출고</th>
               <th style="text-align:right;padding:8px 10px;color:var(--text2);font-size:10px;font-weight:600;letter-spacing:0.5px">총출고</th>
             </tr>
@@ -3188,15 +3189,43 @@ function renderStock(){
   }
 
   // ── 3. 출고 현황 ──
-  const byCh=calcSoldByChannelAll(), moAll=calcManualOutAll();
+  // 선택월 기준 채널별 출고 집계 (무신사 포함, 세트→단품 분해)
+  const _selM = selectedMonth;
+  const _byCh = {cafe:{},naver:{},coup:{},musinsa:{}};
+  STOCK_SKUS.forEach(k=>{ _byCh.cafe[k]=0;_byCh.naver[k]=0;_byCh.coup[k]=0;_byCh.musinsa[k]=0; });
+  records.filter(r=>r.date && r.date.startsWith(_selM)).forEach(r=>{
+    const c=r.cafe||{},n=r.naver||{},o=r.coupang||{},mu=r.musinsa||{};
+    _byCh.cafe.shampoo+=(c.shampoo||0)+(c.hairset||0)+(c.washset||0);
+    _byCh.cafe.treatment+=(c.treatment||0)+(c.hairset||0);
+    _byCh.cafe.bodywash+=(c.bodywash||0)+(c.bodyset||0)+(c.washset||0);
+    _byCh.cafe.bodylotion+=(c.bodylotion||0)+(c.bodyset||0);
+    _byCh.naver.shampoo+=(n.shampoo||0)+(n.hairset||0)+(n.washset||0);
+    _byCh.naver.treatment+=(n.treatment||0)+(n.hairset||0);
+    _byCh.naver.bodywash+=(n.bodywash||0)+(n.bodyset||0)+(n.washset||0);
+    _byCh.naver.bodylotion+=(n.bodylotion||0)+(n.bodyset||0);
+    _byCh.coup.shampoo+=(o.shampoo||0);
+    _byCh.coup.treatment+=(o.treatment||0);
+    _byCh.coup.bodywash+=(o.bodywash||0);
+    _byCh.coup.bodylotion+=(o.bodylotion||0);
+    _byCh.musinsa.shampoo+=(mu.shampoo||0)+(mu.hairset||0);
+    _byCh.musinsa.treatment+=(mu.treatment||0)+(mu.hairset||0);
+    _byCh.musinsa.bodywash+=(mu.bodywash||0)+(mu.bodyset||0);
+    _byCh.musinsa.bodylotion+=(mu.bodylotion||0)+(mu.bodyset||0);
+  });
+  const _moMonth = {};
+  STOCK_SKUS.forEach(k=>{ _moMonth[k]=0; });
+  manualOuts.filter(r=>r.date && r.date.startsWith(_selM)).forEach(r=>{
+    STOCK_SKUS.forEach(k=>{ _moMonth[k]+=(r[k]||0); });
+  });
   let outTbody='';
   STOCK_SKUS.forEach(k=>{
-    const c=byCh.cafe[k]||0,n=byCh.naver[k]||0,o=byCh.coup[k]||0,m=moAll[k]||0,total=c+n+o+m;
+    const c=_byCh.cafe[k]||0,n=_byCh.naver[k]||0,o=_byCh.coup[k]||0,mu=_byCh.musinsa[k]||0,m=_moMonth[k]||0,total=c+n+o+mu+m;
     outTbody+=`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:9px 10px;font-weight:600;color:var(--text);white-space:nowrap">${STOCK_SKU_NAMES[k]}</td>
       <td style="padding:9px 10px;text-align:right;color:#9B6DFF;white-space:nowrap">${c||'—'}</td>
       <td style="padding:9px 10px;text-align:right;color:#34D399;white-space:nowrap">${n||'—'}</td>
       <td style="padding:9px 10px;text-align:right;color:#F87171;white-space:nowrap">${o||'—'}</td>
+      <td style="padding:9px 10px;text-align:right;color:#06B6D4;white-space:nowrap">${mu||'—'}</td>
       <td style="padding:9px 10px;text-align:right;color:var(--text3);white-space:nowrap">${m||'—'}</td>
       <td style="padding:9px 10px;text-align:right;font-weight:700;color:var(--text2);white-space:nowrap">${total||'—'}</td>
     </tr>`;
@@ -3227,7 +3256,7 @@ function renderStock(){
   // ── 유통기한 소진 가능성 카드 ──
   renderExpiryRisk(batchState, avgSales);
 
-  const moSorted=[...manualOuts].sort((a,b)=>b.date.localeCompare(a.date));
+  const moSorted=[...manualOuts].filter(r=>r.date && r.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
   const moEl=document.getElementById('manualOutList');
   if(moEl){
     moEl.innerHTML=moSorted.length===0
