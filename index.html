@@ -3273,6 +3273,7 @@ function renderStock(){
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
                 <span style="font-size:12px;font-weight:600;color:var(--text)">${r.date}</span>
                 <span style="font-size:9px;font-weight:700;color:${typeColor};background:${typeColor}18;padding:1px 6px;border-radius:3px">${typeLabel}</span>
+                ${r.clientName?`<span style="font-size:11px;font-weight:600;color:var(--text2)">${r.clientName}</span>`:''}
                 <span style="font-size:11px;color:var(--text3)">${r.reason||'기타'}</span>
               </div>
               <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개${isB2B&&r['price_'+k]>0?' @'+r['price_'+k].toLocaleString()+'원':''}`).join(' · ')||'수량 없음'}</div>
