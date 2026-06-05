@@ -555,20 +555,20 @@
         </div>
       </div>
 
-      <!-- B2B + 공구 매출 + 수익 (통합) -->
+      <!-- B2B 매출 + 수익 (납품·공구 통합 표시) -->
       <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center;cursor:pointer" onclick="openB2BDetail()">
-        <div class="kpi-label" style="color:#60A5FA">B2B + 공구 매출</div>
+        <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
         <div class="kpi-value" id="kpiB2B" style="margin:4px 0">0</div>
         <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
-          <span style="color:var(--text3)">📦 B2B <span id="kpiB2BOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
-          <span style="color:var(--text3)">🎁 공구 <span id="kpiGBOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
+          <span style="color:var(--text3)">납품 <span id="kpiB2BOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
+          <span style="color:var(--text3)">공구 <span id="kpiGBOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
-          <div class="kpi-label" style="color:#60A5FA">B2B + 공구 수익</div>
+          <div class="kpi-label" style="color:#60A5FA">B2B 수익</div>
           <div class="kpi-value" id="profitB2BVal" style="margin:4px 0">-</div>
           <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
-            <span style="color:var(--text3)">📦 <span id="profitB2BOnly" style="color:var(--text2);font-weight:600">-</span></span>
-            <span style="color:var(--text3)">🎁 <span id="profitGBOnly" style="color:var(--text2);font-weight:600">-</span></span>
+            <span style="color:var(--text3)">납품 <span id="profitB2BOnly" style="color:var(--text2);font-weight:600">-</span></span>
+            <span style="color:var(--text3)">공구 <span id="profitGBOnly" style="color:var(--text2);font-weight:600">-</span></span>
           </div>
         </div>
       </div>
@@ -979,7 +979,7 @@
 <div class="modal-bg" id="b2bDetailBg" onclick="if(event.target===this)closeB2BDetail()">
   <div class="modal" style="max-width:480px">
     <div class="modal-header" style="background:linear-gradient(135deg,#0D1E3A,#1A2E50)">
-      <h2 style="color:#60A5FA">B2B + 공구 실적</h2>
+      <h2 style="color:#60A5FA">B2B 납품 실적</h2>
       <button class="modal-close" onclick="closeB2BDetail()" style="color:#60A5FA">×</button>
     </div>
     <div class="modal-body" style="padding:0">
@@ -991,9 +991,9 @@
 <!-- 공구 실적 입력 모달 -->
 <div class="modal-bg" id="gbModalBg" onclick="if(event.target===this)closeGroupBuyModal()">
   <div class="modal" style="max-width:460px">
-    <div class="modal-header" style="background:linear-gradient(135deg,#3A2310,#5A3818)">
-      <h2 style="color:#FBBF24">🎁 공구 실적 추가</h2>
-      <button class="modal-close" onclick="closeGroupBuyModal()" style="color:#FBBF24">×</button>
+    <div class="modal-header" style="background:linear-gradient(135deg,#0D1E3A,#1A2E50)">
+      <h2 style="color:#60A5FA">공구 실적 추가</h2>
+      <button class="modal-close" onclick="closeGroupBuyModal()" style="color:#60A5FA">×</button>
     </div>
     <div class="modal-body">
       <div style="margin-bottom:10px">
@@ -1028,7 +1028,7 @@
         <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">바디로션</label><input type="number" id="gb_bodylotion" min="0" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:#12151F"></div>
       </div>
       <div style="display:flex;gap:8px">
-        <button onclick="saveGroupBuy()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#FBBF24;color:#1A0F00;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+        <button onclick="saveGroupBuy()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#60A5FA;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
         <button onclick="closeGroupBuyModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">취소</button>
       </div>
     </div>
@@ -1523,7 +1523,7 @@ function render(){
     const pRate = grandTotRev>0 ? (grandTotPrf/grandTotRev*100).toFixed(1) : '0';
     totalProfitRateEl.textContent = `마진율 ${pRate}% (상품 기준)`;
   }
-  // B2B + 공구 카드 (합계 + 분리 표시)
+  // B2B 카드 (납품·공구 합계 + 분리 표시)
   const _gbM = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(selectedMonth) : {rev:0, prf:0};
   const _combRev = totB2BRev + _gbM.rev;
   const _combPrf = totB2BPrf + _gbM.prf;
@@ -2418,7 +2418,7 @@ function renderInsight(){
   const _musRateEl=document.getElementById('profitMusinsaRate');
   if(_musRateEl) _musRateEl.textContent=totM>0?'수익률 '+(totMprf/totM*100).toFixed(1)+'%':'수익률 -';
 
-  // B2B + 공구 카드 업데이트 (renderInsight 내)
+  // B2B 카드 업데이트 (renderInsight 내, 납품·공구 합계)
   const _gbMI = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(selectedMonth) : {rev:0, prf:0};
   const _combRevI = totB2BRev + _gbMI.rev;
   const _combPrfI = totB2BPrf + _gbMI.prf;
@@ -2434,8 +2434,6 @@ function renderInsight(){
   if(_b2bPrfOnlyEl) _b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
   if(_gbPrfOnlyEl) _gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.prf));
   if(_b2bPrfEl){ _b2bPrfEl.textContent=(_combPrfI>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combPrfI))); _b2bPrfEl.style.color=_combPrfI>=0?'var(--text)':'#E24B4A'; }
-  // _b2bRateEl/_b2bSubEl는 카드에서 제거됨. dummy assignment 유지:
-  if(typeof totB2BRev !== 'undefined' && totB2BRev>0?'유상 납품':'납품 없음';
   // 채널 총매출/수익도 grandTot으로
   const _totEl=document.getElementById('kpiTotal');
   const _totPrfEl=document.getElementById('kpiTotalProfit');
@@ -3633,7 +3631,7 @@ function openGroupBuyModal(idx){
   document.getElementById('gb_bodywash').value = e?.bodywash || '';
   document.getElementById('gb_bodylotion').value = e?.bodylotion || '';
   const titleEl = document.querySelector('#gbModalBg .modal-header h2');
-  if(titleEl) titleEl.innerHTML = editing ? '🎁 공구 실적 수정' : '🎁 공구 실적 추가';
+  if(titleEl) titleEl.innerHTML = editing ? '공구 실적 수정' : '공구 실적 추가';
   document.getElementById('gbModalBg').classList.add('open');
 }
 
@@ -4644,19 +4642,19 @@ function openB2BDetail(){
     : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
         <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:#FBBF24">매출 ₩${fmt(gbTotRev)}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(gbTotRev)}</div>
           <div style="font-size:10px;color:${gbTotPrf>=0?'var(--text2)':'#F43F5E'}">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
         </div>
       </div>`;
 
   document.getElementById('b2bDetailBody').innerHTML = `
     <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#60A5FA">📦 B2B 납품</div>
+      <div style="font-size:13px;font-weight:700;color:#60A5FA">B2B 납품</div>
     </div>
     ${b2bBody}
     <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#FBBF24">🎁 공구 실적</div>
-      <button onclick="openGroupBuyModal()" style="background:#3A2310;border:1px solid #FBBF2440;color:#FBBF24;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
+      <div style="font-size:13px;font-weight:700;color:#60A5FA">공구 실적</div>
+      <button onclick="openGroupBuyModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
     </div>
     ${gbBody}
   `;
