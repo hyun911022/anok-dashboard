@@ -1495,9 +1495,14 @@ function render(){
   const b2bMonth = calcB2BByMonth(month);
   const totB2BRev = b2bMonth.rev;
   const totB2BPrf = b2bMonth.prf;
+  // 공구 해당월 집계
+  const gbMonthAll = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(month) : {rev:0, prf:0};
+  const totGBRev = gbMonthAll.rev;
+  const totGBPrf = gbMonthAll.prf;
   // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
-  const grandTotRev = totRev + totB2BRev;
-  const grandTotPrf = totPrf + totB2BPrf;
+  // 채널 총매출 = 이커머스 + B2B + 공구 (전체 매출 합산)
+  const grandTotRev = totRev + totB2BRev + totGBRev;
+  const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
   const profit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
@@ -1509,7 +1514,7 @@ function render(){
   const _km=document.getElementById('kpiMusinsa'); if(_km) _km.textContent='₩'+fmt(totM);
   const _pm=document.getElementById('profitMusinsaVal'); if(_pm){ _pm.textContent=(totMprf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totMprf))); _pm.style.color=totMprf>=0?'var(--text)':'#E24B4A'; }
   const _pmr=document.getElementById('profitMusinsaRate'); if(_pmr) _pmr.textContent=totM>0?'수익률 '+(totMprf/totM*100).toFixed(1)+'%':'수익률 -';
-  // 채널 총매출/수익 = 이커머스 + B2B
+  // 채널 총매출/수익 = 이커머스 + B2B + 공구 (전체 매출 합산)
   document.getElementById('kpiTotal').textContent='₩'+fmt(grandTotRev);
   document.getElementById('kpiRate').textContent='수익률 '+(grandTotRev>0?grandTotPrf/grandTotRev*100:0).toFixed(1)+'%';
   // 총수익 (상품 마진 기준)
@@ -2264,9 +2269,14 @@ function renderInsight(){
   const b2bMonth = calcB2BByMonth(month);
   const totB2BRev = b2bMonth.rev;
   const totB2BPrf = b2bMonth.prf;
+  // 공구 해당월 집계
+  const gbMonthAll = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(month) : {rev:0, prf:0};
+  const totGBRev = gbMonthAll.rev;
+  const totGBPrf = gbMonthAll.prf;
   // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
-  const grandTotRev = totRev + totB2BRev;
-  const grandTotPrf = totPrf + totB2BPrf;
+  // 채널 총매출 = 이커머스 + B2B + 공구 (전체 매출 합산)
+  const grandTotRev = totRev + totB2BRev + totGBRev;
+  const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
   const netProfit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
