@@ -555,15 +555,21 @@
         </div>
       </div>
 
-      <!-- B2B 매출 + 수익 -->
-      <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center">
-        <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
+      <!-- B2B + 공구 매출 + 수익 (통합) -->
+      <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center;cursor:pointer" onclick="openB2BDetail()">
+        <div class="kpi-label" style="color:#60A5FA">B2B + 공구 매출</div>
         <div class="kpi-value" id="kpiB2B" style="margin:4px 0">0</div>
-        <div class="kpi-sub" id="kpiB2BSub">유상 납품</div>
+        <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
+          <span style="color:var(--text3)">📦 B2B <span id="kpiB2BOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
+          <span style="color:var(--text3)">🎁 공구 <span id="kpiGBOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
+        </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
-          <div class="kpi-label" style="color:#60A5FA">B2B 수익</div>
+          <div class="kpi-label" style="color:#60A5FA">B2B + 공구 수익</div>
           <div class="kpi-value" id="profitB2BVal" style="margin:4px 0">-</div>
-          <div class="kpi-sub" id="profitB2BRate">납품가-원가</div>
+          <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
+            <span style="color:var(--text3)">📦 <span id="profitB2BOnly" style="color:var(--text2);font-weight:600">-</span></span>
+            <span style="color:var(--text3)">🎁 <span id="profitGBOnly" style="color:var(--text2);font-weight:600">-</span></span>
+          </div>
         </div>
       </div>
 
@@ -971,13 +977,60 @@
 
 <!-- B2B 납품 실적 팝업 -->
 <div class="modal-bg" id="b2bDetailBg" onclick="if(event.target===this)closeB2BDetail()">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header" style="background:linear-gradient(135deg,#0D1E3A,#1A2E50)">
-      <h2 style="color:#60A5FA">B2B 납품 실적</h2>
+      <h2 style="color:#60A5FA">B2B + 공구 실적</h2>
       <button class="modal-close" onclick="closeB2BDetail()" style="color:#60A5FA">×</button>
     </div>
     <div class="modal-body" style="padding:0">
       <div id="b2bDetailBody" style="padding:20px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 공구 실적 입력 모달 -->
+<div class="modal-bg" id="gbModalBg" onclick="if(event.target===this)closeGroupBuyModal()">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#3A2310,#5A3818)">
+      <h2 style="color:#FBBF24">🎁 공구 실적 추가</h2>
+      <button class="modal-close" onclick="closeGroupBuyModal()" style="color:#FBBF24">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">라벨</label>
+        <input type="text" id="gb_label" placeholder="예: 6월 공구 (샤니 셀러)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">시작일</label>
+          <input type="date" id="gb_from" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">종료일</label>
+          <input type="date" id="gb_to" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">총 매출 (₩)</label>
+          <input type="number" id="gb_revenue" placeholder="VAT 제외 납품가" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">순수익 (₩)</label>
+          <input type="number" id="gb_net" placeholder="이익 - 총택배비" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px">단품 수량 (재고 차감용 · 세트는 단품으로 분해)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">샴푸</label><input type="number" id="gb_shampoo" min="0" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:#12151F"></div>
+        <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">트리트먼트</label><input type="number" id="gb_treatment" min="0" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:#12151F"></div>
+        <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">바디워시</label><input type="number" id="gb_bodywash" min="0" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:#12151F"></div>
+        <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">바디로션</label><input type="number" id="gb_bodylotion" min="0" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);background:#12151F"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveGroupBuy()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#FBBF24;color:#1A0F00;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+        <button onclick="closeGroupBuyModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">취소</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1470,15 +1523,22 @@ function render(){
     const pRate = grandTotRev>0 ? (grandTotPrf/grandTotRev*100).toFixed(1) : '0';
     totalProfitRateEl.textContent = `마진율 ${pRate}% (상품 기준)`;
   }
-  // B2B 카드
+  // B2B + 공구 카드 (합계 + 분리 표시)
+  const _gbM = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(selectedMonth) : {rev:0, prf:0};
+  const _combRev = totB2BRev + _gbM.rev;
+  const _combPrf = totB2BPrf + _gbM.prf;
   const b2bEl=document.getElementById('kpiB2B');
   const b2bPrfEl=document.getElementById('profitB2BVal');
-  const b2bRateEl=document.getElementById('profitB2BRate');
-  const b2bSubEl=document.getElementById('kpiB2BSub');
-  if(b2bEl) b2bEl.textContent='₩'+fmt(Math.round(totB2BRev));
-  if(b2bPrfEl){ b2bPrfEl.textContent=(totB2BPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totB2BPrf))); b2bPrfEl.style.color=totB2BPrf>=0?'var(--text)':'#E24B4A'; }
-  if(b2bRateEl) b2bRateEl.textContent=totB2BRev>0?'수익률 '+(totB2BPrf/totB2BRev*100).toFixed(1)+'%':'납품가-원가';
-  if(b2bSubEl) b2bSubEl.textContent=totB2BRev>0?'유상 납품':'납품 없음';
+  const b2bOnlyEl=document.getElementById('kpiB2BOnly');
+  const gbOnlyEl=document.getElementById('kpiGBOnly');
+  const b2bPrfOnlyEl=document.getElementById('profitB2BOnly');
+  const gbPrfOnlyEl=document.getElementById('profitGBOnly');
+  if(b2bEl) b2bEl.textContent='₩'+fmt(Math.round(_combRev));
+  if(b2bOnlyEl) b2bOnlyEl.textContent='₩'+fmt(Math.round(totB2BRev));
+  if(gbOnlyEl) gbOnlyEl.textContent='₩'+fmt(Math.round(_gbM.rev));
+  if(b2bPrfOnlyEl) b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
+  if(gbPrfOnlyEl) gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbM.prf));
+  if(b2bPrfEl){ b2bPrfEl.textContent=(_combPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combPrf))); b2bPrfEl.style.color=_combPrf>=0?'var(--text)':'#E24B4A'; }
   const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
@@ -2358,15 +2418,24 @@ function renderInsight(){
   const _musRateEl=document.getElementById('profitMusinsaRate');
   if(_musRateEl) _musRateEl.textContent=totM>0?'수익률 '+(totMprf/totM*100).toFixed(1)+'%':'수익률 -';
 
-  // B2B 카드 업데이트 (renderInsight 내)
+  // B2B + 공구 카드 업데이트 (renderInsight 내)
+  const _gbMI = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(selectedMonth) : {rev:0, prf:0};
+  const _combRevI = totB2BRev + _gbMI.rev;
+  const _combPrfI = totB2BPrf + _gbMI.prf;
   const _b2bEl=document.getElementById('kpiB2B');
   const _b2bPrfEl=document.getElementById('profitB2BVal');
-  const _b2bRateEl=document.getElementById('profitB2BRate');
-  const _b2bSubEl=document.getElementById('kpiB2BSub');
-  if(_b2bEl) _b2bEl.textContent='₩'+fmt(Math.round(totB2BRev));
-  if(_b2bPrfEl){ _b2bPrfEl.textContent=(totB2BPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(totB2BPrf))); _b2bPrfEl.style.color=totB2BPrf>=0?'var(--text)':'#E24B4A'; }
-  if(_b2bRateEl) _b2bRateEl.textContent=totB2BRev>0?'수익률 '+(totB2BPrf/totB2BRev*100).toFixed(1)+'%':'납품가-원가';
-  if(_b2bSubEl) _b2bSubEl.textContent=totB2BRev>0?'유상 납품':'납품 없음';
+  const _b2bOnlyEl=document.getElementById('kpiB2BOnly');
+  const _gbOnlyEl=document.getElementById('kpiGBOnly');
+  const _b2bPrfOnlyEl=document.getElementById('profitB2BOnly');
+  const _gbPrfOnlyEl=document.getElementById('profitGBOnly');
+  if(_b2bEl) _b2bEl.textContent='₩'+fmt(Math.round(_combRevI));
+  if(_b2bOnlyEl) _b2bOnlyEl.textContent='₩'+fmt(Math.round(totB2BRev));
+  if(_gbOnlyEl) _gbOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.rev));
+  if(_b2bPrfOnlyEl) _b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
+  if(_gbPrfOnlyEl) _gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.prf));
+  if(_b2bPrfEl){ _b2bPrfEl.textContent=(_combPrfI>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combPrfI))); _b2bPrfEl.style.color=_combPrfI>=0?'var(--text)':'#E24B4A'; }
+  // _b2bRateEl/_b2bSubEl는 카드에서 제거됨. dummy assignment 유지:
+  if(typeof totB2BRev !== 'undefined' && totB2BRev>0?'유상 납품':'납품 없음';
   // 채널 총매출/수익도 grandTot으로
   const _totEl=document.getElementById('kpiTotal');
   const _totPrfEl=document.getElementById('kpiTotalProfit');
@@ -2739,6 +2808,12 @@ function calcCumulativeSold(uptoDate){
   manualOuts.filter(r=>r.date<=uptoDate).forEach(r=>{
     STOCK_SKUS.forEach(k=>sold[k]+=(r[k]||0));
   });
+  // 공구: 종료일이 이미 지난 공구만 단품 차감 (전체 단품 일괄 차감)
+  if(typeof groupBuys !== 'undefined' && Array.isArray(groupBuys)){
+    groupBuys.filter(gb=>gb.toDate && gb.toDate<=uptoDate).forEach(gb=>{
+      STOCK_SKUS.forEach(k=>sold[k]+=(gb[k]||0));
+    });
+  }
   return sold;
 }
 
@@ -3499,6 +3574,114 @@ function deleteManualOut(idx){
 // B2B 거래처 관리
 // ══════════════════════════════════════════════════
 let b2bClients = []; // [{id, name, prices:{shampoo,treatment,bodywash,bodylotion}, createdAt}]
+
+// ──────────────────────────────────────────────────
+// 공구(GroupBuy) 시스템
+// ──────────────────────────────────────────────────
+let groupBuys = []; // [{id, label, fromDate, toDate, revenue, netProfit, shampoo, treatment, bodywash, bodylotion}]
+let _gbEditIdx = null;
+
+async function loadGroupBuys(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'groupBuys'));
+    if(snap.exists() && snap.data()?.items) groupBuys = snap.data().items;
+  } catch(e){ console.log('groupBuys load error:', e); }
+}
+
+async function saveGroupBuys(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'groupBuys'), {items: groupBuys});
+  } catch(e){ console.error('groupBuys save error:', e); }
+}
+
+function calcGroupBuyAll(){
+  let rev=0, prf=0;
+  groupBuys.forEach(gb=>{ rev+=gb.revenue||0; prf+=gb.netProfit||0; });
+  return {rev, prf};
+}
+
+function calcGroupBuyByMonth(month){
+  let rev=0, prf=0;
+  groupBuys.forEach(gb=>{
+    if(gb.toDate && gb.toDate.startsWith(month)){
+      rev+=gb.revenue||0;
+      prf+=gb.netProfit||0;
+    }
+  });
+  return {rev, prf};
+}
+
+function openGroupBuyModal(idx){
+  _gbEditIdx = (typeof idx === 'number') ? idx : null;
+  const editing = _gbEditIdx !== null;
+  const e = editing ? groupBuys[_gbEditIdx] : null;
+  document.getElementById('gb_label').value = e?.label || '';
+  document.getElementById('gb_from').value = e?.fromDate || '';
+  document.getElementById('gb_to').value = e?.toDate || '';
+  document.getElementById('gb_revenue').value = e?.revenue || '';
+  document.getElementById('gb_net').value = e?.netProfit || '';
+  document.getElementById('gb_shampoo').value = e?.shampoo || '';
+  document.getElementById('gb_treatment').value = e?.treatment || '';
+  document.getElementById('gb_bodywash').value = e?.bodywash || '';
+  document.getElementById('gb_bodylotion').value = e?.bodylotion || '';
+  const titleEl = document.querySelector('#gbModalBg .modal-header h2');
+  if(titleEl) titleEl.innerHTML = editing ? '🎁 공구 실적 수정' : '🎁 공구 실적 추가';
+  document.getElementById('gbModalBg').classList.add('open');
+}
+
+function closeGroupBuyModal(){
+  document.getElementById('gbModalBg').classList.remove('open');
+  _gbEditIdx = null;
+}
+
+async function saveGroupBuy(){
+  const label = document.getElementById('gb_label').value.trim();
+  const fromDate = document.getElementById('gb_from').value;
+  const toDate = document.getElementById('gb_to').value;
+  const revenue = parseInt(document.getElementById('gb_revenue').value) || 0;
+  const netProfit = parseInt(document.getElementById('gb_net').value) || 0;
+  const shampoo = parseInt(document.getElementById('gb_shampoo').value) || 0;
+  const treatment = parseInt(document.getElementById('gb_treatment').value) || 0;
+  const bodywash = parseInt(document.getElementById('gb_bodywash').value) || 0;
+  const bodylotion = parseInt(document.getElementById('gb_bodylotion').value) || 0;
+  if(!label || !fromDate || !toDate){ alert('라벨과 기간을 입력하세요'); return; }
+  if(toDate < fromDate){ alert('종료일이 시작일보다 빠를 수 없어요'); return; }
+  const data = {
+    id: (_gbEditIdx !== null && groupBuys[_gbEditIdx]?.id) ? groupBuys[_gbEditIdx].id : ('gb_'+Date.now()),
+    label, fromDate, toDate, revenue, netProfit,
+    shampoo, treatment, bodywash, bodylotion
+  };
+  if(_gbEditIdx !== null){
+    groupBuys[_gbEditIdx] = data;
+  } else {
+    groupBuys.push(data);
+  }
+  await saveGroupBuys();
+  closeGroupBuyModal();
+  if(typeof showToast==='function') showToast('공구 실적이 저장됐어요 ✓');
+  render();
+  if(typeof renderStock === 'function') renderStock();
+  // B2B 디테일 모달이 열려있으면 다시 그리기
+  if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+}
+
+async function deleteGroupBuy(idx){
+  if(!confirm('이 공구 실적을 삭제하시겠어요?')) return;
+  groupBuys.splice(idx, 1);
+  await saveGroupBuys();
+  if(typeof showToast==='function') showToast('삭제됐어요');
+  render();
+  if(typeof renderStock === 'function') renderStock();
+  if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+}
 
 async function loadB2BClients(){
   if(!window._firestore) return;
@@ -4407,42 +4590,76 @@ function closeProfitDetail(){
 
 function openB2BDetail(){
   const month = selectedMonth;
-  const b2bRecs = manualOuts.filter(r => {
-    return r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0);
-  }).sort((a,b) => b.date.localeCompare(a.date));
-
+  const fmt = v => Math.round(v).toLocaleString();
   const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
-  let totRev=0, totPrf=0;
 
-  const rows = b2bRecs.map(r => {
+  // ── B2B 섹션 ──
+  const b2bRecs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0)).sort((a,b) => b.date.localeCompare(a.date));
+  let b2bTotRev=0, b2bTotPrf=0;
+  const b2bRows = b2bRecs.map(r => {
     const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0).map(k=>{
       const rev = r[k]*r['price_'+k];
       const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
-      totRev += rev; totPrf += prf;
+      b2bTotRev += rev; b2bTotPrf += prf;
       return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0">
         <span>${skuNames[k]||k} ${r[k]}개 @₩${r['price_'+k].toLocaleString()}</span>
         <span style="color:var(--text2)">₩${rev.toLocaleString()} (이익 ₩${prf.toLocaleString()})</span>
       </div>`;
     }).join('');
-    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">${r.date} · ${r.reason||'B2B 납품'}</div>
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${r.date} · ${r.reason||'B2B 납품'}${r.clientName?' · <span style=\'color:var(--text2)\'>'+r.clientName+'</span>':''}</div>
       ${items}
     </div>`;
   }).join('');
-
-  const fmt = v => Math.round(v).toLocaleString();
-  const body = b2bRecs.length === 0
-    ? '<div style="text-align:center;color:var(--text3);padding:30px">이번 달 B2B 납품 실적이 없습니다.</div>'
-    : `${rows}
-      <div style="padding:14px 0;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;font-weight:700;color:var(--text)">합계</span>
+  const b2bBody = b2bRecs.length===0
+    ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 납품 실적이 없습니다.</div>'
+    : b2bRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--text2)">B2B 합계</span>
         <div style="text-align:right">
-          <div style="font-size:13px;font-weight:700;color:#60A5FA">매출 ₩${fmt(totRev)}</div>
-          <div style="font-size:11px;color:${totPrf>=0?'#fff':'#F43F5E'}">이익 ₩${fmt(totPrf)} (마진 ${totRev>0?Math.round(totPrf/totRev*100):0}%)</div>
+          <div style="font-size:12px;font-weight:700;color:#60A5FA">매출 ₩${fmt(b2bTotRev)}</div>
+          <div style="font-size:10px;color:${b2bTotPrf>=0?'var(--text2)':'#F43F5E'}">이익 ₩${fmt(b2bTotPrf)} (마진 ${b2bTotRev>0?Math.round(b2bTotPrf/b2bTotRev*100):0}%)</div>
         </div>
       </div>`;
 
-  document.getElementById('b2bDetailBody').innerHTML = body;
+  // ── 공구 섹션 ──
+  const monthGB = (typeof groupBuys !== 'undefined' ? groupBuys : []).filter(gb => gb.toDate && gb.toDate.startsWith(month)).sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''));
+  let gbTotRev=0, gbTotPrf=0;
+  const gbRows = monthGB.map((gb)=>{
+    const realIdx = groupBuys.indexOf(gb);
+    gbTotRev += gb.revenue||0; gbTotPrf += gb.netProfit||0;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${gb.label} <span style="font-size:10px;color:var(--text3);font-weight:400">${gb.fromDate}~${gb.toDate}</span></div>
+        <div style="font-size:11px;color:var(--text3)">샴푸 ${gb.shampoo||0} · 트리트먼트 ${gb.treatment||0} · 바디워시 ${gb.bodywash||0} · 바디로션 ${gb.bodylotion||0}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">매출 ₩${(gb.revenue||0).toLocaleString()} · 순수익 ₩${(gb.netProfit||0).toLocaleString()}</div>
+      </div>
+      <div style="display:flex;gap:2px;margin-left:8px">
+        <button onclick="openGroupBuyModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 5px" title="수정">✏️</button>
+        <button onclick="deleteGroupBuy(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 5px" title="삭제">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  const gbBody = monthGB.length===0
+    ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 공구 실적이 없습니다.</div>'
+    : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:700;color:#FBBF24">매출 ₩${fmt(gbTotRev)}</div>
+          <div style="font-size:10px;color:${gbTotPrf>=0?'var(--text2)':'#F43F5E'}">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
+        </div>
+      </div>`;
+
+  document.getElementById('b2bDetailBody').innerHTML = `
+    <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:700;color:#60A5FA">📦 B2B 납품</div>
+    </div>
+    ${b2bBody}
+    <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:700;color:#FBBF24">🎁 공구 실적</div>
+      <button onclick="openGroupBuyModal()" style="background:#3A2310;border:1px solid #FBBF2440;color:#FBBF24;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
+    </div>
+    ${gbBody}
+  `;
   document.getElementById('b2bDetailBg').classList.add('open');
 }
 
@@ -4890,7 +5107,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); }, 500);
 </script>
 </body>
 </html>
