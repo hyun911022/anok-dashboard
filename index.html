@@ -4652,7 +4652,7 @@ function openB2BDetail(){
     : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
         <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(gbTotRev)}</div>
+          <div style="font-size:12px;font-weight:700;color:#60A5FA">매출 ₩${fmt(gbTotRev)}</div>
           <div style="font-size:10px;color:${gbTotPrf>=0?'var(--text2)':'#F43F5E'}">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
         </div>
       </div>`;
