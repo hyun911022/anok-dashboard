@@ -2326,17 +2326,50 @@ function renderInsight(){
   const totalNetProfit = netProfit + Math.round(totB2BPrf);
   const totalNetMargin = grandTotRev>0 ? Math.round(totalNetProfit/grandTotRev*100) : 0;
 
+  // ── 전월 데이터 계산 (sub 텍스트의 전월비 표시용) ──
+  const _prevDate = new Date(_iy, _im-2, 1);  // _im은 1~12; -2면 전월의 0번째 = 전월 1일
+  const _prevMonth = `${_prevDate.getFullYear()}-${String(_prevDate.getMonth()+1).padStart(2,'0')}`;
+  const _prevMRecs = records.filter(r=>r.date.startsWith(_prevMonth));
+  let _prevC=0,_prevN=0,_prevO=0,_prevM=0,_prevPrf=0;
+  _prevMRecs.forEach(r=>{ const d=calcDay(r); _prevC+=d.cRev; _prevN+=d.nRev; _prevO+=d.oRev; _prevM+=d.mRev||0; _prevPrf+=d.profit; });
+  const _prevEcRev = _prevC+_prevN+_prevO+_prevM;
+  const _prevB2B = calcB2BByMonth(_prevMonth);
+  const _prevGB = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(_prevMonth) : {rev:0,prf:0};
+  const _prevMetaAd = calcMetaAd(_prevMRecs);
+  const _prevNaverAd = calcNaverAd(_prevMRecs);
+  const _prevAgency = calcAgencyFee(_prevMRecs);
+  const _prevEcNetProfit = _prevPrf - _prevMetaAd - _prevNaverAd - _prevAgency;
+  const _prevTotalNetProfit = _prevEcNetProfit + _prevB2B.prf + _prevGB.prf;
+  const _prevGrandRev = _prevEcRev + _prevB2B.rev + _prevGB.rev;
+  const _prevTotalNetMargin = _prevGrandRev>0 ? Math.round(_prevTotalNetProfit/_prevGrandRev*100) : 0;
+  const _prevDaysIn = new Date(_prevDate.getFullYear(), _prevDate.getMonth()+1, 0).getDate();
+  const _prevEcAvgDaily = _prevDaysIn>0 ? Math.round(_prevEcRev/_prevDaysIn) : 0;
+  const _prevAchRate = TARGET_TOTAL>0 ? Math.round(_prevEcRev/TARGET_TOTAL*100) : 0;
+  // 전월비 부호 헬퍼
+  const _diffStr = (cur, prev, unit='') => {
+    const d = cur - prev;
+    if(d === 0) return `전월 동일`;
+    const sign = d>0 ? '+' : '−';
+    return `전월비 ${sign}${fmt(Math.abs(d))}${unit}`;
+  };
+  const _diffPctStr = (cur, prev) => {
+    const d = cur - prev;
+    if(d === 0) return `전월 동일`;
+    const sign = d>0 ? '+' : '−';
+    return `전월비 ${sign}${Math.abs(d)}%p`;
+  };
+
   const kpiItems=[
-    {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf))}`,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0},
+    {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf))} · ${_diffStr(totalNetProfit, _prevTotalNetProfit, '')} (마진 ${_diffPctStr(totalNetMargin, _prevTotalNetMargin)})`,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0},
     {
       label: isPastMonth ? '이커머스 목표 달성률 (최종)' : '이커머스 예상 목표 달성률',
       val: ecProjAchRate+'%',
       sub: isPastMonth
-        ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)}`
-        : `예상 월매출 ₩${fmt(ecProjTotal)} / 목표 ₩${fmt(targetTotal)}`,
+        ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)} · 전월 달성률 ${_prevAchRate}%`
+        : `예상 월매출 ₩${fmt(ecProjTotal)} / 목표 ₩${fmt(targetTotal)} · 전월 달성률 ${_prevAchRate}%`,
       color:'#0EA5E9', icon:'🎯', positive: ecProjAchRate>=100
     },
-    {label:'이커머스 일평균 매출',val:'₩'+fmt(ecAvgDaily),sub2:ecDailyAchRate+'%',sub:`목표일평균 ₩${fmt(targetDailyAvg)}`,color:'#16A34A',icon:'📈',positive:ecAvgDaily>=targetDailyAvg},
+    {label:'이커머스 일평균 매출',val:'₩'+fmt(ecAvgDaily),sub2:ecDailyAchRate+'%',sub:`목표일평균 ₩${fmt(targetDailyAvg)} · 전월 일평균 ₩${fmt(_prevEcAvgDaily)} (${_diffStr(ecAvgDaily, _prevEcAvgDaily)})`,color:'#16A34A',icon:'📈',positive:ecAvgDaily>=targetDailyAvg},
     isPastMonth
       ? {
           label:'월 마감',
@@ -2373,8 +2406,18 @@ function renderInsight(){
   const setSkus=['hairset','bodyset','washset'];
   let setQty=0,singleQty=0,setRev=0;
   mRecs.forEach(r=>{
-    setSkus.forEach(k=>{setQty+=(r.cafe[k]||0)+(r.naver[k]||0); setRev+=((r.cafe[k]||0)*CAFE_PRICES[k])||0;});
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{singleQty+=(r.cafe[k]||0)+(r.naver[k]||0)+((r.coupang[k]||0))+((r.musinsa||{})[k]||0);});
+    setSkus.forEach(k=>{
+      const cafeQ=(r.cafe||{})[k]||0;
+      const naverQ=(r.naver||{})[k]||0;
+      const musinsaQ=(r.musinsa||{})[k]||0;
+      // 세트 수량: 자사 + 네이버 + 무신사 (쿠팡은 세트 미운영)
+      setQty += cafeQ + naverQ + musinsaQ;
+      // 세트 매출: 채널별 정가 적용
+      setRev += cafeQ*(CAFE_PRICES[k]||0) + naverQ*(NAVER_PRICES[k]||0) + musinsaQ*(MUSI_PRICES[k]||0);
+    });
+    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
+      singleQty += ((r.cafe||{})[k]||0)+((r.naver||{})[k]||0)+((r.coupang||{})[k]||0)+((r.musinsa||{})[k]||0);
+    });
   });
   const totalQty=setQty+singleQty;
   const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
