@@ -2424,7 +2424,7 @@ function renderInsight(){
       sub: isPastMonth
         ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)}`
         : `예상 월매출 ₩${fmt(ecProjTotal)} / 목표 ₩${fmt(targetTotal)}`,
-      prevSub: `전월 최종 달성률 ${_prevAchRate}% (5월 목표 ₩${fmt(_prevTargetTotal)})`,
+      prevSub: `전월 최종 달성률 ${_prevAchRate}% (전월 실적 ₩${fmt(_prevEcRev_full)})`,
       prevDir: ecProjAchRate >= _prevAchRate ? 'up' : 'down',
       color:'#0EA5E9', icon:'🎯', positive: ecProjAchRate>=100
     },
