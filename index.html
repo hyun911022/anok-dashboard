@@ -1548,8 +1548,8 @@ function render(){
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
   const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
-  // B2B 손익 (광고비/대행료 없음 — 순수 납품이익)
-  const b2bNetProfit = Math.round(totB2BPrf);
+  // B2B 손익 (광고비/대행료 없음 — 납품 이익 + 공구 순수익, 사용자 정의상 공구도 B2B 카테고리)
+  const b2bNetProfit = Math.round(totB2BPrf + totGBPrf);
   const b2bNetStr = (b2bNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(b2bNetProfit));
   // 합산 손익
   const totalNetProfit = profit + b2bNetProfit;
@@ -2313,8 +2313,8 @@ function renderInsight(){
   document.getElementById('insightSubtitle').textContent = isPastMonth
     ? `${_im}월 최종 실적`
     : `${_im}월 ${days}일 기준`;
-  // 누적 총손익 = 이커머스 + B2B
-  const grandNetProfit = netProfit + Math.round(totB2BPrf);
+  // 누적 총손익 = 이커머스 + B2B + 공구 (공구도 B2B 카테고리)
+  const grandNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf);
   const _fmtN = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   document.getElementById('insightSummaryText').textContent = isPastMonth
     ? `최종 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 일평균 매출 ₩${fmt(avgDaily)}`
@@ -2332,7 +2332,7 @@ function renderInsight(){
   const ecEffectiveProjTotal = isPastMonth ? totRev : ecProjTotal;
   const ecProjAchRate = Math.round(ecEffectiveProjTotal/targetTotal*100);
   // 순수익 = 이커머스 + B2B 합산
-  const totalNetProfit = netProfit + Math.round(totB2BPrf);
+  const totalNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf);  // B2B + 공구 합산
   const totalNetMargin = grandTotRev>0 ? Math.round(totalNetProfit/grandTotRev*100) : 0;
 
   // ── 전월 데이터 계산 (sub 텍스트의 전월비 표시용) ──
@@ -2417,7 +2417,7 @@ function renderInsight(){
   const _diffColor = (dir) => dir==='up' ? '#16A34A' : (dir==='down' ? '#EF4444' : '#8898AA');
 
   const kpiItems=[
-    (()=>{const d1=_diffStr(totalNetProfit,_prevTotalNetProfit_sd,''); const d2=_diffPctStr(totalNetMargin,_prevTotalNetMargin_sd); const periodLabel = isPastMonth?'전월':'전월 동기간'; return {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf))}`,prevSub:`${periodLabel} ₩${fmt(_prevTotalNetProfit_sd)} (마진 ${_prevTotalNetMargin_sd}%)  ·  ${d1.text}`,prevDir:d1.dir,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0};})(),
+    (()=>{const d1=_diffStr(totalNetProfit,_prevTotalNetProfit_sd,''); const d2=_diffPctStr(totalNetMargin,_prevTotalNetMargin_sd); const periodLabel = isPastMonth?'전월':'전월 동기간'; return {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf + totGBPrf))}`,prevSub:`${periodLabel} ₩${fmt(_prevTotalNetProfit_sd)} (마진 ${_prevTotalNetMargin_sd}%)  ·  ${d1.text}`,prevDir:d1.dir,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0};})(),
     {
       label: isPastMonth ? '이커머스 목표 달성률 (최종)' : '이커머스 예상 목표 달성률',
       val: ecProjAchRate+'%',
@@ -2559,9 +2559,9 @@ function renderInsight(){
   if(_totPrfEl){ _totPrfEl.textContent='₩'+fmt(Math.round(grandTotPrf)); _totPrfEl.style.color=grandTotPrf>=0?'var(--text)':'#F43F5E'; }
   if(_totPrfRateEl) _totPrfRateEl.textContent=`마진율 ${grandTotRev>0?(grandTotPrf/grandTotRev*100).toFixed(1):0}% (상품 기준)`;
 
-  // 예상 손익 카드 — 이커머스/B2B/합산
+  // 예상 손익 카드 — 이커머스 / B2B(+공구) / 합산
   const _np = netProfit;
-  const _b2bNet = Math.round(totB2BPrf);
+  const _b2bNet = Math.round(totB2BPrf + totGBPrf);  // 공구도 B2B 카테고리
   const _totalNet = _np + _b2bNet;
   const fmtNet = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   const _pv2=document.getElementById('profitVal');
