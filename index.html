@@ -470,6 +470,7 @@
         <button class="tab" onclick="switchTab('products')">상품관리</button>
         <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
         <button class="tab" onclick="switchTab('expenses')">비용관리</button>
+        <button class="tab" onclick="switchTab('simulator')">수익 시뮬레이션</button>
       </div>
       <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
     </div>
@@ -945,6 +946,32 @@
       </div>
       <div id="expenseSummary" style="display:flex;gap:12px;margin-bottom:16px"></div>
       <div id="expenseList"></div>
+    </div>
+  </div>
+
+  <!-- 수익 시뮬레이션 탭 -->
+  <div id="tabSimulator" style="display:none">
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:16px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
+          <span style="font-size:16px;font-weight:700;color:var(--text)">수익 시뮬레이션</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px">채널별 판매가 조정 → 실시간 수익 계산</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="simResetToNormal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">정상가로 리셋</button>
+          <button onclick="simResetToCurrent()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">현재 판매가로 리셋</button>
+        </div>
+      </div>
+
+      <!-- 채널 토글 버튼 -->
+      <div id="simChannelTabs" style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap"></div>
+
+      <!-- 시뮬레이션 테이블 -->
+      <div id="simulatorTableWrap"></div>
+
+      <!-- 합계 카드 -->
+      <div id="simulatorSummary" style="margin-top:16px"></div>
     </div>
   </div>
 
@@ -2298,9 +2325,11 @@ function switchTab(tab){
   document.getElementById('tabPricing').style.display=tab==='pricing'?'block':'none';
   const _expEl = document.getElementById('tabExpenses');
   if(_expEl) _expEl.style.display = tab==='expenses' ? 'block' : 'none';
+  const _simEl = document.getElementById('tabSimulator');
+  if(_simEl) _simEl.style.display = tab==='simulator' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)||(tab==='simulator'&&i===7)
     );
   });
   if(tab==='stock') renderStock();
@@ -2308,6 +2337,7 @@ function switchTab(tab){
   if(tab==='products') renderProducts();
   if(tab==='pricing') renderPriceManager();
   if(tab==='expenses' && typeof renderExpenses==='function') renderExpenses();
+  if(tab==='simulator' && typeof renderSimulator==='function') renderSimulator();
 }
 
 function renderInsight(){
@@ -5522,6 +5552,208 @@ document.getElementById('inputDate').addEventListener('change',function(){
     for(const k in o) if(document.getElementById('o_'+k)) document.getElementById('o_'+k).value=o[k]||0;
   }
 });
+
+// ──────────────────────────────────────────────────
+// 수익 시뮬레이션 (Simulator) — 채널별 SKU 판매가 동시 조정
+// ──────────────────────────────────────────────────
+let simCh = 'cafe';           // 현재 선택된 채널
+let simPrices = {};           // 사용자 입력 가격 캐시 {ch: {skuId: price}}
+
+function simInitPrices(ch){
+  // 현재 선택 채널의 모든 상품에 대해 초기값(default 판매가) 설정
+  if(!simPrices[ch]) simPrices[ch] = {};
+  products.forEach(p=>{
+    const chData = p.channels?.[ch];
+    if(!chData) return; // 해당 채널 미운영
+    if(simPrices[ch][p.id] === undefined){
+      simPrices[ch][p.id] = chData.price || 0;
+    }
+  });
+}
+
+function simCalcRow(p, ch, price){
+  // calcProfit과 동일 공식, 사용자 입력 가격 적용
+  const chData = p.channels?.[ch];
+  if(!chData) return null;
+  const vat = price / 11;
+  const fee = price * (chData.fee || 0);
+  let profit, breakdown;
+  if(ch === 'coupang'){
+    const toLog = chData.toLogistics || 0;
+    const opp = chData.opp || 0;
+    const gwp = chData.gwp || 0;
+    profit = price - vat - p.cost - toLog - opp - fee - gwp;
+    breakdown = {vat, cost:p.cost, fee, etc:toLog+opp, gwp};
+  } else {
+    const delivery = chData.delivery || 0;
+    const packaging = chData.packaging || 0;
+    const materials = chData.materials || 0;
+    const gwp = chData.gwp || 0;
+    profit = price - vat - p.cost - fee - delivery - packaging - materials - gwp;
+    breakdown = {vat, cost:p.cost, fee, etc:delivery+packaging+materials, gwp};
+  }
+  return {profit: Math.round(profit), margin: price>0?profit/price*100:0, breakdown, normalPrice: chData.price};
+}
+
+function renderSimulator(){
+  if(!Array.isArray(products) || products.length===0) return;
+
+  const channels = [
+    {key:'cafe',    label:'자사몰',  color:'#9B6DFF', bg:'#2D1B4E'},
+    {key:'naver',   label:'네이버',  color:'#34D399', bg:'#0D3320'},
+    {key:'coupang', label:'쿠팡',    color:'#F87171', bg:'#3A1010'},
+    {key:'musinsa', label:'무신사',  color:'#06B6D4', bg:'#0A2A33'},
+  ];
+
+  // 채널 토글 버튼 렌더
+  const tabsEl = document.getElementById('simChannelTabs');
+  if(tabsEl){
+    tabsEl.innerHTML = channels.map(ch=>{
+      const isActive = simCh === ch.key;
+      return `<button onclick="simSelectChannel('${ch.key}')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid ${isActive?ch.color:'var(--border)'};background:${isActive?ch.bg:'transparent'};color:${isActive?ch.color:'var(--text2)'};transition:all 0.15s">${ch.label}</button>`;
+    }).join('');
+  }
+
+  // 현재 채널에서 취급되는 상품
+  simInitPrices(simCh);
+  const channelMeta = channels.find(c=>c.key===simCh);
+  const availableProducts = products.filter(p=>p.channels?.[simCh]);
+
+  if(availableProducts.length === 0){
+    document.getElementById('simulatorTableWrap').innerHTML = `<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;background:#0F1622;border:1px dashed var(--border);border-radius:10px">${channelMeta.label}에서 취급하는 상품이 없습니다.</div>`;
+    document.getElementById('simulatorSummary').innerHTML = '';
+    return;
+  }
+
+  // 헤더 + 행
+  const isCoup = simCh === 'coupang';
+  const rows = availableProducts.map(p=>{
+    const price = simPrices[simCh][p.id] || 0;
+    const result = simCalcRow(p, simCh, price);
+    if(!result) return '';
+    const normalPriceFmt = p.normalPrice ? p.normalPrice.toLocaleString() : '-';
+    const discount = p.normalPrice ? Math.round((1 - price/p.normalPrice)*100) : 0;
+    const discountColor = discount>=40 ? '#EF4444' : (discount>=20 ? '#F59E0B' : 'var(--text3)');
+    const marginColor = result.margin>=20 ? '#16A34A' : (result.margin>=10 ? '#F59E0B' : '#EF4444');
+    const typeLabel = p.type === 'set' ? '<span style="font-size:9px;background:#1E3A5F;color:#60A5FA;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle">SET</span>' : '';
+    const gwpDisplay = result.breakdown.gwp > 0 ? `₩${result.breakdown.gwp.toLocaleString()}` : '-';
+    return `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:10px 12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${p.name}${typeLabel}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">원가 ₩${p.cost.toLocaleString()}</div>
+        </td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:12px">₩${normalPriceFmt}</td>
+        <td style="padding:10px 12px;text-align:right">
+          <input type="number" value="${price}" onchange="simChangePrice('${p.id}', this.value)" oninput="simChangePrice('${p.id}', this.value)" style="width:100px;padding:6px 10px;border:1px solid ${channelMeta.color}40;border-radius:6px;font-size:13px;color:var(--text);background:#12151F;text-align:right;font-weight:700">
+          ${discount!==0 ? `<div style="font-size:10px;color:${discountColor};margin-top:3px;font-weight:600">${discount>0?'-':'+'}${Math.abs(discount)}%</div>` : ''}
+        </td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.vat).toLocaleString()}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.fee).toLocaleString()}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${result.breakdown.etc.toLocaleString()}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">${gwpDisplay}</td>
+        <td style="padding:10px 12px;text-align:right">
+          <div style="font-size:14px;font-weight:700;color:${result.profit>=0?'var(--text)':'#EF4444'}">${result.profit>=0?'+':'−'}₩${Math.abs(result.profit).toLocaleString()}</div>
+          <div style="font-size:11px;color:${marginColor};margin-top:2px;font-weight:600">${result.margin.toFixed(1)}%</div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('simulatorTableWrap').innerHTML = `
+    <div style="background:#0F1622;border:1px solid var(--border);border-radius:10px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:840px">
+        <thead>
+          <tr style="background:#12151F;border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:10px 12px;color:${channelMeta.color};font-size:11px;font-weight:700;letter-spacing:0.5px">${channelMeta.label} 상품</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">정상가</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">판매가</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">VAT</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">수수료</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">${isCoup?'풀필+OPP':'택배·포장·부자재'}</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">GWP</th>
+            <th style="text-align:right;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600">이익 · 마진</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  // 합계 카드 (각 1개씩 판매 가정)
+  let totRev=0, totPrf=0, totCost=0, totFee=0, totEtc=0, totGwp=0;
+  availableProducts.forEach(p=>{
+    const price = simPrices[simCh][p.id] || 0;
+    const result = simCalcRow(p, simCh, price);
+    if(!result) return;
+    totRev += price;
+    totPrf += result.profit;
+    totCost += result.breakdown.cost;
+    totFee += result.breakdown.fee;
+    totEtc += result.breakdown.etc;
+    totGwp += result.breakdown.gwp;
+  });
+  const totMargin = totRev>0 ? totPrf/totRev*100 : 0;
+  const sumMarginColor = totMargin>=20 ? '#16A34A' : (totMargin>=10 ? '#F59E0B' : '#EF4444');
+  document.getElementById('simulatorSummary').innerHTML = `
+    <div style="background:linear-gradient(135deg,${channelMeta.bg} 0%,#0F1622 100%);border:1px solid ${channelMeta.color}40;border-radius:12px;padding:18px 20px">
+      <div style="font-size:11px;color:${channelMeta.color};font-weight:700;letter-spacing:0.5px;margin-bottom:10px">합계 (각 상품 1개씩 판매 가정)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 매출</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text)">₩${totRev.toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 원가</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2)">₩${Math.round(totCost).toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 비용</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2)">₩${Math.round(totFee+totEtc+totGwp).toLocaleString()}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">수수료 ₩${Math.round(totFee).toLocaleString()} · 기타 ₩${Math.round(totEtc+totGwp).toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 이익</div>
+          <div style="font-size:18px;font-weight:700;color:${sumMarginColor}">₩${Math.round(totPrf).toLocaleString()}</div>
+          <div style="font-size:11px;color:${sumMarginColor};margin-top:2px;font-weight:600">마진 ${totMargin.toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function simSelectChannel(ch){
+  simCh = ch;
+  renderSimulator();
+}
+
+function simChangePrice(skuId, value){
+  const v = parseInt(value) || 0;
+  if(!simPrices[simCh]) simPrices[simCh] = {};
+  simPrices[simCh][skuId] = v;
+  // 전체 재렌더 (입력 포커스는 잃지만 합계 갱신 위해)
+  renderSimulator();
+}
+
+function simResetToNormal(){
+  // 정상가(normalPrice)로 모든 SKU 초기화
+  if(!simPrices[simCh]) simPrices[simCh] = {};
+  products.forEach(p=>{
+    if(p.channels?.[simCh] && p.normalPrice){
+      simPrices[simCh][p.id] = p.normalPrice;
+    }
+  });
+  renderSimulator();
+}
+
+function simResetToCurrent(){
+  // 현재 default 판매가(p.channels[ch].price)로 초기화
+  if(!simPrices[simCh]) simPrices[simCh] = {};
+  products.forEach(p=>{
+    const chData = p.channels?.[simCh];
+    if(chData?.price) simPrices[simCh][p.id] = chData.price;
+  });
+  renderSimulator();
+}
 
 setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); loadExpenses(); }, 500);
 </script>
