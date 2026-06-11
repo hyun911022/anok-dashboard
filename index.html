@@ -5638,21 +5638,21 @@ function renderSimulator(){
     const typeLabel = p.type === 'set' ? '<span style="font-size:9px;background:#1E3A5F;color:#60A5FA;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle">SET</span>' : '';
     const gwpDisplay = result.breakdown.gwp > 0 ? `₩${result.breakdown.gwp.toLocaleString()}` : '-';
     return `
-      <tr style="border-bottom:1px solid var(--border)">
+      <tr data-sku="${p.id}" style="border-bottom:1px solid var(--border)">
         <td style="padding:10px 12px">
           <div style="font-size:13px;font-weight:600;color:var(--text)">${p.name}${typeLabel}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:2px">원가 ₩${p.cost.toLocaleString()}</div>
         </td>
         <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:12px">₩${normalPriceFmt}</td>
         <td style="padding:10px 12px;text-align:right">
-          <input type="number" value="${price}" onchange="simChangePrice('${p.id}', this.value)" oninput="simChangePrice('${p.id}', this.value)" style="width:100px;padding:6px 10px;border:1px solid ${channelMeta.color}40;border-radius:6px;font-size:13px;color:var(--text);background:#12151F;text-align:right;font-weight:700">
-          ${discount!==0 ? `<div style="font-size:10px;color:${discountColor};margin-top:3px;font-weight:600">${discount>0?'-':'+'}${Math.abs(discount)}%</div>` : ''}
+          <input type="number" value="${price}" oninput="simChangePrice('${p.id}', this.value)" data-cell="input" style="width:100px;padding:6px 10px;border:1px solid ${channelMeta.color}40;border-radius:6px;font-size:13px;color:var(--text);background:#12151F;text-align:right;font-weight:700">
+          <div data-cell="discount" style="font-size:10px;color:${discountColor};margin-top:3px;font-weight:600;min-height:14px">${discount!==0 ? `${discount>0?'-':'+'}${Math.abs(discount)}%` : ''}</div>
         </td>
-        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.vat).toLocaleString()}</td>
-        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.fee).toLocaleString()}</td>
-        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${result.breakdown.etc.toLocaleString()}</td>
-        <td style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">${gwpDisplay}</td>
-        <td style="padding:10px 12px;text-align:right">
+        <td data-cell="vat" style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.vat).toLocaleString()}</td>
+        <td data-cell="fee" style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${Math.round(result.breakdown.fee).toLocaleString()}</td>
+        <td data-cell="etc" style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">−₩${result.breakdown.etc.toLocaleString()}</td>
+        <td data-cell="gwp" style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">${gwpDisplay}</td>
+        <td data-cell="profit" style="padding:10px 12px;text-align:right">
           <div style="font-size:14px;font-weight:700;color:${result.profit>=0?'var(--text)':'#EF4444'}">${result.profit>=0?'+':'−'}₩${Math.abs(result.profit).toLocaleString()}</div>
           <div style="font-size:11px;color:${marginColor};margin-top:2px;font-weight:600">${result.margin.toFixed(1)}%</div>
         </td>
@@ -5730,8 +5730,95 @@ function simChangePrice(skuId, value){
   const v = parseInt(value) || 0;
   if(!simPrices[simCh]) simPrices[simCh] = {};
   simPrices[simCh][skuId] = v;
-  // 전체 재렌더 (입력 포커스는 잃지만 합계 갱신 위해)
-  renderSimulator();
+  // 부분 갱신: 해당 행 + 합계만 (input 포커스 유지)
+  const p = products.find(x=>x.id===skuId);
+  if(!p) return;
+  const result = simCalcRow(p, simCh, v);
+  if(!result) return;
+  const row = document.querySelector(`tr[data-sku="${skuId}"]`);
+  if(row){
+    // 할인율
+    const discount = p.normalPrice ? Math.round((1 - v/p.normalPrice)*100) : 0;
+    const discountColor = discount>=40 ? '#EF4444' : (discount>=20 ? '#F59E0B' : 'var(--text3)');
+    const discEl = row.querySelector('[data-cell="discount"]');
+    if(discEl){
+      discEl.style.color = discountColor;
+      discEl.textContent = discount!==0 ? `${discount>0?'-':'+'}${Math.abs(discount)}%` : '';
+    }
+    // VAT/수수료/기타/GWP
+    const vatEl = row.querySelector('[data-cell="vat"]');
+    if(vatEl) vatEl.textContent = `−₩${Math.round(result.breakdown.vat).toLocaleString()}`;
+    const feeEl = row.querySelector('[data-cell="fee"]');
+    if(feeEl) feeEl.textContent = `−₩${Math.round(result.breakdown.fee).toLocaleString()}`;
+    const etcEl = row.querySelector('[data-cell="etc"]');
+    if(etcEl) etcEl.textContent = `−₩${result.breakdown.etc.toLocaleString()}`;
+    const gwpEl = row.querySelector('[data-cell="gwp"]');
+    if(gwpEl) gwpEl.textContent = result.breakdown.gwp > 0 ? `₩${result.breakdown.gwp.toLocaleString()}` : '-';
+    // 이익·마진
+    const marginColor = result.margin>=20 ? '#16A34A' : (result.margin>=10 ? '#F59E0B' : '#EF4444');
+    const prfEl = row.querySelector('[data-cell="profit"]');
+    if(prfEl){
+      prfEl.innerHTML = `
+        <div style="font-size:14px;font-weight:700;color:${result.profit>=0?'var(--text)':'#EF4444'}">${result.profit>=0?'+':'−'}₩${Math.abs(result.profit).toLocaleString()}</div>
+        <div style="font-size:11px;color:${marginColor};margin-top:2px;font-weight:600">${result.margin.toFixed(1)}%</div>
+      `;
+    }
+  }
+  // 합계 갱신
+  simRenderSummary();
+}
+
+function simRenderSummary(){
+  const channels = {
+    cafe:    {label:'자사몰',  color:'#9B6DFF', bg:'#2D1B4E'},
+    naver:   {label:'네이버',  color:'#34D399', bg:'#0D3320'},
+    coupang: {label:'쿠팡',    color:'#F87171', bg:'#3A1010'},
+    musinsa: {label:'무신사',  color:'#06B6D4', bg:'#0A2A33'},
+  };
+  const channelMeta = channels[simCh];
+  if(!channelMeta) return;
+  const availableProducts = products.filter(p=>p.channels?.[simCh]);
+  let totRev=0, totPrf=0, totCost=0, totFee=0, totEtc=0, totGwp=0;
+  availableProducts.forEach(p=>{
+    const price = simPrices[simCh][p.id] || 0;
+    const result = simCalcRow(p, simCh, price);
+    if(!result) return;
+    totRev += price;
+    totPrf += result.profit;
+    totCost += result.breakdown.cost;
+    totFee += result.breakdown.fee;
+    totEtc += result.breakdown.etc;
+    totGwp += result.breakdown.gwp;
+  });
+  const totMargin = totRev>0 ? totPrf/totRev*100 : 0;
+  const sumMarginColor = totMargin>=20 ? '#16A34A' : (totMargin>=10 ? '#F59E0B' : '#EF4444');
+  const summaryEl = document.getElementById('simulatorSummary');
+  if(!summaryEl) return;
+  summaryEl.innerHTML = `
+    <div style="background:linear-gradient(135deg,${channelMeta.bg} 0%,#0F1622 100%);border:1px solid ${channelMeta.color}40;border-radius:12px;padding:18px 20px">
+      <div style="font-size:11px;color:${channelMeta.color};font-weight:700;letter-spacing:0.5px;margin-bottom:10px">합계 (각 상품 1개씩 판매 가정)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 매출</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text)">₩${totRev.toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 원가</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2)">₩${Math.round(totCost).toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 비용</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2)">₩${Math.round(totFee+totEtc+totGwp).toLocaleString()}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">수수료 ₩${Math.round(totFee).toLocaleString()} · 기타 ₩${Math.round(totEtc+totGwp).toLocaleString()}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">총 이익</div>
+          <div style="font-size:18px;font-weight:700;color:${sumMarginColor}">₩${Math.round(totPrf).toLocaleString()}</div>
+          <div style="font-size:11px;color:${sumMarginColor};margin-top:2px;font-weight:600">마진 ${totMargin.toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function simResetToNormal(){
