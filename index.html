@@ -504,7 +504,7 @@
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
           <div class="kpi-label">채널 총수익</div>
           <div class="kpi-value" id="kpiTotalProfit" style="margin:4px 0">0</div>
-          <div class="kpi-sub" id="kpiTotalProfitRate">상품마진 기준</div>
+          <div class="kpi-sub" id="kpiTotalProfitRate">전체 비용 차감</div>
         </div>
       </div>
 
@@ -1551,14 +1551,16 @@ function render(){
   const gbMonthAll = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(month) : {rev:0, prf:0};
   const totGBRev = gbMonthAll.rev;
   const totGBPrf = gbMonthAll.prf;
+  // 부대비용 (이커머스/B2B) — 채널 총수익 합산 전 미리 정의
+  const _ecExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
+  const _b2bExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
   // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
-  // 채널 총매출 = 이커머스 + B2B + 공구 (전체 매출 합산)
+  // 채널 총매출 = 이커머스 + B2B + 공구 / 채널 총수익 = 매출이익 합 − 부대비용
   const grandTotRev = totRev + totB2BRev + totGBRev;
-  const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
+  const grandTotPrf = totPrf + totB2BPrf + totGBPrf - _ecExpI - _b2bExpI;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const _ecExp = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
-  const profit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExp; // 이커머스 부대비용 차감
+  const profit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExpI; // 이커머스 부대비용 차감 (위에서 정의된 _ecExpI 사용)
   const rate=totRev>0?totPrf/totRev:0;
 
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
@@ -1601,9 +1603,8 @@ function render(){
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
   const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
-  // B2B 손익 = 납품 이익 + 공구 순수익 − B2B 부대비용
-  const _b2bExp = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
-  const b2bNetProfit = Math.round(totB2BPrf + totGBPrf - _b2bExp);
+  // B2B 손익 = 납품 이익 + 공구 순수익 − B2B 부대비용 (위에서 정의된 _b2bExpI 사용)
+  const b2bNetProfit = Math.round(totB2BPrf + totGBPrf - _b2bExpI);
   const b2bNetStr = (b2bNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(b2bNetProfit));
   // 합산 손익
   const totalNetProfit = profit + b2bNetProfit;
@@ -2339,14 +2340,16 @@ function renderInsight(){
   const gbMonthAll = (typeof calcGroupBuyByMonth==='function') ? calcGroupBuyByMonth(month) : {rev:0, prf:0};
   const totGBRev = gbMonthAll.rev;
   const totGBPrf = gbMonthAll.prf;
+  // 부대비용 (이커머스/B2B) — 채널 총수익 합산 전 미리 정의
+  const _ecExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
+  const _b2bExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
   // 무신사 이미 totRev/totPrf에 포함됨 (calcDay 반영)
-  // 채널 총매출 = 이커머스 + B2B + 공구 (전체 매출 합산)
+  // 채널 총매출 = 이커머스 + B2B + 공구 / 채널 총수익 = 매출이익 합 − 부대비용
   const grandTotRev = totRev + totB2BRev + totGBRev;
-  const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
+  const grandTotPrf = totPrf + totB2BPrf + totGBPrf - _ecExpI - _b2bExpI;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const _ecExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
-  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExpI; // 이커머스 부대비용 차감
+  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExpI; // 이커머스 부대비용 차감 (위에서 정의된 _ecExpI 사용)
   // 이커머스+B2B 합산 기준 일평균/예상월매출
   const avgDaily=Math.round(grandTotRev/days);
   const projTotal=Math.round(avgDaily*daysInMonth);
@@ -2390,8 +2393,7 @@ function renderInsight(){
   const ecEffectiveProjTotal = isPastMonth ? totRev : ecProjTotal;
   const ecProjAchRate = Math.round(ecEffectiveProjTotal/targetTotal*100);
   // 순수익 = 이커머스 + B2B 합산
-  const _b2bExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
-  const totalNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf - _b2bExpI);  // B2B + 공구 − 부대비용
+  const totalNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf - _b2bExpI);  // B2B + 공구 − 부대비용 (위에서 정의된 _b2bExpI 사용)
   const totalNetMargin = grandTotRev>0 ? Math.round(totalNetProfit/grandTotRev*100) : 0;
 
   // ── 전월 데이터 계산 (sub 텍스트의 전월비 표시용) ──
