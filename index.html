@@ -3166,23 +3166,63 @@ function renderStock(){
     {key:'washset',  name:'워시세트', color:'#60A5FA', type:'set', parts:{shampoo:1,bodywash:1}},
   ];
 
-  // 채널별·아이템별 판매량 집계
+  // 최근 30일 records 추출 (가격 트렌드 반영, 부족 시 전체 fallback)
+  const _today30 = (typeof getTodayKST==='function') ? getTodayKST() : new Date().toISOString().slice(0,10);
+  const _d30 = new Date(_today30);
+  _d30.setDate(_d30.getDate() - 30);
+  const _date30Str = _d30.toISOString().slice(0,10);
+  const _recentRecs = records.filter(r => r.date >= _date30Str);
+  const _basisRecs = _recentRecs.length > 0 ? _recentRecs : records;
+
+  // 채널별·아이템별 판매량/매출/이익 집계 (무신사 포함, priceHistory 자동 반영)
   const soldCnt = {};
-  ALL_ITEMS.forEach(it=>{ soldCnt[it.key]={cafe:0,naver:0,coup:0}; });
-  records.forEach(r=>{
-    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
-    ALL_ITEMS.forEach(it=>{
-      soldCnt[it.key].cafe  += (c[it.key]||0);
-      soldCnt[it.key].naver += (n[it.key]||0);
-      if(it.type==='single') soldCnt[it.key].coup += (o[it.key]||0);
+  const realStats = {}; // 실판매 매출/이익 누적
+  ALL_ITEMS.forEach(it=>{
+    soldCnt[it.key]={cafe:0,naver:0,coup:0,musi:0};
+    realStats[it.key]={
+      cafe:{rev:0,prf:0}, naver:{rev:0,prf:0},
+      coup:{rev:0,prf:0}, musi:{rev:0,prf:0}
+    };
+  });
+  // 각 record의 채널·SKU별 실판매가/실수익 누적 (priceHistory 적용)
+  _basisRecs.forEach(r=>{
+    const dt = r.date;
+    const channels = [
+      {data:r.cafe||{},    ch:'cafe',    short:'cafe',  defaultP:CAFE_PRICES,  defaultPrf:CAFE_PROFITS},
+      {data:r.naver||{},   ch:'naver',   short:'naver', defaultP:NAVER_PRICES, defaultPrf:NAVER_PROFITS},
+      {data:r.coupang||{}, ch:'coupang', short:'coup',  defaultP:COUP_PRICES,  defaultPrf:COUP_PROFITS},
+      {data:r.musinsa||{}, ch:'musinsa', short:'musi',  defaultP:MUSI_PRICES,  defaultPrf:MUSI_PROFITS},
+    ];
+    channels.forEach(({data,ch,short,defaultP,defaultPrf})=>{
+      ALL_ITEMS.forEach(it=>{
+        // 쿠팡은 단품만 (세트 미운영)
+        if(ch==='coupang' && it.type==='set') return;
+        const q = data[it.key]||0;
+        if(!q) return;
+        soldCnt[it.key][short] += q;
+        // 가격/이익: priceHistory 우선, 없으면 products의 channel 가격, 없으면 default
+        const p = products.find(x=>x.id===it.key);
+        let price = 0, profit = 0;
+        if(p){
+          const ph = (typeof getPriceOnDate==='function') ? getPriceOnDate(p, ch, dt) : null;
+          const prfh = (typeof getProfitOnDate==='function') ? getProfitOnDate(p, ch, dt) : null;
+          price = ph !== null ? ph : (p.channels?.[ch]?.price || defaultP[it.key] || 0);
+          profit = prfh !== null ? prfh : ((typeof calcProfit==='function' ? calcProfit(p, ch) : null) ?? defaultPrf[it.key] || 0);
+        } else {
+          price = defaultP[it.key] || 0;
+          profit = defaultPrf[it.key] || 0;
+        }
+        realStats[it.key][short].rev += q * price;
+        realStats[it.key][short].prf += q * profit;
+      });
     });
   });
 
-  // SKU별 총 소진량 (단품+세트 합산)
+  // SKU별 총 소진량 (단품+세트 합산, 무신사 포함)
   const skuTotalSold = {};
   CH_SKUS.forEach(k=>{ skuTotalSold[k]=0; });
   ALL_ITEMS.forEach(it=>{
-    const tot = soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup;
+    const tot = soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup+soldCnt[it.key].musi;
     if(it.type==='single'){ skuTotalSold[it.key]+=tot; }
     else { Object.keys(it.parts).forEach(sk=>{ skuTotalSold[sk]+=tot*it.parts[sk]; }); }
   });
@@ -3198,25 +3238,31 @@ function renderStock(){
     const totalConsumed = skuTotalSold[k]||0;
     if(stockQty===0){ skuValue[k]={qty:0,rev:0,prf:0,cost:null,mix:[]}; return; }
 
-    // 소진 경로별 (단품 + 각 세트)
+    // 소진 경로별 (단품 + 각 세트) — 실판매가 기반, 무신사 포함
     const paths=[];
-    const singleTot = soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup;
+    // 단품 경로 (4채널 모두 합산)
+    const singleStats = realStats[k];
+    const singleTot = soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup+soldCnt[k].musi;
     if(singleTot>0){
-      const cP=singleTot>0?soldCnt[k].cafe/singleTot:0, nP=soldCnt[k].naver/singleTot, oP=soldCnt[k].coup/singleTot;
+      const singleRev = singleStats.cafe.rev+singleStats.naver.rev+singleStats.coup.rev+singleStats.musi.rev;
+      const singlePrf = singleStats.cafe.prf+singleStats.naver.prf+singleStats.coup.prf+singleStats.musi.prf;
       paths.push({label:'단품', ratio:totalConsumed>0?singleTot/totalConsumed:1,
-        pricePerSku: CAFE_PRICES[k]*cP+NAVER_PRICES[k]*nP+(COUP_PRICES[k]||0)*oP,
-        profitPerSku:CAFE_PROFITS[k]*cP+NAVER_PROFITS[k]*nP+(COUP_PROFITS[k]||0)*oP});
+        pricePerSku: singleRev/singleTot,
+        profitPerSku: singlePrf/singleTot});
     }
+    // 세트 경로 (자사·네이버·무신사)
     ALL_ITEMS.filter(it=>it.type==='set'&&it.parts[k]).forEach(it=>{
-      const setTot=soldCnt[it.key].cafe+soldCnt[it.key].naver;
+      const setStats = realStats[it.key];
+      const setTot = soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].musi;
       if(setTot===0) return;
-      const cP=soldCnt[it.key].cafe/setTot, nP=soldCnt[it.key].naver/setTot;
+      const setRev = setStats.cafe.rev+setStats.naver.rev+setStats.musi.rev;
+      const setPrf = setStats.cafe.prf+setStats.naver.prf+setStats.musi.prf;
       // 세트 구성 SKU 총 개수로 나눠서 이 SKU에 귀속되는 매출/수익 계산
       const totalPartsQty = Object.values(it.parts).reduce((s,v)=>s+v, 0);
       const myPartQty = it.parts[k]; // 이 SKU가 세트 1개에 들어가는 수량
       paths.push({label:it.name, ratio:totalConsumed>0?(setTot*myPartQty)/totalConsumed:0,
-        pricePerSku: (CAFE_PRICES[it.key]*cP+NAVER_PRICES[it.key]*nP) * (myPartQty/totalPartsQty),
-        profitPerSku:(CAFE_PROFITS[it.key]*cP+NAVER_PROFITS[it.key]*nP) * (myPartQty/totalPartsQty)});
+        pricePerSku: (setRev/setTot) * (myPartQty/totalPartsQty),
+        profitPerSku: (setPrf/setTot) * (myPartQty/totalPartsQty)});
     });
 
     const totalRatio=paths.reduce((s,p)=>s+p.ratio,0);
@@ -3242,9 +3288,9 @@ function renderStock(){
   const hasCostData=CH_SKUS.some(k=>UNIT_COSTS[k]>0);
 
   // 단품/세트 비중 요약
-  const totalSoldAll=ALL_ITEMS.reduce((s,it)=>s+soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup,0);
-  const singleAll=CH_SKUS.reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup,0);
-  const setAll=['hairset','bodyset','washset'].reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver,0);
+  const totalSoldAll=ALL_ITEMS.reduce((s,it)=>s+soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup+soldCnt[it.key].musi,0);
+  const singleAll=CH_SKUS.reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].coup+soldCnt[k].musi,0);
+  const setAll=['hairset','bodyset','washset'].reduce((s,k)=>s+soldCnt[k].cafe+soldCnt[k].naver+soldCnt[k].musi,0);
   const singlePct=totalSoldAll>0?Math.round(singleAll/totalSoldAll*100):0;
   const setPct=totalSoldAll>0?Math.round(setAll/totalSoldAll*100):0;
 
