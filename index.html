@@ -3207,7 +3207,8 @@ function renderStock(){
           const ph = (typeof getPriceOnDate==='function') ? getPriceOnDate(p, ch, dt) : null;
           const prfh = (typeof getProfitOnDate==='function') ? getProfitOnDate(p, ch, dt) : null;
           price = ph !== null ? ph : (p.channels?.[ch]?.price || defaultP[it.key] || 0);
-          profit = prfh !== null ? prfh : ((typeof calcProfit==='function' ? calcProfit(p, ch) : null) ?? defaultPrf[it.key] || 0);
+          const _calcPrfV = (typeof calcProfit==='function') ? calcProfit(p, ch) : null;
+          profit = prfh !== null ? prfh : (_calcPrfV != null ? _calcPrfV : (defaultPrf[it.key] || 0));
         } else {
           price = defaultP[it.key] || 0;
           profit = defaultPrf[it.key] || 0;
