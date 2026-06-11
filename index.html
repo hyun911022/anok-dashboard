@@ -2707,23 +2707,42 @@ function renderSkuProfit(mRecs){
   const stats = {};
   allItems.forEach(s=>{ stats[s.key]={ qty:0, rev:0, prf:0, cafe:0, naver:0, coup:0, musi:0 }; });
 
+  // priceHistory 적용 헬퍼: 해당 날짜의 채널·SKU 가격/이익 반환 (없으면 default fallback)
+  const _getPx = (skuKey, ch, date, defaultPrices) => {
+    const p = products.find(x=>x.id===skuKey);
+    if(p){
+      const ph = getPriceOnDate(p, ch, date);
+      if(ph !== null) return ph;
+    }
+    return defaultPrices[skuKey] || 0;
+  };
+  const _getPrf = (skuKey, ch, date, defaultProfits) => {
+    const p = products.find(x=>x.id===skuKey);
+    if(p){
+      const prf = getProfitOnDate(p, ch, date);
+      if(prf !== null) return prf;
+    }
+    return defaultProfits[skuKey] || 0;
+  };
+
   mRecs.forEach(r=>{
-    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{};
+    const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{}, m=r.musinsa||{};
+    const dt = r.date;
 
     // 자사몰 단품
     SKUS.forEach(s=>{
       const q = c[s.key]||0;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (CAFE_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (CAFE_PROFITS[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'cafe', dt, CAFE_PRICES);
+      stats[s.key].prf  += q * _getPrf(s.key, 'cafe', dt, CAFE_PROFITS);
       stats[s.key].cafe += q;
     });
     // 자사몰 세트
     SETS.forEach(s=>{
       const q = c[s.key]||0;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (CAFE_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (CAFE_PROFITS[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'cafe', dt, CAFE_PRICES);
+      stats[s.key].prf  += q * _getPrf(s.key, 'cafe', dt, CAFE_PROFITS);
       stats[s.key].cafe += q;
     });
 
@@ -2731,16 +2750,16 @@ function renderSkuProfit(mRecs){
     SKUS.forEach(s=>{
       const q = n[s.key]||0;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (NAVER_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (NAVER_PROFITS[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'naver', dt, NAVER_PRICES);
+      stats[s.key].prf  += q * _getPrf(s.key, 'naver', dt, NAVER_PROFITS);
       stats[s.key].naver+= q;
     });
     // 네이버 세트
     SETS.forEach(s=>{
       const q = n[s.key]||0;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (NAVER_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (NAVER_PROFITS[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'naver', dt, NAVER_PRICES);
+      stats[s.key].prf  += q * _getPrf(s.key, 'naver', dt, NAVER_PROFITS);
       stats[s.key].naver+= q;
     });
 
@@ -2753,21 +2772,35 @@ function renderSkuProfit(mRecs){
     SKUS.forEach(s=>{
       const q = o[s.key]||0;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (COUP_PRICES[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'coupang', dt, COUP_PRICES);
       // 차감액을 판매 수량 비례로 배분
       const deduct = coupSkuQty>0 ? Math.round(coupDeduct * (q/coupSkuQty)) : 0;
-      stats[s.key].prf  += q * (COUP_PROFITS[s.key]||0) - deduct;
+      stats[s.key].prf  += q * _getPrf(s.key, 'coupang', dt, COUP_PROFITS) - deduct;
       stats[s.key].coup += q;
     });
 
-    // 무신사 단품 (세트 없음)
-    const m = r.musinsa||{};
+    // 무신사 단품
     SKUS.forEach(s=>{
       const q = m[s.key]||0;
-      if(!MUSI_PRICES[s.key]) return; // 무신사 미취급 SKU 스킵
+      if(!q) return;
       stats[s.key].qty  += q;
-      stats[s.key].rev  += q * (MUSI_PRICES[s.key]||0);
-      stats[s.key].prf  += q * (MUSI_PROFITS[s.key]||0);
+      stats[s.key].rev  += q * _getPx(s.key, 'musinsa', dt, MUSI_PRICES);
+      stats[s.key].prf  += q * _getPrf(s.key, 'musinsa', dt, MUSI_PROFITS);
+      stats[s.key].musi += q;
+    });
+    // 무신사 세트 ★ 추가 — 기존엔 누락됨
+    SETS.forEach(s=>{
+      const q = m[s.key]||0;
+      if(!q) return;
+      stats[s.key].qty  += q;
+      // 무신사 세트는 priceHistory 또는 products.musinsa.price 사용 (default fallback은 0)
+      const p = products.find(x=>x.id===s.key);
+      const ph = p ? getPriceOnDate(p, 'musinsa', dt) : null;
+      const price = ph !== null ? ph : (p?.channels?.musinsa?.price || 0);
+      const prf = p ? getProfitOnDate(p, 'musinsa', dt) : null;
+      const profit = prf !== null ? prf : (p ? (calcProfit(p, 'musinsa') || 0) : 0);
+      stats[s.key].rev += q * price;
+      stats[s.key].prf += q * profit;
       stats[s.key].musi += q;
     });
   }); // mRecs.forEach 끝
