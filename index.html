@@ -469,6 +469,7 @@
         <button class="tab" onclick="switchTab('order')">발주관리</button>
         <button class="tab" onclick="switchTab('products')">상품관리</button>
         <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
+        <button class="tab" onclick="switchTab('expenses')">비용관리</button>
       </div>
       <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
     </div>
@@ -928,6 +929,57 @@
         <span style="font-size:11px;color:var(--text3);margin-left:4px">채널별 판매가 및 수익 구조</span>
       </div>
       <div id="priceManagerBody"></div>
+    </div>
+  </div>
+
+  <!-- 비용관리 탭 -->
+  <div id="tabExpenses" style="display:none">
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:16px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
+          <span style="font-size:16px;font-weight:700;color:var(--text)">비용 관리</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px">B2B/이커머스 부대비용 (광고비·대행료 제외)</span>
+        </div>
+        <button onclick="openExpenseModal()" style="background:#6366F1;border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">+ 비용 추가</button>
+      </div>
+      <div id="expenseSummary" style="display:flex;gap:12px;margin-bottom:16px"></div>
+      <div id="expenseList"></div>
+    </div>
+  </div>
+
+  <!-- 비용 입력 모달 -->
+  <div class="modal-bg" id="expModalBg" onclick="if(event.target===this)closeExpenseModal()">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1A1E3A,#2A2E5A)">
+        <h2 style="color:#A5B4FC">비용 추가</h2>
+        <button class="modal-close" onclick="closeExpenseModal()" style="color:#A5B4FC">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">날짜</label>
+          <input type="date" id="exp_date" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">카테고리</label>
+          <select id="exp_category" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+            <option value="b2b">B2B</option>
+            <option value="ecommerce">이커머스</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">금액 (₩)</label>
+          <input type="number" id="exp_amount" min="0" placeholder="예: 150000" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">적요</label>
+          <input type="text" id="exp_note" placeholder="예: 그레이스 OYUSE 납품 작업비" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveExpense()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#6366F1;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+          <button onclick="closeExpenseModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">취소</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1505,7 +1557,8 @@ function render(){
   const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const profit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
+  const _ecExp = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
+  const profit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExp; // 이커머스 부대비용 차감
   const rate=totRev>0?totPrf/totRev:0;
 
   document.getElementById('kpiCafe').textContent='₩'+fmt(totC);
@@ -1548,8 +1601,9 @@ function render(){
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
   const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
-  // B2B 손익 (광고비/대행료 없음 — 납품 이익 + 공구 순수익, 사용자 정의상 공구도 B2B 카테고리)
-  const b2bNetProfit = Math.round(totB2BPrf + totGBPrf);
+  // B2B 손익 = 납품 이익 + 공구 순수익 − B2B 부대비용
+  const _b2bExp = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
+  const b2bNetProfit = Math.round(totB2BPrf + totGBPrf - _b2bExp);
   const b2bNetStr = (b2bNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(b2bNetProfit));
   // 합산 손익
   const totalNetProfit = profit + b2bNetProfit;
@@ -2241,15 +2295,18 @@ function switchTab(tab){
   document.getElementById('tabOrder').style.display=tab==='order'?'block':'none';
   document.getElementById('tabProducts').style.display=tab==='products'?'block':'none';
   document.getElementById('tabPricing').style.display=tab==='pricing'?'block':'none';
+  const _expEl = document.getElementById('tabExpenses');
+  if(_expEl) _expEl.style.display = tab==='expenses' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)
     );
   });
   if(tab==='stock') renderStock();
   if(tab==='order') renderOrder();
   if(tab==='products') renderProducts();
   if(tab==='pricing') renderPriceManager();
+  if(tab==='expenses' && typeof renderExpenses==='function') renderExpenses();
 }
 
 function renderInsight(){
@@ -2288,7 +2345,8 @@ function renderInsight(){
   const grandTotPrf = totPrf + totB2BPrf + totGBPrf;
   const metaAd=calcMetaAd(mRecs), naverAdTotal=calcNaverAd(mRecs);
   const agencyFee=calcAgencyFee(mRecs);
-  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee; // calcDay.profit이 이미 무신사 포함
+  const _ecExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
+  const netProfit=totPrf-metaAd-naverAdTotal-agencyFee-_ecExpI; // 이커머스 부대비용 차감
   // 이커머스+B2B 합산 기준 일평균/예상월매출
   const avgDaily=Math.round(grandTotRev/days);
   const projTotal=Math.round(avgDaily*daysInMonth);
@@ -2313,8 +2371,8 @@ function renderInsight(){
   document.getElementById('insightSubtitle').textContent = isPastMonth
     ? `${_im}월 최종 실적`
     : `${_im}월 ${days}일 기준`;
-  // 누적 총손익 = 이커머스 + B2B + 공구 (공구도 B2B 카테고리)
-  const grandNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf);
+  // 누적 총손익 = 이커머스(부대비용 차감 후) + B2B + 공구 − B2B 부대비용
+  const grandNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf - _b2bExpI);
   const _fmtN = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   document.getElementById('insightSummaryText').textContent = isPastMonth
     ? `최종 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 일평균 매출 ₩${fmt(avgDaily)}`
@@ -2332,7 +2390,8 @@ function renderInsight(){
   const ecEffectiveProjTotal = isPastMonth ? totRev : ecProjTotal;
   const ecProjAchRate = Math.round(ecEffectiveProjTotal/targetTotal*100);
   // 순수익 = 이커머스 + B2B 합산
-  const totalNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf);  // B2B + 공구 합산
+  const _b2bExpI = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'b2b') : 0;
+  const totalNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf - _b2bExpI);  // B2B + 공구 − 부대비용
   const totalNetMargin = grandTotRev>0 ? Math.round(totalNetProfit/grandTotRev*100) : 0;
 
   // ── 전월 데이터 계산 (sub 텍스트의 전월비 표시용) ──
@@ -2379,8 +2438,20 @@ function renderInsight(){
   const _prevMetaAd_sd = calcMetaAd(_prevMRecsSameDay);
   const _prevNaverAd_sd = calcNaverAd(_prevMRecsSameDay);
   const _prevAgency_sd = calcAgencyFee(_prevMRecsSameDay);
-  const _prevEcNetProfit_sd = _prevPrf_sd - _prevMetaAd_sd - _prevNaverAd_sd - _prevAgency_sd;
-  const _prevTotalNetProfit_sd = _prevEcNetProfit_sd + _prevB2BPrf_sd + _prevGBPrf_sd;
+  // 전월 동기간 이커머스 부대비용
+  const _prevEcExp_sd = (typeof calcExpensesByDateRange==='function')
+    ? (isPastMonth
+        ? calcExpensesByMonth(_prevMonth,'ecommerce')
+        : calcExpensesByDateRange(_prevMonth+'-01', _prevSameDayEnd, 'ecommerce'))
+    : 0;
+  const _prevEcNetProfit_sd = _prevPrf_sd - _prevMetaAd_sd - _prevNaverAd_sd - _prevAgency_sd - _prevEcExp_sd;
+  // 전월 동기간 B2B 부대비용
+  const _prevB2BExp_sd = (typeof calcExpensesByDateRange==='function')
+    ? (isPastMonth
+        ? calcExpensesByMonth(_prevMonth,'b2b')
+        : calcExpensesByDateRange(_prevMonth+'-01', _prevSameDayEnd, 'b2b'))
+    : 0;
+  const _prevTotalNetProfit_sd = _prevEcNetProfit_sd + _prevB2BPrf_sd + _prevGBPrf_sd - _prevB2BExp_sd;
   const _prevGrandRev_sd = _prevEcRev_sd + _prevB2BRev_sd + _prevGBRev_sd;
   const _prevTotalNetMargin_sd = _prevGrandRev_sd>0 ? Math.round(_prevTotalNetProfit_sd/_prevGrandRev_sd*100) : 0;
   const _prevSameDayDays = isPastMonth ? _prevDaysIn : Math.min(_todayDay, _prevDaysIn);
@@ -2417,7 +2488,7 @@ function renderInsight(){
   const _diffColor = (dir) => dir==='up' ? '#16A34A' : (dir==='down' ? '#EF4444' : '#8898AA');
 
   const kpiItems=[
-    (()=>{const d1=_diffStr(totalNetProfit,_prevTotalNetProfit_sd,''); const d2=_diffPctStr(totalNetMargin,_prevTotalNetMargin_sd); const periodLabel = isPastMonth?'전월':'전월 동기간'; return {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf + totGBPrf))}`,prevSub:`${periodLabel} ₩${fmt(_prevTotalNetProfit_sd)} (마진 ${_prevTotalNetMargin_sd}%)  ·  ${d1.text}`,prevDir:d1.dir,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0};})(),
+    (()=>{const d1=_diffStr(totalNetProfit,_prevTotalNetProfit_sd,''); const d2=_diffPctStr(totalNetMargin,_prevTotalNetMargin_sd); const periodLabel = isPastMonth?'전월':'전월 동기간'; return {label:'순수익 (률)',val:'₩'+fmt(totalNetProfit),sub2:totalNetMargin+'%',sub:`이커머스 ₩${fmt(netProfit)} + B2B ₩${fmt(Math.round(totB2BPrf + totGBPrf - _b2bExpI))}`,prevSub:`${periodLabel} ₩${fmt(_prevTotalNetProfit_sd)} (마진 ${_prevTotalNetMargin_sd}%)  ·  ${d1.text}`,prevDir:d1.dir,color:'#6366F1',icon:'💰',positive:totalNetProfit>=0};})(),
     {
       label: isPastMonth ? '이커머스 목표 달성률 (최종)' : '이커머스 예상 목표 달성률',
       val: ecProjAchRate+'%',
@@ -2559,9 +2630,9 @@ function renderInsight(){
   if(_totPrfEl){ _totPrfEl.textContent='₩'+fmt(Math.round(grandTotPrf)); _totPrfEl.style.color=grandTotPrf>=0?'var(--text)':'#F43F5E'; }
   if(_totPrfRateEl) _totPrfRateEl.textContent=`마진율 ${grandTotRev>0?(grandTotPrf/grandTotRev*100).toFixed(1):0}% (상품 기준)`;
 
-  // 예상 손익 카드 — 이커머스 / B2B(+공구) / 합산
+  // 예상 손익 카드 — 이커머스 / B2B(+공구−비용) / 합산
   const _np = netProfit;
-  const _b2bNet = Math.round(totB2BPrf + totGBPrf);  // 공구도 B2B 카테고리
+  const _b2bNet = Math.round(totB2BPrf + totGBPrf - _b2bExpI);  // B2B + 공구 − B2B 부대비용
   const _totalNet = _np + _b2bNet;
   const fmtNet = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
   const _pv2=document.getElementById('profitVal');
@@ -3694,6 +3765,190 @@ let b2bClients = []; // [{id, name, prices:{shampoo,treatment,bodywash,bodylotio
 let groupBuys = []; // [{id, label, fromDate, toDate, revenue, netProfit, shampoo, treatment, bodywash, bodylotion}]
 let _gbEditIdx = null;
 
+// ──────────────────────────────────────────────────
+// 비용관리(Expenses) 시스템 — B2B/이커머스 부대비용 (광고비/대행료 제외)
+// ──────────────────────────────────────────────────
+let expenses = []; // [{id, date, category:'b2b'|'ecommerce', amount, note}]
+let _expEditIdx = null;
+
+async function loadExpenses(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'expenses'));
+    if(snap.exists() && snap.data()?.items) expenses = snap.data().items;
+  } catch(e){ console.log('expenses load error:', e); }
+}
+
+async function saveExpenses(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'expenses'), {items: expenses});
+  } catch(e){ console.error('expenses save error:', e); }
+}
+
+// 월별/카테고리별 비용 합계
+function calcExpensesByMonth(month, category){
+  if(!Array.isArray(expenses)) return 0;
+  let sum = 0;
+  expenses.forEach(e=>{
+    if(!e.date || !e.date.startsWith(month)) return;
+    if(category && e.category !== category) return;
+    sum += e.amount || 0;
+  });
+  return sum;
+}
+
+// 동기간 비용 합계 (전월 동기간 비교용)
+function calcExpensesByDateRange(fromDate, toDate, category){
+  if(!Array.isArray(expenses)) return 0;
+  let sum = 0;
+  expenses.forEach(e=>{
+    if(!e.date) return;
+    if(e.date < fromDate || e.date > toDate) return;
+    if(category && e.category !== category) return;
+    sum += e.amount || 0;
+  });
+  return sum;
+}
+
+function openExpenseModal(idx){
+  _expEditIdx = (typeof idx === 'number') ? idx : null;
+  const editing = _expEditIdx !== null;
+  const e = editing ? expenses[_expEditIdx] : null;
+  document.getElementById('exp_date').value = e?.date || getTodayKST();
+  document.getElementById('exp_category').value = e?.category || 'b2b';
+  document.getElementById('exp_amount').value = e?.amount || '';
+  document.getElementById('exp_note').value = e?.note || '';
+  const titleEl = document.querySelector('#expModalBg .modal-header h2');
+  if(titleEl) titleEl.textContent = editing ? '비용 수정' : '비용 추가';
+  document.getElementById('expModalBg').classList.add('open');
+}
+
+function closeExpenseModal(){
+  document.getElementById('expModalBg').classList.remove('open');
+  _expEditIdx = null;
+}
+
+async function saveExpense(){
+  const date = document.getElementById('exp_date').value;
+  const category = document.getElementById('exp_category').value;
+  const amount = parseInt(document.getElementById('exp_amount').value) || 0;
+  const note = document.getElementById('exp_note').value.trim();
+  if(!date){ alert('날짜를 입력하세요'); return; }
+  if(amount <= 0){ alert('금액을 입력하세요'); return; }
+  if(!note){ alert('적요를 입력하세요'); return; }
+  if(!['b2b','ecommerce'].includes(category)){ alert('카테고리를 선택하세요'); return; }
+  const data = {
+    id: (_expEditIdx !== null && expenses[_expEditIdx]?.id) ? expenses[_expEditIdx].id : ('exp_'+Date.now()),
+    date, category, amount, note
+  };
+  if(_expEditIdx !== null){
+    expenses[_expEditIdx] = data;
+  } else {
+    expenses.push(data);
+  }
+  await saveExpenses();
+  closeExpenseModal();
+  if(typeof showToast==='function') showToast('비용이 저장됐어요');
+  render();
+  if(typeof renderExpenses==='function') renderExpenses();
+  // 디테일 모달이 열려있으면 다시 그리기
+  if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(document.getElementById('profitDetailBg')?.classList.contains('open')) openProfitDetail();
+}
+
+async function deleteExpense(idx){
+  if(!confirm('이 비용 항목을 삭제하시겠어요?')) return;
+  expenses.splice(idx, 1);
+  await saveExpenses();
+  if(typeof showToast==='function') showToast('삭제됐어요');
+  render();
+  if(typeof renderExpenses==='function') renderExpenses();
+  if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(document.getElementById('profitDetailBg')?.classList.contains('open')) openProfitDetail();
+}
+
+// 비용관리 탭 렌더링
+function renderExpenses(){
+  const month = selectedMonth;
+  const monthly = expenses.filter(e => e.date && e.date.startsWith(month))
+                          .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const b2bSum = monthly.filter(e=>e.category==='b2b').reduce((s,e)=>s+(e.amount||0),0);
+  const ecSum = monthly.filter(e=>e.category==='ecommerce').reduce((s,e)=>s+(e.amount||0),0);
+  const total = b2bSum + ecSum;
+
+  // 카테고리별 합계 카드
+  const summaryEl = document.getElementById('expenseSummary');
+  if(summaryEl){
+    summaryEl.innerHTML = `
+      <div style="flex:1;background:#0F1622;border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px">전체</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">₩${total.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${monthly.length}건</div>
+      </div>
+      <div style="flex:1;background:#0F1622;border:1px solid #1E3A5F;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:#60A5FA;font-weight:600;margin-bottom:6px">B2B</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">₩${b2bSum.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${monthly.filter(e=>e.category==='b2b').length}건</div>
+      </div>
+      <div style="flex:1;background:#0F1622;border:1px solid #4C2A6E;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:#9B6DFF;font-weight:600;margin-bottom:6px">이커머스</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">₩${ecSum.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${monthly.filter(e=>e.category==='ecommerce').length}건</div>
+      </div>
+    `;
+  }
+
+  // 비용 리스트
+  const listEl = document.getElementById('expenseList');
+  if(!listEl) return;
+  if(monthly.length === 0){
+    listEl.innerHTML = `<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;background:#0F1622;border:1px dashed var(--border);border-radius:10px">이번 달 입력된 비용이 없습니다.</div>`;
+    return;
+  }
+  listEl.innerHTML = `
+    <div style="background:#0F1622;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#12151F;border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:10px 14px;color:var(--text3);font-size:11px;font-weight:600">날짜</th>
+            <th style="text-align:left;padding:10px 14px;color:var(--text3);font-size:11px;font-weight:600">카테고리</th>
+            <th style="text-align:right;padding:10px 14px;color:var(--text3);font-size:11px;font-weight:600">금액</th>
+            <th style="text-align:left;padding:10px 14px;color:var(--text3);font-size:11px;font-weight:600">적요</th>
+            <th style="width:80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${monthly.map(e=>{
+            const realIdx = expenses.indexOf(e);
+            const catLabel = e.category==='b2b' ? 'B2B' : '이커머스';
+            const catColor = e.category==='b2b' ? '#60A5FA' : '#9B6DFF';
+            const catBg = e.category==='b2b' ? '#1E3A5F' : '#4C2A6E';
+            return `
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px 14px;color:var(--text2)">${e.date}</td>
+                <td style="padding:10px 14px"><span style="background:${catBg};color:${catColor};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${catLabel}</span></td>
+                <td style="padding:10px 14px;text-align:right;font-weight:700;color:var(--text)">₩${(e.amount||0).toLocaleString()}</td>
+                <td style="padding:10px 14px;color:var(--text2)">${e.note||'-'}</td>
+                <td style="padding:10px 14px;text-align:right">
+                  <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 6px;font-size:12px">수정</button>
+                  <button onclick="deleteExpense(${realIdx})" style="background:none;border:none;color:#EF4444;cursor:pointer;padding:2px 6px;font-size:14px">×</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 async function loadGroupBuys(){
   if(!window._firestore) return;
   try {
@@ -4651,7 +4906,8 @@ function openProfitDetail(){
 
   const metaAd=calcMetaAd(mRecs), naverAd=calcNaverAd(mRecs);
   const agencyDaily=calcAgencyFee(mRecs);
-  const netProfit=Math.round(totPrf-metaAd-naverAd-agencyDaily); // totPrf에 무신사 포함됨
+  const _ecExpD = (typeof calcExpensesByMonth==='function') ? calcExpensesByMonth(month,'ecommerce') : 0;
+  const netProfit=Math.round(totPrf-metaAd-naverAd-agencyDaily-_ecExpD); // 이커머스 부대비용 차감
   const isPos = netProfit>=0;
 
   const totFulfil=Math.round(mRecs.reduce((s,r)=>s+(r.coupang?.fulfil||0),0)/1.1);
@@ -4683,9 +4939,26 @@ function openProfitDetail(){
     ${row('메타 광고비', metaAd, '#EF4444', false, `₩86,404/일 × 4/19까지`)}
     ${row('네이버 광고비', naverAd, '#EF4444', false, `₩9,058/일 × 4/13까지`)}
     ${row('대행료', agencyDaily, '#EF4444', false, `₩700,000 × 4/20까지 일할`)}
+    ${(()=>{
+      const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='ecommerce').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      if(monthExp.length===0) return '';
+      return monthExp.map(x=>{
+        const realIdx = expenses.indexOf(x);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;color:var(--text2)">${x.note||'기타 비용'}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${x.date} · 기타 부대비용</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="font-size:14px;font-weight:700;color:#EF4444">-₩${(x.amount||0).toLocaleString()}</div>
+            <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
+          </div>
+        </div>`;
+      }).join('');
+    })()}
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border)">
       <div style="font-size:13px;font-weight:700;color:var(--text)">합계 차감</div>
-      <div style="font-size:14px;font-weight:700;color:#EF4444">-₩${(metaAd+naverAd+agencyDaily).toLocaleString()}</div>
+      <div style="font-size:14px;font-weight:700;color:#EF4444">-₩${(metaAd+naverAd+agencyDaily+_ecExpD).toLocaleString()}</div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:4px;background:${isPos?'#0D2A1A':'#2A0D0D'};border-radius:10px;padding:14px 16px;margin-top:12px">
@@ -4772,6 +5045,34 @@ function openB2BDetail(){
       <button onclick="openGroupBuyModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
     </div>
     ${gbBody}
+    ${(()=>{
+      const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='b2b').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      let expBody = '';
+      if(monthExp.length===0){
+        expBody = '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 부대비용이 없습니다.</div>';
+      } else {
+        const expSum = monthExp.reduce((s,x)=>s+(x.amount||0),0);
+        expBody = monthExp.map(x=>{
+          const realIdx = expenses.indexOf(x);
+          return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${x.note||'기타 비용'} <span style="font-size:10px;color:var(--text3);font-weight:400">${x.date}</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
+              <div style="font-size:13px;font-weight:700;color:#EF4444">−₩${(x.amount||0).toLocaleString()}</div>
+              <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
+            </div>
+          </div>`;
+        }).join('') + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;font-weight:700;color:var(--text2)">비용 합계</span>
+          <div style="font-size:12px;font-weight:700;color:#EF4444">−₩${expSum.toLocaleString()}</div>
+        </div>`;
+      }
+      return `<div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:700;color:#EF4444">B2B 부대비용</div>
+        <button onclick="openExpenseModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 비용 추가</button>
+      </div>${expBody}`;
+    })()}
   `;
   document.getElementById('b2bDetailBg').classList.add('open');
 }
@@ -5220,7 +5521,7 @@ document.getElementById('inputDate').addEventListener('change',function(){
   }
 });
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); loadExpenses(); }, 500);
 </script>
 </body>
 </html>
