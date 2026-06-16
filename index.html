@@ -1867,10 +1867,10 @@ function calcUnitQty(mRecs,sku){
   const month = selectedMonth || getTodayKST().slice(0,7);
   const sb=(k)=>manualOuts.filter(r=>r.date.startsWith(month)).reduce((sum,r)=>sum+(r[k]||0),0);
   const smu=(k)=>mRecs.reduce((sum,r)=>sum+((r.musinsa||{})[k]||0),0);
-  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo')+smu('shampoo')+sb('shampoo');
-  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+smu('treatment')+sb('treatment');
-  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+smu('bodywash')+sb('bodywash');
-  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+smu('bodylotion')+sb('bodylotion');
+  if(sku==='shampoo')    return sc('shampoo')+sc('hairset')+sc('washset')+sn('shampoo')+sn('hairset')+sn('washset')+so('shampoo')+smu('shampoo')+smu('hairset')+sb('shampoo');
+  if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+smu('treatment')+smu('hairset')+sb('treatment');
+  if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+smu('bodywash')+smu('bodyset')+sb('bodywash');
+  if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+smu('bodylotion')+smu('bodyset')+sb('bodylotion');
   return null;
 }
 
