@@ -1802,11 +1802,16 @@ function renderAchieve(mRecs){
   let r14C=0,r14N=0,r14O=0,r14M=0;
   recent14.forEach(r=>{const d=calcDay(r);r14C+=d.cRev;r14N+=d.nRev;r14O+=d.oRev;r14M+=d.mRev||0;});
 
-  const projC=Math.round(r14C/r14days*daysInMonth);
-  const projN=Math.round(r14N/r14days*daysInMonth);
-  const projO=Math.round(r14O/r14days*daysInMonth);
-  const projM=Math.round(r14M/r14days*daysInMonth);
-  const projTotal=projC+projN+projO+projM;
+  // 채널별: 누적 매출 + 남은 일수 × 14일 일평균 (KPI와 동일 기준)
+  const _todayCh = new Date(getTodayKST());
+  const _isCurMonthCh = _todayCh.getFullYear()===_iy && (_todayCh.getMonth()+1)===_im;
+  const _elapsedCh = _isCurMonthCh ? _todayCh.getDate() : daysInMonth;
+  const _remainCh = Math.max(0, daysInMonth - _elapsedCh);
+  const projC = Math.round(totC + _remainCh * (r14C/r14days));
+  const projN = Math.round(totN + _remainCh * (r14N/r14days));
+  const projO = Math.round(totO + _remainCh * (r14O/r14days));
+  const projM = Math.round(totM + _remainCh * (r14M/r14days));
+  const projTotal = projC+projN+projO+projM;
 
   const channels=[
     {label:'자사몰  (cafe24)',      actual:totC, target:TARGETS.cafe,    proj:projC, color:'#7C3AED'},
@@ -1816,7 +1821,7 @@ function renderAchieve(mRecs){
   ];
 
   const projHtml=`<div style="background:#1E2236;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
-    <span style="font-size:12px;color:#94A3B8;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:500">(최근 14일 평균 × ${daysInMonth}일)</span></span>
+    <span style="font-size:12px;color:#94A3B8;font-weight:600">📈 당월 예상 총매출 <span style="font-size:10px;color:#8898AA;font-weight:500">(누적 매출 + 잔여일 페이스)</span></span>
     <span style="display:flex;align-items:center;gap:8px">
       <span style="font-size:16px;font-weight:700;color:var(--text)">₩${projTotal.toLocaleString()}</span>
       <span style="font-size:13px;font-weight:700;color:${projTotal>=TARGET_TOTAL?'#E24B4A':'#2563EB'}">(${Math.round(projTotal/TARGET_TOTAL*100)}%)</span>
