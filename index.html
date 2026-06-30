@@ -1804,7 +1804,8 @@ function renderAchieve(mRecs){
 
   // 채널별: 누적 매출 + 남은 일수 × 14일 일평균 (KPI와 동일 기준)
   const _todayCh = new Date(getTodayKST());
-  const _isCurMonthCh = _todayCh.getFullYear()===_iy && (_todayCh.getMonth()+1)===_im;
+  const [_chIy, _chIm] = (selectedMonth || getTodayKST().slice(0,7)).split('-').map(Number);
+  const _isCurMonthCh = _todayCh.getFullYear()===_chIy && (_todayCh.getMonth()+1)===_chIm;
   const _elapsedCh = _isCurMonthCh ? _todayCh.getDate() : daysInMonth;
   const _remainCh = Math.max(0, daysInMonth - _elapsedCh);
   const projC = Math.round(totC + _remainCh * (r14C/r14days));
@@ -2423,14 +2424,22 @@ function renderInsight(){
   // 이커머스 전용 지표
   const ecAvgDaily = Math.round(totRev/days);
   const ecDailyAchRate = targetDailyAvg>0 ? Math.round(ecAvgDaily/targetDailyAvg*100) : 0;
-  // ecProjTotal: 최근 14일 평균 × daysInMonth (채널별 그래프와 동일 기준으로 통일)
+  // ecProjTotal: 누적 매출 + 남은 일수 × 최근 14일 일평균 (월말로 갈수록 누적에 수렴)
   const _today14 = getTodayKST();
   const _from14 = new Date(_today14); _from14.setDate(_from14.getDate()-13);
   const _from14Str = _from14.toISOString().split('T')[0];
   const _recent14 = records.filter(r=>r.date>=_from14Str && r.date<=_today14);
   let _r14Total = 0;
   _recent14.forEach(r=>{const _d=calcDay(r); _r14Total += _d.cRev+_d.nRev+_d.oRev+(_d.mRev||0);});
-  const ecProjTotal = Math.round(_r14Total/14*daysInMonth);
+  const _avg14Daily = _r14Total / 14;
+  // 이번달 경과일 (오늘 기준) — selectedMonth와 비교
+  const _todayD_ec = new Date(_today14);
+  const [_projIy, _projIm] = (selectedMonth || getTodayKST().slice(0,7)).split('-').map(Number);
+  const _isCurrentMonth = _todayD_ec.getFullYear()===_projIy && (_todayD_ec.getMonth()+1)===_projIm;
+  const _elapsedDays = _isCurrentMonth ? _todayD_ec.getDate() : daysInMonth;
+  const _remainDays = Math.max(0, daysInMonth - _elapsedDays);
+  // 예상 월매출 = 이번달 누적 매출 (totRev) + 남은 일수 × 최근 14일 일평균
+  const ecProjTotal = Math.round(totRev + _remainDays * _avg14Daily);
   const ecAchRate = Math.round(totRev/targetTotal*100);
   const ecEffectiveProjTotal = isPastMonth ? totRev : ecProjTotal;
   const ecProjAchRate = Math.round(ecEffectiveProjTotal/targetTotal*100);
@@ -2538,7 +2547,7 @@ function renderInsight(){
       val: ecProjAchRate+'%',
       sub: isPastMonth
         ? `최종 매출 ₩${fmt(totRev)} / 목표 ₩${fmt(targetTotal)}`
-        : `예상 월매출 ₩${fmt(ecProjTotal)} (최근 14일 평균 기준) / 목표 ₩${fmt(targetTotal)}`,
+        : `예상 월매출 ₩${fmt(ecProjTotal)} (누적+잔여페이스) / 목표 ₩${fmt(targetTotal)}`,
       prevSub: `전월 최종 달성률 ${_prevAchRate}% (전월 실적 ₩${fmt(_prevEcRev_full)})`,
       prevDir: ecProjAchRate >= _prevAchRate ? 'up' : 'down',
       color:'#0EA5E9', icon:'🎯', positive: ecProjAchRate>=100
