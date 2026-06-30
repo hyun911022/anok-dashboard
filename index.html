@@ -1840,26 +1840,44 @@ function renderAchieve(mRecs){
   const maxTarget = Math.max(...channels.map(c=>c.target), 1);
 
   wrap.innerHTML=projHtml+channels.map(ch=>{
-    const rawPct=ch.target>0?ch.actual/ch.target*100:0;
-    const fillPct=Math.min(Math.round(rawPct),100);
-    const pctLabel=Math.round(rawPct)+'%';
-    const fillColor=ch.color;
-    // 트랙 폭 = 그 채널 목표 / 최대 목표 비율 (최소 10% 보장)
-    const trackWidthPct = Math.max(ch.target/maxTarget*100, 10);
-    return `<div class="ach-row">
-      <div class="ach-header">
-        <span class="ach-label">${ch.label}</span>
-        <span class="ach-nums">
-          <span style="font-size:10px;color:var(--text3)">현재</span> <b>₩${Math.round(ch.actual).toLocaleString()}</b>
-          &nbsp;/&nbsp;<span style="font-size:10px;color:var(--text3)">예상</span> <b>₩${ch.proj.toLocaleString()}</b>
-          &nbsp;&nbsp;<span style="font-size:10px;color:var(--text3)">목표</span> <span style="color:${ch.color};font-weight:700">₩${Math.round(ch.target).toLocaleString()}</span>
-        </span>
+    const rawPct = ch.target>0 ? ch.actual/ch.target*100 : 0;
+    const fillPct = Math.min(Math.round(rawPct),100);
+    const pctLabel = Math.round(rawPct);
+    // 상태별 색상 + 라벨
+    let statusColor, statusLabel, statusBg;
+    if(rawPct >= 110)      { statusColor='#16A34A'; statusLabel='▲ 초과'; statusBg='rgba(22,163,74,0.12)'; }
+    else if(rawPct >= 90)  { statusColor='#0EA5E9'; statusLabel='✓ 달성'; statusBg='rgba(14,165,233,0.12)'; }
+    else if(rawPct >= 50)  { statusColor='#8898AA'; statusLabel='— 진행'; statusBg='rgba(136,152,170,0.12)'; }
+    else                   { statusColor='#EA580C'; statusLabel='▼ 주의'; statusBg='rgba(234,88,12,0.12)'; }
+    // 현재=예상 동일이면 통합 표시, 다르면 별도
+    const showProj = ch.actual !== ch.proj;
+    return `<div style="background:#0F1622;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <!-- Header: 채널명 + 큰 달성률 + 상태 배지 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:14px;background:${ch.color};border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${ch.label}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px;font-weight:800;color:${statusColor};letter-spacing:-0.5px">${pctLabel}%</span>
+          <span style="font-size:10px;color:${statusColor};background:${statusBg};padding:3px 8px;border-radius:5px;font-weight:700;letter-spacing:0.3px">${statusLabel}</span>
+        </div>
       </div>
-      <div class="ach-track" style="width:${trackWidthPct}%">
-        <div class="ach-fill" style="width:${fillPct}%;background:${fillColor}"></div>
-        <span class="ach-pct-out" style="color:${fillColor}">${pctLabel}</span>
-        <!-- 경과일 인디케이터 -->
-        <div style="position:absolute;top:0;left:${elapsedPct}%;transform:translateX(-50%);width:2px;height:32px;background:#F87171;border-radius:1px;pointer-events:none"></div>
+      <!-- 균일 폭 막대 (트랙) + 채움 + 경과일 인디케이터 -->
+      <div style="position:relative;height:8px;background:#1E2236;border-radius:4px;overflow:hidden;margin-bottom:8px">
+        <div style="width:${fillPct}%;height:100%;background:${ch.color};border-radius:4px;transition:width 0.3s"></div>
+        <!-- 경과일 인디케이터 (오늘 위치) -->
+        <div style="position:absolute;top:-2px;left:${elapsedPct}%;transform:translateX(-50%);width:2px;height:12px;background:#F87171;border-radius:1px;pointer-events:none" title="오늘 (${elapsedPct}% 경과)"></div>
+      </div>
+      <!-- Footer: 현재 → 목표 / 예상 (현재와 다를 때만) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+        <div style="color:var(--text3)">
+          <span style="color:var(--text);font-weight:700">₩${Math.round(ch.actual).toLocaleString()}</span>
+          ${showProj ? ` <span style="color:var(--text3);font-size:10px">(예상 ₩${ch.proj.toLocaleString()})</span>` : ''}
+        </div>
+        <div style="color:var(--text3)">
+          목표 <span style="color:${ch.color};font-weight:700">₩${Math.round(ch.target).toLocaleString()}</span>
+        </div>
       </div>
     </div>`;
   }).join('');
