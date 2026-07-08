@@ -1737,11 +1737,11 @@ function updateTrendChart(mRecs){
     if (!items || !items.length) { el.style.opacity = '0'; return; }
     const total = items.reduce((s,c)=>s+(c.raw||0),0);
     const dayLabel = items[0].label.replace('일','');
-    const colorMap = {'자사몰':'#A78BFA','네이버':'#4ADE80','쿠팡':'#F87171'};
+    const colorMap = {'자사몰':'#9B6DFF','네이버':'#34D399','쿠팡':'#F87171','무신사':'#06B6D4'};
     let html = `<div style="font-weight:700;font-size:14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;color:#fff">${dayLabel}일&nbsp;&nbsp;<span style="color:#fff">₩${Math.round(total).toLocaleString()}</span></div>`;
     items.forEach(c => {
       if (!c.raw) return;
-      const col = colorMap[c.dataset.label] || '#A78BFA';
+      const col = colorMap[c.dataset.label] || '#8898AA';
       html += `<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="color:#CBD5E1">${c.dataset.label}</span><span style="margin-left:auto;font-weight:600;color:#fff">₩${Math.round(c.raw).toLocaleString()}</span></div>`;
     });
     if (profitInfo && profitInfo.line2) {
@@ -2179,19 +2179,19 @@ function calcChannelShares(){
   if(channelSharesOverride){
     return channelSharesOverride;
   }
-  // 전월 records 기반 계산 (fallback)
+  // 전월 records 기반 계산 (fallback, 무신사 포함 4채널 모두)
   const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
   const prevYear = sm===1 ? sy-1 : sy;
   const prevMonth = sm===1 ? 12 : sm-1;
   const prevKey = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
   if(prevRecs.length > 0){
-    let totC=0,totN=0,totO=0;
-    prevRecs.forEach(r=>{ const d=calcDay(r); totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; });
-    const tot=totC+totN+totO;
-    if(tot>0) return {c:totC/tot, n:totN/tot, o:totO/tot};
+    let totC=0,totN=0,totO=0,totM=0;
+    prevRecs.forEach(r=>{ const d=calcDay(r); totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totM+=(d.mRev||0); });
+    const tot=totC+totN+totO+totM;
+    if(tot>0) return {c:totC/tot, n:totN/tot, o:totO/tot, m:totM/tot};
   }
-  return {c:0.48, n:0.34, o:0.18}; // 3월 실적 기본값
+  return {c:0.48, n:0.34, o:0.18, m:0}; // 3월 실적 기본값 (무신사 없던 시절)
 }
 
 // TARGET_TOTAL: selectedMonth 기준으로 자동 계산
@@ -2202,7 +2202,7 @@ let TARGETS={cafe:Math.round(TARGET_TOTAL*0.071),naver:Math.round(TARGET_TOTAL*0
 function refreshTargets(){
   TARGET_TOTAL = calcTargetTotal();
   const sh = calcChannelShares();
-  TARGETS = {cafe:Math.round(TARGET_TOTAL*sh.c),naver:Math.round(TARGET_TOTAL*sh.n),coupang:Math.round(TARGET_TOTAL*sh.o),musinsa:Math.round(TARGET_TOTAL*(sh.m||0.059))};
+  TARGETS = {cafe:Math.round(TARGET_TOTAL*sh.c),naver:Math.round(TARGET_TOTAL*sh.n),coupang:Math.round(TARGET_TOTAL*sh.o),musinsa:Math.round(TARGET_TOTAL*(sh.m||0))};
 }
 
 function initCharts(){
