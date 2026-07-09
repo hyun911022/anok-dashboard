@@ -1948,11 +1948,11 @@ function renderSkuTable(mRecs){
       :`<td class="num" style="color:#CBD5E0">-</td>`;
     html+=`<tr><td style="white-space:nowrap">${SKU_NAMES[k]}<div class="sku-bar-bg"><div class="sku-bar" style="width:${pct}%"></div></div></td><td class="num" style="color:#9B6DFF">${c}</td><td class="num" style="color:#34D399">${n}</td><td class="num" style="color:#F87171">${o||'-'}</td>${muCell}${bCell}<td class="num">${tot}</td>${unitCell}</tr>`;
   });
-  // 단품 합계 행
+  // 합계 행 — 자사/네이버는 세트 포함 (skus), 쿠팡은 단품만 (oSkus, 세트 미운영)
   const totalUnit = unitSkus.reduce((s,k)=>s+(calcUnitQty(mRecs,k)||0),0);
-  const totalC = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.cafe[k]||0),0),0);
-  const totalN = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+(r.naver[k]||0),0),0);
-  const totalO = unitSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0),0);
+  const totalC = skus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.cafe||{})[k]||0),0),0);
+  const totalN = skus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.naver||{})[k]||0),0),0);
+  const totalO = oSkus.reduce((s,k)=>s+mRecs.reduce((ss,r)=>ss+((r.coupang||{})[k]||0),0),0);
   const totalMu = musinsaSkus.reduce((s,k)=>s+(musiQty[k]||0),0);
   const totalB = unitSkus.reduce((s,k)=>s+(b2bQty[k]||0),0);
   const totalTot = totalC+totalN+totalO+totalMu+totalB;
