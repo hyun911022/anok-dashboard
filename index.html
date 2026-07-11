@@ -3258,13 +3258,41 @@ function renderStock(){
     });
   });
 
-  // SKU별 총 소진량 (단품+세트 합산, 무신사 포함)
+  // SKU별 총 소진량 (단품+세트 합산, 무신사 포함) — 이커머스 30일 기준
   const skuTotalSold = {};
   CH_SKUS.forEach(k=>{ skuTotalSold[k]=0; });
   ALL_ITEMS.forEach(it=>{
     const tot = soldCnt[it.key].cafe+soldCnt[it.key].naver+soldCnt[it.key].coup+soldCnt[it.key].musi;
     if(it.type==='single'){ skuTotalSold[it.key]+=tot; }
     else { Object.keys(it.parts).forEach(sk=>{ skuTotalSold[sk]+=tot*it.parts[sk]; }); }
+  });
+
+  // ── B2B 90일 소진량 + 납품가 가중평균 (재고 전환가치에 이커머스+B2B 믹스 반영) ──
+  const _b2bFrom90 = new Date(_today30); _b2bFrom90.setDate(_b2bFrom90.getDate() - 90);
+  const _b2bFrom90Str = _b2bFrom90.toISOString().slice(0,10);
+  const b2bSold = {};   // SKU별 90일 B2B 출고 수량 (유상만 — 납품가 있는 것)
+  const b2bRevSum = {}; // SKU별 90일 B2B 매출 합 (수량 × 납품가)
+  CH_SKUS.forEach(k=>{ b2bSold[k]=0; b2bRevSum[k]=0; });
+  manualOuts.filter(r=>r.date >= _b2bFrom90Str).forEach(r=>{
+    CH_SKUS.forEach(k=>{
+      const qty = r[k]||0, price = r['price_'+k]||0;
+      if(qty>0 && price>0){ // 유상 납품만 (무상/샘플 제외)
+        b2bSold[k] += qty;
+        b2bRevSum[k] += qty * price;
+      }
+    });
+  });
+  // B2B 납품가 가중평균 (없으면 0)
+  const b2bAvgPrice = {};
+  CH_SKUS.forEach(k=>{
+    b2bAvgPrice[k] = b2bSold[k]>0 ? b2bRevSum[k]/b2bSold[k] : 0;
+  });
+  // 일평균 소진량 (이커머스 30일 / B2B 90일) — 재고 배분 가중치용
+  const ecDailySold = {};  // 이커머스 일평균 (단품환산)
+  const b2bDailySold = {}; // B2B 일평균
+  CH_SKUS.forEach(k=>{
+    ecDailySold[k] = (skuTotalSold[k]||0) / 30;
+    b2bDailySold[k] = (b2bSold[k]||0) / 90;
   });
 
   // 단품:세트 비중 반영해서 SKU별 예상 매출/수익/원가
@@ -3306,22 +3334,43 @@ function renderStock(){
     });
 
     const totalRatio=paths.reduce((s,p)=>s+p.ratio,0);
+
+    // ── 재고를 이커머스 : B2B 비율로 분배 (소진속도 가중 = 이커머스30일 vs B2B90일 일평균) ──
+    const _ecRate = ecDailySold[k] || 0;
+    const _b2bRate = b2bDailySold[k] || 0;
+    const _totalRate = _ecRate + _b2bRate;
+    const b2bShare = _totalRate>0 ? _b2bRate/_totalRate : 0; // B2B가 차지하는 소진 비중
+    const ecShare = 1 - b2bShare;
+    const ecStockQty = stockQty * ecShare;
+    const b2bStockQty = stockQty * b2bShare;
+
+    // (A) 이커머스 몫 — 단품/세트 실판매가 기반
+    let ecRev=0, ecPrf=0; const mix=[];
     if(totalRatio===0||paths.length===0){
-      const rev=Math.round(stockQty*CAFE_PRICES[k]), prf=Math.round(stockQty*CAFE_PROFITS[k]);
-      const cost=UNIT_COSTS[k]>0?Math.round(stockQty*UNIT_COSTS[k]):null;
-      skuValue[k]={qty:stockQty,rev,prf,cost,mix:[]};
-      grandRev+=rev; grandPrf+=prf; if(cost) grandCost+=cost; return;
+      // 이커머스 판매 이력 없으면 자사 정가 fallback
+      ecRev = ecStockQty*CAFE_PRICES[k];
+      ecPrf = ecStockQty*CAFE_PROFITS[k];
+    } else {
+      paths.forEach(p=>{
+        const w=p.ratio/totalRatio, qty=ecStockQty*w;
+        ecRev+=qty*p.pricePerSku; ecPrf+=qty*p.profitPerSku;
+        if(p.ratio>0.01) mix.push({label:p.label,pct:Math.round(w*100*ecShare)});
+      });
     }
-    let skuRev=0,skuPrf=0; const mix=[];
-    paths.forEach(p=>{
-      const w=p.ratio/totalRatio, qty=stockQty*w;
-      skuRev+=qty*p.pricePerSku; skuPrf+=qty*p.profitPerSku;
-      if(p.ratio>0.01) mix.push({label:p.label,pct:Math.round(w*100)});
-    });
-    skuRev=Math.round(skuRev); skuPrf=Math.round(skuPrf);
+
+    // (B) B2B 몫 — 90일 납품가 가중평균 (이익 = 납품가 − 원가)
+    let b2bRev=0, b2bPrf=0;
+    if(b2bStockQty>0 && b2bAvgPrice[k]>0){
+      b2bRev = b2bStockQty * b2bAvgPrice[k];
+      b2bPrf = b2bStockQty * (b2bAvgPrice[k] - (UNIT_COSTS[k]||0));
+      mix.push({label:'B2B', pct:Math.round(b2bShare*100)});
+    }
+
+    const skuRev=Math.round(ecRev+b2bRev);
+    const skuPrf=Math.round(ecPrf+b2bPrf);
     const cost=UNIT_COSTS[k]>0?Math.round(stockQty*UNIT_COSTS[k]):null;
     grandRev+=skuRev; grandPrf+=skuPrf; if(cost) grandCost+=cost;
-    skuValue[k]={qty:stockQty,rev:skuRev,prf:skuPrf,cost,mix};
+    skuValue[k]={qty:stockQty,rev:skuRev,prf:skuPrf,cost,mix,b2bShare:Math.round(b2bShare*100)};
   });
 
   const grandMargin=grandRev>0?Math.round(grandPrf/grandRev*100):0;
@@ -3334,6 +3383,13 @@ function renderStock(){
   const singlePct=totalSoldAll>0?Math.round(singleAll/totalSoldAll*100):0;
   const setPct=totalSoldAll>0?Math.round(setAll/totalSoldAll*100):0;
 
+  // 전체 이커머스 vs B2B 소진 비중 (재고 배분에 쓰인 것과 동일 로직, 전체 합산)
+  let _totEcRate=0, _totB2bRate=0;
+  CH_SKUS.forEach(k=>{ _totEcRate += (skuTotalSold[k]||0)/30; _totB2bRate += (b2bSold[k]||0)/90; });
+  const _grandRate = _totEcRate + _totB2bRate;
+  const _b2bMixPct = _grandRate>0 ? Math.round(_totB2bRate/_grandRate*100) : 0;
+  const _ecMixPct = 100 - _b2bMixPct;
+
   const valueEl=document.getElementById('stockValueCard');
   if(valueEl && records.length>0){
     const colCount = hasCostData ? '1fr 1fr 1fr' : '1fr 1fr';
@@ -3341,7 +3397,7 @@ function renderStock(){
       <div style="background:linear-gradient(135deg,#0D1E3A,#13203B);border:1px solid #1E3A5F;border-radius:14px;padding:18px 20px">
         <div style="margin-bottom:14px">
           <div style="font-size:14px;color:#60A5FA;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:3px">현 재고 전환 가치</div>
-          <div style="font-size:11px;color:#4A6580">판매 추이 기반 · 단품 ${singlePct}% · 세트 ${setPct}% 비중 적용</div>
+          <div style="font-size:11px;color:#4A6580">실제 출고 믹스 반영 · 이커머스 ${_ecMixPct}% (단품 ${singlePct}%/세트 ${setPct}%) · B2B ${_b2bMixPct}%</div>
         </div>
         <div style="display:grid;grid-template-columns:${colCount};gap:10px;margin-bottom:14px">
           <div style="background:#0A1628;border-radius:10px;padding:14px 16px">
