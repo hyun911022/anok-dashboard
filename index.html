@@ -975,6 +975,62 @@
     </div>
   </div>
 
+  <!-- SKU 추가 모달 -->
+  <div class="modal-bg" id="addSkuModalBg" onclick="if(event.target===this)closeAddSkuModal()">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1A2E1A,#2A4A2A)">
+        <h2 style="color:#86EFAC">신규 SKU 추가</h2>
+        <button class="modal-close" onclick="closeAddSkuModal()" style="color:#86EFAC">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.5">채널별 비용 구조(수수료·택배·포장·부자재)는 기존 상품과 동일하게 자동 적용돼요. 정상가·판매가·원가만 입력하세요.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">SKU 키 (영문)</label>
+            <input type="text" id="newSku_id" placeholder="예: bodyoil" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">상품명</label>
+            <input type="text" id="newSku_name" placeholder="예: 바디오일 200ml" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div>
+            <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">정상가 (₩)</label>
+            <input type="number" id="newSku_normalPrice" placeholder="예: 33000" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#F87171;font-weight:600;display:block;margin-bottom:6px">원가 (₩)</label>
+            <input type="number" id="newSku_cost" placeholder="예: 5200" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:8px;letter-spacing:0.5px">채널별 판매가</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div>
+            <label style="font-size:12px;color:#9B6DFF;font-weight:600;display:block;margin-bottom:6px">자사몰</label>
+            <input type="number" id="newSku_cafe" placeholder="₩" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#34D399;font-weight:600;display:block;margin-bottom:6px">네이버</label>
+            <input type="number" id="newSku_naver" placeholder="₩" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#F87171;font-weight:600;display:block;margin-bottom:6px">쿠팡</label>
+            <input type="number" id="newSku_coupang" placeholder="₩" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+          <div>
+            <label style="font-size:12px;color:#06B6D4;font-weight:600;display:block;margin-bottom:6px">무신사</label>
+            <input type="number" id="newSku_musinsa" placeholder="₩" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveNewSku()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#16A34A;color:#fff;font-size:13px;font-weight:700;cursor:pointer">추가</button>
+          <button onclick="closeAddSkuModal()" style="flex:1;padding:11px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 비용 입력 모달 -->
   <div class="modal-bg" id="expModalBg" onclick="if(event.target===this)closeExpenseModal()">
     <div class="modal" style="max-width:440px">
@@ -5116,7 +5172,78 @@ function saveSku(id){
 }
 
 function openAddSkuModal(){
-  showToast('SKU 추가 기능은 곧 추가될 예정이에요');
+  // 입력 필드 초기화
+  document.getElementById('newSku_id').value = '';
+  document.getElementById('newSku_name').value = '';
+  document.getElementById('newSku_normalPrice').value = '';
+  document.getElementById('newSku_cost').value = '';
+  document.getElementById('newSku_cafe').value = '';
+  document.getElementById('newSku_naver').value = '';
+  document.getElementById('newSku_coupang').value = '';
+  document.getElementById('newSku_musinsa').value = '';
+  document.getElementById('addSkuModalBg').classList.add('open');
+}
+
+function closeAddSkuModal(){
+  document.getElementById('addSkuModalBg').classList.remove('open');
+}
+
+async function saveNewSku(){
+  const id = document.getElementById('newSku_id').value.trim();
+  const name = document.getElementById('newSku_name').value.trim();
+  const normalPrice = parseInt(document.getElementById('newSku_normalPrice').value) || 0;
+  const cost = parseInt(document.getElementById('newSku_cost').value) || 0;
+  const cafeP = parseInt(document.getElementById('newSku_cafe').value) || 0;
+  const naverP = parseInt(document.getElementById('newSku_naver').value) || 0;
+  const coupangP = parseInt(document.getElementById('newSku_coupang').value) || 0;
+  const musinsaP = parseInt(document.getElementById('newSku_musinsa').value) || 0;
+
+  // 검증
+  if(!id){ alert('SKU 키(영문 ID)를 입력하세요. 예: bodyoil'); return; }
+  if(!/^[a-z0-9_]+$/.test(id)){ alert('SKU 키는 영문 소문자·숫자·언더바만 가능해요. 예: bodyoil'); return; }
+  if(products.some(p=>p.id===id)){ alert('이미 존재하는 SKU 키예요: '+id); return; }
+  if(!name){ alert('상품명을 입력하세요.'); return; }
+  if(normalPrice<=0){ alert('정상가를 입력하세요.'); return; }
+  if(cost<=0){ alert('원가를 입력하세요.'); return; }
+
+  // 기존 단품(샴푸)에서 채널 비용 구조 템플릿 복제
+  const template = products.find(p=>p.id==='shampoo') || products.find(p=>p.type==='single');
+  const newChannels = {};
+  ['naver','cafe','coupang','musinsa'].forEach(ch=>{
+    const t = template?.channels?.[ch] || {};
+    const priceMap = {cafe:cafeP, naver:naverP, coupang:coupangP, musinsa:musinsaP};
+    if(ch==='coupang'){
+      newChannels[ch] = {
+        fee: t.fee ?? 0.096,
+        toLogistics: t.toLogistics ?? 350,
+        opp: t.opp ?? 115,
+        gwp: 0,
+        price: priceMap[ch],
+        priceHistory: []
+      };
+    } else {
+      newChannels[ch] = {
+        fee: t.fee ?? 0.05,
+        delivery: t.delivery ?? 1050,
+        packaging: t.packaging ?? 900,
+        materials: t.materials ?? 500,
+        gwp: 0,
+        price: priceMap[ch],
+        priceHistory: []
+      };
+    }
+  });
+
+  const newProduct = {
+    id, name, type:'single', normalPrice, cost,
+    channels: newChannels
+  };
+  products.push(newProduct);
+  await saveProducts();
+  closeAddSkuModal();
+  if(typeof showToast==='function') showToast(name+' 추가 완료');
+  if(typeof renderProducts==='function') renderProducts();
+  render();
 }
 
 // ══════════════════════════════════════════════════
