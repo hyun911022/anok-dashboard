@@ -1973,14 +1973,14 @@ function calcUnitQty(mRecs,sku){
 }
 
 function renderSkuTable(mRecs){
-  const skus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
-  const oSkus=['shampoo','treatment','bodywash','bodylotion'];
-  const unitSkus=['shampoo','treatment','bodywash','bodylotion'];
+  const skus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset','wego120'];
+  const oSkus=['shampoo','treatment','bodywash','bodylotion','wego120'];
+  const unitSkus=['shampoo','treatment','bodywash','bodylotion','wego120'];
   const month = selectedMonth;
   const skuNames2 = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
 
   // 무신사 이번달 판매 집계 (헤어/바디세트 포함)
-  const musinsaSkus = ['shampoo','treatment','hairset','bodywash','bodylotion','bodyset'];
+  const musinsaSkus = ['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','wego120'];
   const musiQty = {};
   musinsaSkus.forEach(k=>{
     musiQty[k] = mRecs.reduce((s,r)=>s+((r.musinsa||{})[k]||0),0);
@@ -2046,8 +2046,8 @@ function renderSkuTable(mRecs){
 function renderDayTable(mRecs){
   const sorted=[...mRecs].sort((a,b)=>a.date.localeCompare(b.date));
   const _dow=['일','월','화','수','목','금','토'];
-  const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset'];
-  const oSkus=['shampoo','treatment','bodywash','bodylotion'];
+  const cSkus=['shampoo','treatment','hairset','bodywash','bodylotion','bodyset','washset','wego120'];
+  const oSkus=['shampoo','treatment','bodywash','bodylotion','wego120'];
 
   // 최근 14일 / 이전 분리
   const recent = sorted.slice(-14);
@@ -2184,7 +2184,7 @@ function renderDayTable(mRecs){
     olderSection('qtyCoupang', qoOlder, 5) + qoHtml + qoTotal || '<tr><td colspan="5" class="empty">-</td></tr>';
 
   // ── 수량: 무신사 ──
-  const muSkus=['shampoo','treatment','bodywash','bodylotion'];
+  const muSkus=['shampoo','treatment','bodywash','bodylotion','wego120'];
   let qmuHtml='', qmuOlder=''; const tmuS={shampoo:0,treatment:0,bodywash:0,bodylotion:0};
   [...older.map(r=>({r,isOld:true})), ...recent.map(r=>({r,isOld:false}))].forEach(({r,isOld})=>{
     const m=r.musinsa||{};
@@ -2693,7 +2693,7 @@ function renderInsight(){
       // 세트 매출: 채널별 정가 적용
       setRev += cafeQ*(CAFE_PRICES[k]||0) + naverQ*(NAVER_PRICES[k]||0) + musinsaQ*(MUSI_PRICES[k]||0);
     });
-    ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
+    ['shampoo','treatment','bodywash','bodylotion','wego120'].forEach(k=>{
       singleQty += ((r.cafe||{})[k]||0)+((r.naver||{})[k]||0)+((r.coupang||{})[k]||0)+((r.musinsa||{})[k]||0);
     });
   });
@@ -3834,7 +3834,7 @@ function renderExpiryRisk(batchState, avgSales){
   const today = getTodayKST();
   const fmt = d => d ? d.slice(2).replace(/-/g,'/') : '';
   const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
-  const skus = ['shampoo','treatment','bodywash','bodylotion'];
+  const skus = ['shampoo','treatment','bodywash','bodylotion','wego120'];
 
   // calcTotalDailyRate: 이커머스 14일 + 수기출고 해당월 합산 속도
   const combinedRates = calcTotalDailyRate();
@@ -4679,7 +4679,7 @@ function renderOrder(){
 function openOrderModal(){
   document.getElementById('ord_date').value = getTodayKST();
   document.getElementById('ord_lead_now').checked = true;
-  ['shampoo','treatment','bodywash','bodylotion'].forEach(k=>{
+  ['shampoo','treatment','bodywash','bodylotion','wego120'].forEach(k=>{
     document.getElementById('ord_'+k).value=0;
   });
   document.getElementById('ord_memo').value='';
@@ -5472,8 +5472,8 @@ function renderPriceManager(){
     {key:'coupang', label:'쿠팡',    color:'#F87171'},
     {key:'musinsa', label:'무신사',  color:'#06B6D4'},
   ];
-  const skuOrder = ['shampoo','treatment','bodywash','bodylotion','hairset','bodyset','washset'];
-  const skuName  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
+  const skuOrder = ['shampoo','treatment','bodywash','bodylotion','wego120','hairset','bodyset','washset'];
+  const skuName  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
 
   // 채널 탭
   let tabHtml = `<div style="display:flex;gap:8px;margin-bottom:20px">`;
@@ -5634,7 +5634,7 @@ function openAddPriceHistory(skuId, ch, editIdx){
 
   const p = products.find(x=>x.id===skuId);
   const defaultPrice = p?.channels?.[ch]?.price || 0;
-  const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
+  const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏',hairset:'헤어세트',bodyset:'바디세트',washset:'워시세트'};
   const chLabels = {cafe:'자사몰',naver:'네이버',coupang:'쿠팡',musinsa:'무신사'};
 
   const modal = document.createElement('div');
