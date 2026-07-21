@@ -5366,7 +5366,7 @@ function openB2BDetail(){
       rowRev += rev; rowPrf += prf;
       return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0">
         <span>${skuNames[k]||k} ${r[k]}개 @₩${r['price_'+k].toLocaleString()}</span>
-        <span><span style="color:#60A5FA">₩${rev.toLocaleString()}</span> <span style="color:#22C55E">(이익 ₩${prf.toLocaleString()})</span></span>
+        <span style="color:var(--text2)">₩${rev.toLocaleString()} (이익 ₩${prf.toLocaleString()})</span>
       </div>`;
     }).join('');
     const rowMargin = rowRev>0?Math.round(rowPrf/rowRev*100):0;
@@ -5399,7 +5399,7 @@ function openB2BDetail(){
       <div style="flex:1">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${gb.label} <span style="font-size:10px;color:var(--text3);font-weight:400">${gb.fromDate}~${gb.toDate}</span></div>
         <div style="font-size:11px;color:var(--text3)">샴푸 ${gb.shampoo||0} · 트리트먼트 ${gb.treatment||0} · 바디워시 ${gb.bodywash||0} · 바디로션 ${gb.bodylotion||0}</div>
-        <div style="font-size:11px;margin-top:3px"><span style="color:#60A5FA">매출 ₩${(gb.revenue||0).toLocaleString()}</span> · <span style="color:#22C55E">순수익 ₩${(gb.netProfit||0).toLocaleString()}</span></div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">매출 ₩${(gb.revenue||0).toLocaleString()} · 순수익 ₩${(gb.netProfit||0).toLocaleString()}</div>
       </div>
       <div style="display:flex;gap:2px;margin-left:8px">
         <button onclick="openGroupBuyModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 5px" title="수정">✏️</button>
