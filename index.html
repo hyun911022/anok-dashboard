@@ -1430,20 +1430,20 @@ function getTodayKST(){
   return kst.toISOString().split('T')[0];
 }
 
-const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-const CAFE_PROFITS   = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
-const NAVER_PRICES   = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800};
-const NAVER_PROFITS  = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174};
-const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900};
-const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655};
+const CAFE_PRICES    = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800,wego120:19800};
+const CAFE_PROFITS   = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174,wego120:10610};
+const NAVER_PRICES   = {shampoo:19800,treatment:19800,hairset:38700,bodywash:18700,bodylotion:18700,bodyset:36800,washset:37800,wego120:19800};
+const NAVER_PROFITS  = {shampoo:9360,treatment:9660,hairset:18347,bodywash:9315,bodylotion:9115,bodyset:18015,washset:18174,wego120:10610};
+const COUP_PRICES    = {shampoo:23900,treatment:23900,bodywash:22900,bodylotion:22900,wego120:24900};
+const COUP_PROFITS   = {shampoo:13768,treatment:14068,bodywash:13855,bodylotion:13655,wego120:15831};
 // 무신사 — 자사몰 동일 판매가, 수수료 30%, 단품만 취급 (세트 없음)
 // 택배비 2,100원 일괄 적용
 // 샴푸: 19800 - 1800 - 5940 - 5200 - 2100 - 250 - 200 - 0 = 4310
 // 트리트먼트: 19800 - 1800 - 5940 - 4900 - 2100 - 250 - 200 - 0 = 4610
 // 바디워시: 18700 - 1700 - 5610 - 4300 - 2100 - 250 - 200 - 0 = 4540
 // 바디로션: 18700 - 1700 - 5610 - 4500 - 2100 - 250 - 200 - 0 = 4340
-const MUSI_PRICES    = {shampoo:19800,treatment:19800,bodywash:18700,bodylotion:18700};
-const MUSI_PROFITS   = {shampoo:4310,treatment:4610,bodywash:4540,bodylotion:4340};
+const MUSI_PRICES    = {shampoo:19800,treatment:19800,bodywash:18700,bodylotion:18700,wego120:18900};
+const MUSI_PROFITS   = {shampoo:4310,treatment:4610,bodywash:4540,bodylotion:4340,wego120:4062};
 
 // 단품 원가 (제조원가)
 const UNIT_COSTS = {shampoo:5200, treatment:4900, bodywash:4300, bodylotion:4500, wego120:3950};
@@ -1959,7 +1959,7 @@ function renderSkuTable(mRecs){
   const oSkus=['shampoo','treatment','bodywash','bodylotion'];
   const unitSkus=['shampoo','treatment','bodywash','bodylotion'];
   const month = selectedMonth;
-  const skuNames2 = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+  const skuNames2 = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
 
   // 무신사 이번달 판매 집계 (헤어/바디세트 포함)
   const musinsaSkus = ['shampoo','treatment','hairset','bodywash','bodylotion','bodyset'];
@@ -2989,8 +2989,8 @@ function renderSkuProfit(mRecs){
 // ══════════════════════════════════════════════════
 const STOCK_KEY = 'anok_stock_v2';
 const STOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion','wego120'];
-const STOCK_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
-const STOCK_COLORS = {shampoo:'#9B6DFF', treatment:'#34D399', bodywash:'#38BDF8', bodylotion:'#F87171'};
+const STOCK_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
+const STOCK_COLORS = {shampoo:'#9B6DFF', treatment:'#34D399', bodywash:'#38BDF8', bodylotion:'#F87171', wego120:'#FBBF24'};
 
 // 초기 재고 (최초 1회 설정, 이후 이월)
 // stockInitByMonth: { 'YYYY-MM': { shampoo: 1000, ... } }
@@ -3355,8 +3355,8 @@ function renderStock(){
   // 단품:세트 비중 반영해서 SKU별 예상 매출/수익/원가
   let grandRev=0, grandPrf=0, grandCost=0;
   const skuValue={};
-  const SKU_NAMES2  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
-  const SKU_COLORS2 = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171'};
+  const SKU_NAMES2  = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
+  const SKU_COLORS2 = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171',wego120:'#FBBF24'};
 
   CH_SKUS.forEach(k=>{
     const stockQty = currentStock[k]||0;
@@ -3495,8 +3495,8 @@ function renderStock(){
   // ── 과재고율 카드 ──
   const TARGET_DAYS_STOCK = 90; // 적정 기준 3개월
   const OVERSTOCK_SKUS = ['shampoo','treatment','bodywash','bodylotion'];
-  const OVERSTOCK_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
-  const OVERSTOCK_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171'};
+  const OVERSTOCK_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
+  const OVERSTOCK_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171',wego120:'#FBBF24'};
 
   const overstockEl = document.getElementById('overstockCard');
   if(overstockEl){
@@ -3814,7 +3814,7 @@ function renderExpiryRisk(batchState, avgSales){
   if(!el) return;
   const today = getTodayKST();
   const fmt = d => d ? d.slice(2).replace(/-/g,'/') : '';
-  const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
+  const skuNames = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
   const skus = ['shampoo','treatment','bodywash','bodylotion'];
 
   // calcTotalDailyRate: 이커머스 14일 + 수기출고 해당월 합산 속도
@@ -4382,8 +4382,8 @@ function onNewClientToggle(){
 // 발주관리
 // ══════════════════════════════════════════════════
 const ORDER_SKUS = ['shampoo','treatment','bodywash','bodylotion','wego120'];
-const ORDER_SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션'};
-const ORDER_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171'};
+const ORDER_SKU_NAMES = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고슬림핏'};
+const ORDER_COLORS = {shampoo:'#9B6DFF',treatment:'#34D399',bodywash:'#38BDF8',bodylotion:'#F87171',wego120:'#FBBF24'};
 const TARGET_DAYS = 90; // 3개월치 목표 재고
 const LEAD_TIME_PROD = 60; // 생산 리드타임 (일)
 
@@ -5333,7 +5333,7 @@ function closeProfitDetail(){
 function openB2BDetail(){
   const month = selectedMonth;
   const fmt = v => Math.round(v).toLocaleString();
-  const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션'};
+  const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
 
   // ── B2B 섹션 ──
   const b2bRecs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0)).sort((a,b) => b.date.localeCompare(a.date));
