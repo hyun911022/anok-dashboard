@@ -5358,18 +5358,25 @@ function openB2BDetail(){
   const b2bRecs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0)).sort((a,b) => b.date.localeCompare(a.date));
   let b2bTotRev=0, b2bTotPrf=0;
   const b2bRows = b2bRecs.map(r => {
+    let rowRev=0, rowPrf=0;
     const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0).map(k=>{
       const rev = r[k]*r['price_'+k];
       const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
       b2bTotRev += rev; b2bTotPrf += prf;
+      rowRev += rev; rowPrf += prf;
       return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0">
         <span>${skuNames[k]||k} ${r[k]}개 @₩${r['price_'+k].toLocaleString()}</span>
         <span style="color:var(--text2)">₩${rev.toLocaleString()} (이익 ₩${prf.toLocaleString()})</span>
       </div>`;
     }).join('');
+    const rowMargin = rowRev>0?Math.round(rowPrf/rowRev*100):0;
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${r.date} · ${r.reason||'B2B 납품'}${r.clientName?' · <span style=\'color:var(--text2)\'>'+r.clientName+'</span>':''}</div>
       ${items}
+      <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0 0;margin-top:3px;border-top:1px dashed var(--border)">
+        <span style="color:var(--text3);font-weight:600">건 합계</span>
+        <span style="color:var(--text);font-weight:700">₩${rowRev.toLocaleString()} <span style="color:${rowPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">(이익 ₩${rowPrf.toLocaleString()} · ${rowMargin}%)</span></span>
+      </div>
     </div>`;
   }).join('');
   const b2bBody = b2bRecs.length===0
