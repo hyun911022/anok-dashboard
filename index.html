@@ -986,7 +986,7 @@
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
         <div style="width:3px;height:16px;background:linear-gradient(#3B82F6,#60A5FA);border-radius:2px"></div>
         <span style="font-size:16px;font-weight:700;color:var(--text)">정산일정</span>
-        <span style="font-size:11px;color:var(--text3);margin-left:4px">B2B 납품 대금 입금 예정 · 미수금 관리</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:4px">B2B 납품 · 공구 대금 입금 예정 · 미수금 관리</span>
       </div>
       <div id="settlementSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px"></div>
       <div id="settlementBody"></div>
@@ -1156,12 +1156,16 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">시작일</label>
-          <input type="date" id="gb_from" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          <input type="date" id="gb_from" onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()" style="cursor:pointer;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
         </div>
         <div>
           <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">종료일</label>
-          <input type="date" id="gb_to" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          <input type="date" id="gb_to" onchange="onGbToChange()" onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()" style="cursor:pointer;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
         </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px">정산 예정일 <span style="font-size:10px;color:var(--text3);font-weight:400">(기본: 종료일 익월 말일 · 수정 가능)</span></label>
+        <input type="date" id="gb_payDate" onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F;cursor:pointer">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
         <div>
@@ -4064,6 +4068,7 @@ function _settlementRows(){
     });
     if(supply <= 0) return; // 무상/샘플 제외
     rows.push({
+      src: 'b2b',
       idx,
       outDate: r.date || '',
       client: r.clientName || r.reason || '(거래처 미지정)',
@@ -4074,7 +4079,33 @@ function _settlementRows(){
       paidDate: r.paidDate || ''
     });
   });
+  // 공구 실적도 정산 대상 (매출은 VAT 제외 공급가 기준)
+  (typeof groupBuys !== 'undefined' ? groupBuys : []).forEach((gb, idx)=>{
+    const supply = gb.revenue || 0;
+    if(supply <= 0) return;
+    rows.push({
+      src: 'gb',
+      idx,
+      outDate: gb.toDate || gb.fromDate || '',
+      client: gb.label || '공구',
+      supply,
+      vatIncl: Math.round(supply*1.1),
+      payDate: gb.payDate || '',
+      paid: !!gb.paid,
+      paidDate: gb.paidDate || ''
+    });
+  });
   return rows;
+}
+
+// 정산 대상 레코드 조회 / 저장 (B2B 수기출고 · 공구 공통)
+function _stlTarget(src, idx){
+  if(src === 'gb') return (typeof groupBuys !== 'undefined' ? groupBuys : [])[idx];
+  return (manualOuts || [])[idx];
+}
+function _stlPersist(src){
+  if(src === 'gb'){ if(typeof saveGroupBuys === 'function') saveGroupBuys(); }
+  else { saveStockData(); }
 }
 
 function _stlValidDate(s){
@@ -4108,20 +4139,30 @@ function onMoDateChange(){
   p.value = _stlNextMonthEnd(d);
 }
 
-function setSettlementDate(idx, val){
-  if(!manualOuts[idx]) return;
-  manualOuts[idx].payDate = val || '';
-  saveStockData();
+// 공구 종료일 변경 시 정산 예정일 자동 제안 (익월 말일)
+function onGbToChange(){
+  const t = document.getElementById('gb_to')?.value;
+  const p = document.getElementById('gb_payDate');
+  if(!t || !p || p.value) return; // 이미 입력된 값은 덮어쓰지 않음
+  p.value = _stlNextMonthEnd(t);
+}
+
+function setSettlementDate(src, idx, val){
+  const t = _stlTarget(src, idx);
+  if(!t) return;
+  t.payDate = val || '';
+  _stlPersist(src);
   renderSettlement();
 }
 
-function toggleSettlementPaid(idx){
-  if(!manualOuts[idx]) return;
-  const now = !manualOuts[idx].paid;
-  manualOuts[idx].paid = now;
-  if(now){ manualOuts[idx].paidDate = getTodayKST(); }
-  else { delete manualOuts[idx].paidDate; }
-  saveStockData();
+function toggleSettlementPaid(src, idx){
+  const t = _stlTarget(src, idx);
+  if(!t) return;
+  const now = !t.paid;
+  t.paid = now;
+  if(now){ t.paidDate = getTodayKST(); }
+  else { delete t.paidDate; }
+  _stlPersist(src);
   renderSettlement();
   if(typeof showToast==='function') showToast(now ? '정산 완료로 표시했습니다' : '미정산으로 되돌렸습니다');
 }
@@ -4145,7 +4186,7 @@ function _stlRow(r, mode){
   // 정산 완료 건은 입력칸 없이 텍스트만 · 나머지는 클릭하면 캘린더가 바로 열림
   const dateCell = (mode==='done')
     ? `<span style="font-size:12.5px;font-weight:700;color:var(--text)">${r.paidDate || (valid?r.payDate:'') || '입금 완료'}</span>`
-    : `<input type="date" value="${valid?r.payDate:''}" onchange="setSettlementDate(${r.idx}, this.value)"
+    : `<input type="date" value="${valid?r.payDate:''}" onchange="setSettlementDate('${r.src}', ${r.idx}, this.value)"
         onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()"
         style="padding:5px 8px;border:1px solid ${valid?'var(--border)':'#F43F5E'};border-radius:6px;font-size:11.5px;font-weight:600;color:var(--text);background:#12151F;cursor:pointer">`
       + (r.payDate && !valid ? `<span style="font-size:10px;color:#F43F5E">입력값: ${r.payDate}</span>` : '');
@@ -4156,15 +4197,15 @@ function _stlRow(r, mode){
         ${dateCell}
         ${ddayTxt?`<span style="font-size:10px;font-weight:700;color:${ddayColor}">${ddayTxt}</span>`:''}
       </div>
-      <div style="font-size:12px;color:var(--text2);font-weight:600">${r.client}</div>
-      <div style="font-size:10px;color:var(--text3)">출고 ${r.outDate}</div>
+      <div style="font-size:12px;color:var(--text2);font-weight:600">${r.client}${r.src==='gb'?' <span style="font-size:9px;color:#C084FC;background:rgba(192,132,252,0.14);padding:1px 5px;border-radius:4px;font-weight:700">공구</span>':''}</div>
+      <div style="font-size:10px;color:var(--text3)">${r.src==='gb'?'종료':'출고'} ${r.outDate}</div>
     </div>
     <div style="text-align:right;display:flex;align-items:center;gap:12px">
       <div>
         <div style="font-size:13px;font-weight:700;color:#60A5FA">₩${r.vatIncl.toLocaleString()}</div>
         <div style="font-size:10px;color:var(--text3)">공급가 ₩${r.supply.toLocaleString()}</div>
       </div>
-      <button onclick="toggleSettlementPaid(${r.idx})" style="padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${r.paid?'#22C55E':'var(--border)'};background:${r.paid?'rgba(34,197,94,0.12)':'#1A1D27'};color:${r.paid?'#22C55E':'var(--text2)'};white-space:nowrap">${r.paid?'입금완료':'입금확인'}</button>
+      <button onclick="toggleSettlementPaid('${r.src}', ${r.idx})" style="padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${r.paid?'#22C55E':'var(--border)'};background:${r.paid?'rgba(34,197,94,0.12)':'#1A1D27'};color:${r.paid?'#22C55E':'var(--text2)'};white-space:nowrap">${r.paid?'입금완료':'입금확인'}</button>
     </div>
   </div>`;
 }
@@ -4485,6 +4526,8 @@ function openGroupBuyModal(idx){
   document.getElementById('gb_treatment').value = e?.treatment || '';
   document.getElementById('gb_bodywash').value = e?.bodywash || '';
   document.getElementById('gb_bodylotion').value = e?.bodylotion || '';
+  const _gbPd = document.getElementById('gb_payDate');
+  if(_gbPd) _gbPd.value = e?.payDate || (e?.toDate && typeof _stlNextMonthEnd==='function' ? _stlNextMonthEnd(e.toDate) : '');
   const titleEl = document.querySelector('#gbModalBg .modal-header h2');
   if(titleEl) titleEl.innerHTML = editing ? '공구 실적 수정' : '공구 실적 추가';
   document.getElementById('gbModalBg').classList.add('open');
@@ -4507,11 +4550,15 @@ async function saveGroupBuy(){
   const bodylotion = parseInt(document.getElementById('gb_bodylotion').value) || 0;
   if(!label || !fromDate || !toDate){ alert('라벨과 기간을 입력하세요'); return; }
   if(toDate < fromDate){ alert('종료일이 시작일보다 빠를 수 없어요'); return; }
+  const _prev = (_gbEditIdx !== null) ? groupBuys[_gbEditIdx] : null;
   const data = {
     id: (_gbEditIdx !== null && groupBuys[_gbEditIdx]?.id) ? groupBuys[_gbEditIdx].id : ('gb_'+Date.now()),
     label, fromDate, toDate, revenue, netProfit,
-    shampoo, treatment, bodywash, bodylotion
+    shampoo, treatment, bodywash, bodylotion,
+    payDate: document.getElementById('gb_payDate')?.value || '',
+    paid: _prev ? !!_prev.paid : false
   };
+  if(_prev && _prev.paidDate) data.paidDate = _prev.paidDate;
   if(_gbEditIdx !== null){
     groupBuys[_gbEditIdx] = data;
   } else {
