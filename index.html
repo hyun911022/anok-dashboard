@@ -1373,7 +1373,7 @@
     <div class="modal-body">
       <div class="modal-date" style="margin-bottom:12px">
         <label>날짜</label>
-        <input type="date" id="mo_date">
+        <input type="date" id="mo_date" onchange="onMoDateChange()" onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()" style="cursor:pointer">
       </div>
 
       <!-- 거래처 선택 -->
@@ -1406,8 +1406,8 @@
 
       <!-- 정산 예정일 -->
       <div class="modal-date" style="margin-bottom:12px">
-        <label>정산 예정일 <span style="font-size:10px;color:var(--text3);font-weight:400">(입금받을 날짜 · 선택)</span></label>
-        <input type="date" id="mo_payDate">
+        <label>정산 예정일 <span style="font-size:10px;color:var(--text3);font-weight:400">(기본: 익월 말일 · 수정 가능)</span></label>
+        <input type="date" id="mo_payDate" onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()" style="cursor:pointer">
       </div>
 
       <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 · 납품단가(공급가액) — 단가 0이면 무상(샘플)</p>
@@ -3988,7 +3988,7 @@ function saveStockInit(){
 function openManualOutModal(){
   document.getElementById('mo_date').value=getTodayKST();
   document.getElementById('mo_reason').value='';
-  const _pd=document.getElementById('mo_payDate'); if(_pd) _pd.value='';
+  if(typeof onMoDateChange==='function') onMoDateChange();
   // 거래처 초기화
   const sel=document.getElementById('mo_client'); if(sel) sel.value='';
   const newCheck=document.getElementById('mo_newClient'); if(newCheck) newCheck.checked=false;
@@ -4085,6 +4085,29 @@ function _stlValidDate(s){
   return y >= 2000 && y <= 2100;
 }
 
+function _stlNextMonth(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return '';
+  const n = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+}
+
+// 익월 말일 (정산 예정일 기본값)
+function _stlNextMonthEnd(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return '';
+  const e = new Date(d.getFullYear(), d.getMonth()+2, 0);
+  return `${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,'0')}-${String(e.getDate()).padStart(2,'0')}`;
+}
+
+// 수기출고 모달: 출고일 변경 시 정산 예정일 자동 제안 (익월 말일)
+function onMoDateChange(){
+  const d = document.getElementById('mo_date')?.value;
+  const p = document.getElementById('mo_payDate');
+  if(!d || !p) return;
+  p.value = _stlNextMonthEnd(d);
+}
+
 function setSettlementDate(idx, val){
   if(!manualOuts[idx]) return;
   manualOuts[idx].payDate = val || '';
@@ -4109,15 +4132,23 @@ function _stlRow(r, mode){
   const valid = _stlValidDate(r.payDate);
   const dday = valid ? Math.round((new Date(r.payDate) - new Date(today))/(1000*60*60*24)) : null;
   let ddayTxt = '', ddayColor = 'var(--text3)';
-  if(mode==='overdue' && valid){ ddayTxt = `${Math.abs(dday)}일 경과`; ddayColor = '#F43F5E'; }
-  else if(mode==='upcoming' && valid){ ddayTxt = dday===0 ? '오늘' : `D-${dday}`; ddayColor = dday<=7 ? '#FBBF24' : 'var(--text3)'; }
-  else if(mode==='done'){ ddayTxt = r.paidDate ? r.paidDate+' 입금' : '완료'; ddayColor = '#22C55E'; }
-  else if(r.payDate && !valid){ ddayTxt = '날짜 형식 오류'; ddayColor = '#F43F5E'; }
+  if(mode!=='done' && r.payDate && !valid){ ddayTxt = '날짜 형식 오류'; ddayColor = '#F43F5E'; }
+  else if(mode==='overdue' && valid){ ddayTxt = `${Math.abs(dday)}일 경과`; ddayColor = '#F43F5E'; }
+  else if(mode==='upcoming' && valid){
+    if(dday > 0){ ddayTxt = `D-${dday}`; ddayColor = dday<=7 ? '#FBBF24' : 'var(--text3)'; }
+    else if(dday === 0){ ddayTxt = '오늘'; ddayColor = '#FBBF24'; }
+    else { ddayTxt = `예정일 ${Math.abs(dday)}일 지남 · 이번 달 내`; ddayColor = '#FBBF24'; }
+  }
+  else if(mode==='done'){ ddayTxt = '입금 완료'; ddayColor = '#22C55E'; }
+  else if(mode==='nodate' && r.outDate){ ddayTxt = `익월 정산 기준 ${_stlNextMonth(r.outDate)} 예상`; ddayColor = 'var(--text3)'; }
 
-  // 날짜는 항상 수정 가능 (잘못 입력한 경우 바로 고칠 수 있게)
-  const dateCell = `<input type="date" value="${valid?r.payDate:''}" onchange="setSettlementDate(${r.idx}, this.value)"
-      style="padding:4px 7px;border:1px solid ${valid?'var(--border)':'#F43F5E'};border-radius:6px;font-size:11.5px;font-weight:600;color:var(--text);background:#12151F">`
-    + (r.payDate && !valid ? `<span style="font-size:10px;color:#F43F5E">입력값: ${r.payDate}</span>` : '');
+  // 정산 완료 건은 입력칸 없이 텍스트만 · 나머지는 클릭하면 캘린더가 바로 열림
+  const dateCell = (mode==='done')
+    ? `<span style="font-size:12.5px;font-weight:700;color:var(--text)">${r.paidDate || (valid?r.payDate:'') || '입금 완료'}</span>`
+    : `<input type="date" value="${valid?r.payDate:''}" onchange="setSettlementDate(${r.idx}, this.value)"
+        onclick="if(this.showPicker)this.showPicker()" onfocus="if(this.showPicker)this.showPicker()"
+        style="padding:5px 8px;border:1px solid ${valid?'var(--border)':'#F43F5E'};border-radius:6px;font-size:11.5px;font-weight:600;color:var(--text);background:#12151F;cursor:pointer">`
+      + (r.payDate && !valid ? `<span style="font-size:10px;color:#F43F5E">입력값: ${r.payDate}</span>` : '');
 
   return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
     <div style="min-width:150px">
@@ -4148,9 +4179,10 @@ function renderSettlement(){
 
   const done     = rows.filter(r=>r.paid).sort((a,b)=>(b.paidDate||b.payDate||'').localeCompare(a.paidDate||a.payDate||''));
   const unpaid   = rows.filter(r=>!r.paid);
+  // 익월 정산이 기본 → 연체는 '정산 예정월'이 지났을 때만 (같은 달 안이면 아직 진행 중)
   const nodate   = unpaid.filter(r=>!_stlValidDate(r.payDate)).sort((a,b)=>b.outDate.localeCompare(a.outDate));
-  const overdue  = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate < today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
-  const upcoming = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate >= today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+  const overdue  = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate.slice(0,7) < thisMonth).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+  const upcoming = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate.slice(0,7) >= thisMonth).sort((a,b)=>a.payDate.localeCompare(b.payDate));
 
   const sum = arr => arr.reduce((s,r)=>s+r.vatIncl, 0);
   const totalUnpaid = sum(unpaid);
@@ -4188,7 +4220,7 @@ function renderSettlement(){
   };
 
   let out = '';
-  out += section('연체 (기한 경과)', overdue, 'overdue', '#F43F5E', '정산 예정일이 지났는데 입금 확인이 안 된 건이에요');
+  out += section('연체 (정산월 경과)', overdue, 'overdue', '#F43F5E', '정산 예정월이 지났는데 입금 확인이 안 된 건이에요 · 익월 정산 기준');
   out += section('입금 예정', upcoming, 'upcoming', '#FBBF24');
   out += section('정산일 미입력 · 수정 필요', nodate, 'nodate', '#8898AA', '정산 예정일을 입력하면 일정에 반영돼요 · 날짜 형식이 잘못된 건도 여기에 표시됩니다');
   out += section('정산 완료', done, 'done', '#22C55E');
