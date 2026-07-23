@@ -475,6 +475,7 @@
         <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
         <button class="tab" onclick="switchTab('expenses')">비용관리</button>
         <button class="tab" onclick="switchTab('simulator')">수익 시뮬레이션</button>
+        <button class="tab" onclick="switchTab('settlement')">정산일정</button>
       </div>
       <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
     </div>
@@ -979,6 +980,19 @@
     </div>
   </div>
 
+  <!-- 정산일정 탭 -->
+  <div id="tabSettlement" style="display:none">
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+        <div style="width:3px;height:16px;background:linear-gradient(#3B82F6,#60A5FA);border-radius:2px"></div>
+        <span style="font-size:16px;font-weight:700;color:var(--text)">정산일정</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:4px">B2B 납품 대금 입금 예정 · 미수금 관리</span>
+      </div>
+      <div id="settlementSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px"></div>
+      <div id="settlementBody"></div>
+    </div>
+  </div>
+
   <!-- SKU 추가 모달 -->
   <div class="modal-bg" id="addSkuModalBg" onclick="if(event.target===this)closeAddSkuModal()">
     <div class="modal" style="max-width:480px">
@@ -1388,6 +1402,12 @@
       <div class="modal-date" style="margin-bottom:12px">
         <label>출고 사유</label>
         <input type="text" id="mo_reason" placeholder="예: 공구, 샘플, 파손 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+      </div>
+
+      <!-- 정산 예정일 -->
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>정산 예정일 <span style="font-size:10px;color:var(--text3);font-weight:400">(입금받을 날짜 · 선택)</span></label>
+        <input type="date" id="mo_payDate">
       </div>
 
       <p style="font-size:12px;color:var(--text3);margin-bottom:10px">출고 수량 · 납품단가(공급가액) — 단가 0이면 무상(샘플)</p>
@@ -2425,9 +2445,11 @@ function switchTab(tab){
   if(_expEl) _expEl.style.display = tab==='expenses' ? 'block' : 'none';
   const _simEl = document.getElementById('tabSimulator');
   if(_simEl) _simEl.style.display = tab==='simulator' ? 'block' : 'none';
+  const _setEl = document.getElementById('tabSettlement');
+  if(_setEl) _setEl.style.display = tab==='settlement' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)||(tab==='simulator'&&i===7)
+      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)||(tab==='simulator'&&i===7)||(tab==='settlement'&&i===8)
     );
   });
   if(tab==='stock') renderStock();
@@ -2436,6 +2458,7 @@ function switchTab(tab){
   if(tab==='pricing') renderPriceManager();
   if(tab==='expenses' && typeof renderExpenses==='function') renderExpenses();
   if(tab==='simulator' && typeof renderSimulator==='function') renderSimulator();
+  if(tab==='settlement' && typeof renderSettlement==='function') renderSettlement();
 }
 
 function renderInsight(){
@@ -3965,6 +3988,7 @@ function saveStockInit(){
 function openManualOutModal(){
   document.getElementById('mo_date').value=getTodayKST();
   document.getElementById('mo_reason').value='';
+  const _pd=document.getElementById('mo_payDate'); if(_pd) _pd.value='';
   // 거래처 초기화
   const sel=document.getElementById('mo_client'); if(sel) sel.value='';
   const newCheck=document.getElementById('mo_newClient'); if(newCheck) newCheck.checked=false;
@@ -3991,7 +4015,8 @@ function saveManualOut(){
   // 신규 거래처 등록 체크 시 거래처명 필수
   if(isNewClient && !newClientName){ showToast('거래처명을 입력해주세요'); return; }
 
-  const entry={date, reason};
+  const payDate = document.getElementById('mo_payDate')?.value || '';
+  const entry={date, reason, payDate, paid:false};
   STOCK_SKUS.forEach(k=>{
     entry[k]=parseInt(document.getElementById('mo_'+k)?.value)||0;
     entry['price_'+k]=parseInt(document.getElementById('mo_price_'+k)?.value)||0;
@@ -4024,6 +4049,140 @@ function saveManualOut(){
   closeManualOutModal();
   renderStock();
   showToast(`${date} ${entry.isB2B?'B2B 유상':'무상'} 출고가 저장되었습니다`);
+}
+
+// ══════════════════════════════════════════════════════════
+// 정산일정 (B2B 납품 대금 입금 관리)
+// ══════════════════════════════════════════════════════════
+function _settlementRows(){
+  const rows = [];
+  (manualOuts||[]).forEach((r, idx)=>{
+    let supply = 0;
+    STOCK_SKUS.forEach(k=>{
+      const q = r[k]||0, p = r['price_'+k]||0;
+      if(q>0 && p>0) supply += q*p;
+    });
+    if(supply <= 0) return; // 무상/샘플 제외
+    rows.push({
+      idx,
+      outDate: r.date || '',
+      client: r.clientName || r.reason || '(거래처 미지정)',
+      supply,
+      vatIncl: Math.round(supply*1.1),
+      payDate: r.payDate || '',
+      paid: !!r.paid,
+      paidDate: r.paidDate || ''
+    });
+  });
+  return rows;
+}
+
+function setSettlementDate(idx, val){
+  if(!manualOuts[idx]) return;
+  manualOuts[idx].payDate = val || '';
+  saveStockData();
+  renderSettlement();
+}
+
+function toggleSettlementPaid(idx){
+  if(!manualOuts[idx]) return;
+  const now = !manualOuts[idx].paid;
+  manualOuts[idx].paid = now;
+  if(now){ manualOuts[idx].paidDate = getTodayKST(); }
+  else { delete manualOuts[idx].paidDate; }
+  saveStockData();
+  renderSettlement();
+  if(typeof showToast==='function') showToast(now ? '정산 완료로 표시했습니다' : '미정산으로 되돌렸습니다');
+}
+
+function _stlRow(r, mode){
+  // mode: 'overdue' | 'upcoming' | 'nodate' | 'done'
+  const today = getTodayKST();
+  const dday = r.payDate ? Math.round((new Date(r.payDate) - new Date(today))/(1000*60*60*24)) : null;
+  let ddayTxt = '', ddayColor = 'var(--text3)';
+  if(mode==='overdue'){ ddayTxt = `${Math.abs(dday)}일 경과`; ddayColor = '#F43F5E'; }
+  else if(mode==='upcoming'){ ddayTxt = dday===0 ? '오늘' : `D-${dday}`; ddayColor = dday<=7 ? '#FBBF24' : 'var(--text3)'; }
+  else if(mode==='done'){ ddayTxt = r.paidDate ? r.paidDate+' 입금' : '완료'; ddayColor = '#22C55E'; }
+
+  const dateCell = r.payDate
+    ? `<span style="font-size:12px;font-weight:700;color:var(--text)">${r.payDate}</span>`
+    : `<input type="date" onchange="setSettlementDate(${r.idx}, this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text);background:#12151F">`;
+
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+    <div style="min-width:150px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+        ${dateCell}
+        ${ddayTxt?`<span style="font-size:10px;font-weight:700;color:${ddayColor}">${ddayTxt}</span>`:''}
+      </div>
+      <div style="font-size:12px;color:var(--text2);font-weight:600">${r.client}</div>
+      <div style="font-size:10px;color:var(--text3)">출고 ${r.outDate}</div>
+    </div>
+    <div style="text-align:right;display:flex;align-items:center;gap:12px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#60A5FA">₩${r.vatIncl.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3)">공급가 ₩${r.supply.toLocaleString()}</div>
+      </div>
+      <button onclick="toggleSettlementPaid(${r.idx})" style="padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ${r.paid?'#22C55E':'var(--border)'};background:${r.paid?'rgba(34,197,94,0.12)':'#1A1D27'};color:${r.paid?'#22C55E':'var(--text2)'};white-space:nowrap">${r.paid?'입금완료':'입금확인'}</button>
+    </div>
+  </div>`;
+}
+
+function renderSettlement(){
+  const sumEl = document.getElementById('settlementSummary');
+  const el = document.getElementById('settlementBody');
+  if(!el) return;
+  const today = getTodayKST();
+  const thisMonth = today.slice(0,7);
+  const rows = _settlementRows();
+
+  const done     = rows.filter(r=>r.paid).sort((a,b)=>(b.paidDate||b.payDate||'').localeCompare(a.paidDate||a.payDate||''));
+  const unpaid   = rows.filter(r=>!r.paid);
+  const nodate   = unpaid.filter(r=>!r.payDate).sort((a,b)=>b.outDate.localeCompare(a.outDate));
+  const overdue  = unpaid.filter(r=>r.payDate && r.payDate < today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+  const upcoming = unpaid.filter(r=>r.payDate && r.payDate >= today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+
+  const sum = arr => arr.reduce((s,r)=>s+r.vatIncl, 0);
+  const totalUnpaid = sum(unpaid);
+  const totalOverdue = sum(overdue);
+  const thisMonthDue = sum(upcoming.filter(r=>r.payDate.startsWith(thisMonth)));
+  const totalDone = sum(done);
+
+  if(sumEl){
+    const card = (label, val, color, sub) => `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${label}</div>
+      <div style="font-size:19px;font-weight:800;color:${color};letter-spacing:-0.5px">₩${val.toLocaleString()}</div>
+      ${sub?`<div style="font-size:10px;color:var(--text3);margin-top:3px">${sub}</div>`:''}
+    </div>`;
+    sumEl.innerHTML =
+      card('미수금 총액', totalUnpaid, '#60A5FA', `${unpaid.length}건 미입금`) +
+      card('연체', totalOverdue, totalOverdue>0?'#F43F5E':'var(--text3)', `${overdue.length}건 기한 경과`) +
+      card('이번 달 입금 예정', thisMonthDue, '#FBBF24', `${upcoming.filter(r=>r.payDate.startsWith(thisMonth)).length}건`) +
+      card('정산 완료 (누적)', totalDone, '#22C55E', `${done.length}건`);
+  }
+
+  const section = (title, arr, mode, color, desc) => {
+    if(arr.length===0) return '';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:3px;height:13px;background:${color};border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${title}</span>
+          <span style="font-size:11px;color:var(--text3)">${arr.length}건</span>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:#60A5FA">₩${sum(arr).toLocaleString()}</span>
+      </div>
+      ${desc?`<div style="font-size:10px;color:var(--text3);margin-bottom:6px">${desc}</div>`:''}
+      ${arr.map(r=>_stlRow(r, mode)).join('')}
+    </div>`;
+  };
+
+  let out = '';
+  out += section('연체 (기한 경과)', overdue, 'overdue', '#F43F5E', '정산 예정일이 지났는데 입금 확인이 안 된 건이에요');
+  out += section('입금 예정', upcoming, 'upcoming', '#FBBF24');
+  out += section('정산일 미입력', nodate, 'nodate', '#8898AA', '정산 예정일을 입력하면 일정에 반영돼요');
+  out += section('정산 완료', done, 'done', '#22C55E');
+
+  el.innerHTML = out || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">B2B 납품 내역이 없습니다.</div>';
 }
 
 function deleteBatch(idx){
