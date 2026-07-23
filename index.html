@@ -4116,6 +4116,12 @@ function _stlValidDate(s){
   return y >= 2000 && y <= 2100;
 }
 
+let _stlDonePage = 0;
+function stlDonePage(delta){
+  _stlDonePage = Math.max(0, _stlDonePage + delta);
+  renderSettlement();
+}
+
 function _stlNextMonth(dateStr){
   const d = new Date(dateStr);
   if(isNaN(d.getTime())) return '';
@@ -4197,7 +4203,7 @@ function _stlRow(r, mode){
         ${dateCell}
         ${ddayTxt?`<span style="font-size:10px;font-weight:700;color:${ddayColor}">${ddayTxt}</span>`:''}
       </div>
-      <div style="font-size:12px;color:var(--text2);font-weight:600">${r.client}${r.src==='gb'?' <span style="font-size:9px;color:#C084FC;background:rgba(192,132,252,0.14);padding:1px 5px;border-radius:4px;font-weight:700">공구</span>':''}</div>
+      <div style="font-size:12px;color:var(--text2);font-weight:600">${r.client}</div>
       <div style="font-size:10px;color:var(--text3)">${r.src==='gb'?'종료':'출고'} ${r.outDate}</div>
     </div>
     <div style="text-align:right;display:flex;align-items:center;gap:12px">
@@ -4264,7 +4270,33 @@ function renderSettlement(){
   out += section('연체 (정산월 경과)', overdue, 'overdue', '#F43F5E', '정산 예정월이 지났는데 입금 확인이 안 된 건이에요 · 익월 정산 기준');
   out += section('입금 예정', upcoming, 'upcoming', '#FBBF24');
   out += section('정산일 미입력 · 수정 필요', nodate, 'nodate', '#8898AA', '정산 예정일을 입력하면 일정에 반영돼요 · 날짜 형식이 잘못된 건도 여기에 표시됩니다');
-  out += section('정산 완료', done, 'done', '#22C55E');
+  // 정산 완료 — 한 페이지 10건
+  if(done.length > 0){
+    const PER = 10;
+    const pages = Math.max(1, Math.ceil(done.length / PER));
+    if(_stlDonePage > pages-1) _stlDonePage = pages-1;
+    if(_stlDonePage < 0) _stlDonePage = 0;
+    const from = _stlDonePage * PER;
+    const slice = done.slice(from, from + PER);
+    const btn = (label, delta, disabled) => `<button onclick="stlDonePage(${delta})" ${disabled?'disabled':''}
+      style="padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:${disabled?'default':'pointer'};border:1px solid var(--border);background:#1A1D27;color:${disabled?'var(--text3)':'var(--text2)'};opacity:${disabled?0.4:1}">${label}</button>`;
+    out += `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:3px;height:13px;background:#22C55E;border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">정산 완료</span>
+          <span style="font-size:11px;color:var(--text3)">${done.length}건</span>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:#60A5FA">₩${sum(done).toLocaleString()}</span>
+      </div>
+      ${slice.map(r=>_stlRow(r, 'done')).join('')}
+      ${pages > 1 ? `<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding-top:12px">
+        ${btn('이전', -1, _stlDonePage===0)}
+        <span style="font-size:11px;color:var(--text3);font-weight:600">${_stlDonePage+1} / ${pages}</span>
+        ${btn('다음', 1, _stlDonePage>=pages-1)}
+      </div>` : ''}
+    </div>`;
+  }
 
   el.innerHTML = out || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">B2B 납품 내역이 없습니다.</div>';
 }
