@@ -3927,7 +3927,7 @@ function renderExpiryRisk(batchState, avgSales){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:12px;font-weight:700;color:var(--text)">${b.remaining.toLocaleString()}개</div>
-          <div style="font-size:9px;color:var(--text3)">${daily>0?daily.toFixed(1)+'개/일':'데이터없음'}</div>
+          <div style="font-size:9px;color:var(--text3)">${daily>0?(daily<1?daily.toFixed(2):daily.toFixed(1))+'개/일':'데이터없음'}</div>
         </div>
       </div>`;
     }).join('');
@@ -4726,7 +4726,7 @@ function calcTotalDailyRate(){
   const days90 = 90;
 
   // ── (1) 이커머스 30일 윈도우 집계 (세트 단품환산, 무신사 세트 포함) ──
-  const ecTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
+  const ecTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0, wego120:0};
   records.filter(r => r.date >= from30Str && r.date <= today).forEach(r=>{
     const c=r.cafe||{}, n=r.naver||{}, o=r.coupang||{}, m=r.musinsa||{};
     ecTot.shampoo    += (c.shampoo||0)+(n.shampoo||0)+(o.shampoo||0)+(m.shampoo||0)
@@ -4739,19 +4739,21 @@ function calcTotalDailyRate(){
                       + (c.washset||0)+(n.washset||0);
     ecTot.bodylotion += (c.bodylotion||0)+(n.bodylotion||0)+(o.bodylotion||0)+(m.bodylotion||0)
                       + (c.bodyset||0)+(n.bodyset||0)+(m.bodyset||0);
+    ecTot.wego120    += (c.wego120||0)+(n.wego120||0)+(o.wego120||0)+(m.wego120||0);
   });
 
   // ── (2) B2B 수기출고 90일 윈도우 집계 ──
-  const b2bTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
+  const b2bTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0, wego120:0};
   manualOuts.filter(r => r.date >= from90Str && r.date <= today).forEach(r=>{
     b2bTot.shampoo    += (r.shampoo||0);
     b2bTot.treatment  += (r.treatment||0);
     b2bTot.bodywash   += (r.bodywash||0);
     b2bTot.bodylotion += (r.bodylotion||0);
+    b2bTot.wego120    += (r.wego120||0);
   });
 
   // ── (3) 공구 90일 윈도우 집계 (종료일 기준) ──
-  const gbTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0};
+  const gbTot = {shampoo:0, treatment:0, bodywash:0, bodylotion:0, wego120:0};
   if(typeof groupBuys !== 'undefined' && Array.isArray(groupBuys)){
     groupBuys.forEach(gb=>{
       if(!gb.toDate) return;
@@ -4760,6 +4762,7 @@ function calcTotalDailyRate(){
       gbTot.treatment  += (gb.treatment||0);
       gbTot.bodywash   += (gb.bodywash||0);
       gbTot.bodylotion += (gb.bodylotion||0);
+      gbTot.wego120    += (gb.wego120||0);
     });
   }
 
@@ -4769,7 +4772,7 @@ function calcTotalDailyRate(){
     const ecDaily   = (ecTot[k]||0)  / days30;
     const b2bDaily  = (b2bTot[k]||0) / days90;
     const gbDaily   = (gbTot[k]||0)  / days90;
-    rate[k] = Math.round((ecDaily + b2bDaily + gbDaily) * 10) / 10;
+    rate[k] = Math.round((ecDaily + b2bDaily + gbDaily) * 100) / 100;
   });
   return rate;
 }
