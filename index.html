@@ -4077,6 +4077,14 @@ function _settlementRows(){
   return rows;
 }
 
+function _stlValidDate(s){
+  if(!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s);
+  if(isNaN(d.getTime())) return false;
+  const y = +s.slice(0,4);
+  return y >= 2000 && y <= 2100;
+}
+
 function setSettlementDate(idx, val){
   if(!manualOuts[idx]) return;
   manualOuts[idx].payDate = val || '';
@@ -4098,15 +4106,18 @@ function toggleSettlementPaid(idx){
 function _stlRow(r, mode){
   // mode: 'overdue' | 'upcoming' | 'nodate' | 'done'
   const today = getTodayKST();
-  const dday = r.payDate ? Math.round((new Date(r.payDate) - new Date(today))/(1000*60*60*24)) : null;
+  const valid = _stlValidDate(r.payDate);
+  const dday = valid ? Math.round((new Date(r.payDate) - new Date(today))/(1000*60*60*24)) : null;
   let ddayTxt = '', ddayColor = 'var(--text3)';
-  if(mode==='overdue'){ ddayTxt = `${Math.abs(dday)}일 경과`; ddayColor = '#F43F5E'; }
-  else if(mode==='upcoming'){ ddayTxt = dday===0 ? '오늘' : `D-${dday}`; ddayColor = dday<=7 ? '#FBBF24' : 'var(--text3)'; }
+  if(mode==='overdue' && valid){ ddayTxt = `${Math.abs(dday)}일 경과`; ddayColor = '#F43F5E'; }
+  else if(mode==='upcoming' && valid){ ddayTxt = dday===0 ? '오늘' : `D-${dday}`; ddayColor = dday<=7 ? '#FBBF24' : 'var(--text3)'; }
   else if(mode==='done'){ ddayTxt = r.paidDate ? r.paidDate+' 입금' : '완료'; ddayColor = '#22C55E'; }
+  else if(r.payDate && !valid){ ddayTxt = '날짜 형식 오류'; ddayColor = '#F43F5E'; }
 
-  const dateCell = r.payDate
-    ? `<span style="font-size:12px;font-weight:700;color:var(--text)">${r.payDate}</span>`
-    : `<input type="date" onchange="setSettlementDate(${r.idx}, this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text);background:#12151F">`;
+  // 날짜는 항상 수정 가능 (잘못 입력한 경우 바로 고칠 수 있게)
+  const dateCell = `<input type="date" value="${valid?r.payDate:''}" onchange="setSettlementDate(${r.idx}, this.value)"
+      style="padding:4px 7px;border:1px solid ${valid?'var(--border)':'#F43F5E'};border-radius:6px;font-size:11.5px;font-weight:600;color:var(--text);background:#12151F">`
+    + (r.payDate && !valid ? `<span style="font-size:10px;color:#F43F5E">입력값: ${r.payDate}</span>` : '');
 
   return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
     <div style="min-width:150px">
@@ -4137,9 +4148,9 @@ function renderSettlement(){
 
   const done     = rows.filter(r=>r.paid).sort((a,b)=>(b.paidDate||b.payDate||'').localeCompare(a.paidDate||a.payDate||''));
   const unpaid   = rows.filter(r=>!r.paid);
-  const nodate   = unpaid.filter(r=>!r.payDate).sort((a,b)=>b.outDate.localeCompare(a.outDate));
-  const overdue  = unpaid.filter(r=>r.payDate && r.payDate < today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
-  const upcoming = unpaid.filter(r=>r.payDate && r.payDate >= today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+  const nodate   = unpaid.filter(r=>!_stlValidDate(r.payDate)).sort((a,b)=>b.outDate.localeCompare(a.outDate));
+  const overdue  = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate < today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
+  const upcoming = unpaid.filter(r=>_stlValidDate(r.payDate) && r.payDate >= today).sort((a,b)=>a.payDate.localeCompare(b.payDate));
 
   const sum = arr => arr.reduce((s,r)=>s+r.vatIncl, 0);
   const totalUnpaid = sum(unpaid);
@@ -4179,7 +4190,7 @@ function renderSettlement(){
   let out = '';
   out += section('연체 (기한 경과)', overdue, 'overdue', '#F43F5E', '정산 예정일이 지났는데 입금 확인이 안 된 건이에요');
   out += section('입금 예정', upcoming, 'upcoming', '#FBBF24');
-  out += section('정산일 미입력', nodate, 'nodate', '#8898AA', '정산 예정일을 입력하면 일정에 반영돼요');
+  out += section('정산일 미입력 · 수정 필요', nodate, 'nodate', '#8898AA', '정산 예정일을 입력하면 일정에 반영돼요 · 날짜 형식이 잘못된 건도 여기에 표시됩니다');
   out += section('정산 완료', done, 'done', '#22C55E');
 
   el.innerHTML = out || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">B2B 납품 내역이 없습니다.</div>';
