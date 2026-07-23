@@ -4235,6 +4235,9 @@ function renderSettlement(){
   const totalUnpaid = sum(unpaid);
   const totalOverdue = sum(overdue);
   const thisMonthDue = sum(upcoming.filter(r=>r.payDate.startsWith(thisMonth)));
+  const nextMonth = _stlNextMonth(today);
+  const nextMonthRows = upcoming.filter(r=>r.payDate.startsWith(nextMonth));
+  const nextMonthDue = sum(nextMonthRows);
   const totalDone = sum(done);
 
   if(sumEl){
@@ -4247,7 +4250,7 @@ function renderSettlement(){
       card('미수금 총액', totalUnpaid, '#60A5FA', `${unpaid.length}건 미입금`) +
       card('연체', totalOverdue, totalOverdue>0?'#F43F5E':'var(--text3)', `${overdue.length}건 기한 경과`) +
       card('이번 달 입금 예정', thisMonthDue, '#FBBF24', `${upcoming.filter(r=>r.payDate.startsWith(thisMonth)).length}건`) +
-      card('정산 완료 (누적)', totalDone, '#22C55E', `${done.length}건`);
+      card(`익월 정산 (${nextMonth})`, nextMonthDue, '#22C55E', `${nextMonthRows.length}건 예정`);
   }
 
   const section = (title, arr, mode, color, desc) => {
