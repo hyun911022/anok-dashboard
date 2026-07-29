@@ -468,8 +468,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div class="tabs tabs-scroll" style="margin-bottom:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0">
         <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-        <button class="tab" onclick="switchTab('daily')">일별 내역</button>
-        <button class="tab" onclick="switchTab('stock')">재고현황</button>
+                <button class="tab" onclick="switchTab('stock')">재고현황</button>
         <button class="tab" onclick="switchTab('order')">발주관리</button>
         <button class="tab" onclick="switchTab('products')">상품관리</button>
         <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
@@ -710,119 +709,7 @@
     </div>
 
   </div>
-  <div id="tabDaily" style="display:none">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 매출 내역</div>
-    </div>
-    <div class="daily-grid daily-sales" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:#1A1528;border-radius:12px;padding:14px 16px;border:1px solid #3B2F5E">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
-          <div style="font-size:13px;font-weight:600;color:#7C3AED">자사몰</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
-            <tbody id="dayCafeBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="background:#0D1F14;border-radius:12px;padding:14px 16px;border:1px solid #1A4A2E">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
-          <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
-            <tbody id="dayNaverBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="background:#1F1208;border-radius:12px;padding:14px 16px;border:1px solid #4A2A0D">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
-          <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
-            <tbody id="dayCoupangBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <!-- 무신사 -->
-      <div style="background:#1A1D2E;border-radius:12px;padding:14px 16px;border:1px solid #2A3050">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#06B6D4"></div>
-          <div style="font-size:13px;font-weight:700;color:#06B6D4">무신사</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>매출</th><th>수익</th><th>수익률</th></tr></thead>
-            <tbody id="dayMusinsaBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <div style="width:4px;height:18px;background:linear-gradient(#0B1F3A,#2563EB);border-radius:2px"></div>
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">일별 채널별 판매수량</div>
-    </div>
-    <div class="daily-grid daily-qty" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
-      <div style="background:#1A1528;border-radius:12px;padding:14px 16px;border:1px solid #3B2F5E">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#7C3AED"></div>
-          <div style="font-size:13px;font-weight:600;color:#7C3AED">자사몰</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트</th><th>헤어S</th><th>바디W</th><th>바디L</th><th>바디S</th><th>워시S</th></tr></thead>
-            <tbody id="dayQtyCafeBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="background:#0D1F14;border-radius:12px;padding:14px 16px;border:1px solid #1A4A2E">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#16A34A"></div>
-          <div style="font-size:13px;font-weight:700;color:#16A34A">네이버</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트</th><th>헤어S</th><th>바디W</th><th>바디L</th><th>바디S</th><th>워시S</th></tr></thead>
-            <tbody id="dayQtyNaverBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="background:#1F1208;border-radius:12px;padding:14px 16px;border:1px solid #4A2A0D">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#EA580C"></div>
-          <div style="font-size:13px;font-weight:700;color:#EA580C">쿠팡</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트</th><th>바디W</th><th>바디L</th></tr></thead>
-            <tbody id="dayQtyCoupangBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <!-- 무신사 수량 -->
-      <div style="background:#0A1F24;border-radius:12px;padding:14px 16px;border:1px solid #0D3A44">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <div style="width:8px;height:8px;border-radius:2px;background:#06B6D4"></div>
-          <div style="font-size:13px;font-weight:700;color:#06B6D4">무신사</div>
-        </div>
-        <div class="day-table-wrap">
-          <table class="day-tbl">
-            <thead><tr><th>날짜</th><th>샴푸</th><th>트리트</th><th>바디W</th><th>바디L</th></tr></thead>
-            <tbody id="dayQtyMusinsaBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+  
 
 
   <!-- 재고현황 탭 -->
@@ -2441,7 +2328,6 @@ async function saveDay(){
 
 function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
-  document.getElementById('tabDaily').style.display=tab==='daily'?'block':'none';
   document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
   document.getElementById('tabOrder').style.display=tab==='order'?'block':'none';
   document.getElementById('tabProducts').style.display=tab==='products'?'block':'none';
@@ -2454,7 +2340,7 @@ function switchTab(tab){
   if(_setEl) _setEl.style.display = tab==='settlement' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='daily'&&i===1)||(tab==='stock'&&i===2)||(tab==='order'&&i===3)||(tab==='products'&&i===4)||(tab==='pricing'&&i===5)||(tab==='expenses'&&i===6)||(tab==='simulator'&&i===7)||(tab==='settlement'&&i===8)
+      (tab==='dashboard'&&i===0)||(tab==='stock'&&i===1)||(tab==='order'&&i===2)||(tab==='products'&&i===3)||(tab==='pricing'&&i===4)||(tab==='expenses'&&i===5)||(tab==='simulator'&&i===6)||(tab==='settlement'&&i===7)
     );
   });
   if(tab==='stock') renderStock();
