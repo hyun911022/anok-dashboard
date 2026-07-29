@@ -1993,6 +1993,7 @@ function calcUnitQty(mRecs,sku){
   if(sku==='treatment')  return sc('treatment')+sc('hairset')+sn('treatment')+sn('hairset')+so('treatment')+smu('treatment')+smu('hairset')+sb('treatment');
   if(sku==='bodywash')   return sc('bodywash')+sc('bodyset')+sc('washset')+sn('bodywash')+sn('bodyset')+sn('washset')+so('bodywash')+smu('bodywash')+smu('bodyset')+sb('bodywash');
   if(sku==='bodylotion') return sc('bodylotion')+sc('bodyset')+sn('bodylotion')+sn('bodyset')+so('bodylotion')+smu('bodylotion')+smu('bodyset')+sb('bodylotion');
+  if(sku==='wego120')    return sc('wego120')+sn('wego120')+so('wego120')+smu('wego120')+sb('wego120');
   return null;
 }
 
