@@ -1676,8 +1676,6 @@ function render(){
   document.getElementById('profitCoupangVal').textContent=fmtPrf(totOprf);
   document.getElementById('profitCoupangVal').style.color=totOprf>=0?'var(--text)':'#E24B4A';
   document.getElementById('profitCoupangRate').textContent='수익률 '+fmtRt(totOprf,totO);
-
-  renderDayTable(mRecs);
   renderInsight();
 }
 
