@@ -3963,7 +3963,8 @@ function _settlementRows(){
       outDate: r.date || '',
       client: r.clientName || r.reason || '(거래처 미지정)',
       supply,
-      vatIncl: Math.round(supply*1.1),
+      zeroRate: !!r.zeroRate,
+      vatIncl: r.zeroRate ? supply : Math.round(supply*1.1),
       payDate: r.payDate || '',
       paid: !!r.paid,
       paidDate: r.paidDate || ''
@@ -3979,7 +3980,8 @@ function _settlementRows(){
       outDate: gb.toDate || gb.fromDate || '',
       client: gb.label || '공구',
       supply,
-      vatIncl: Math.round(supply*1.1),
+      zeroRate: !!gb.zeroRate,
+      vatIncl: gb.zeroRate ? supply : Math.round(supply*1.1),
       payDate: gb.payDate || '',
       paid: !!gb.paid,
       paidDate: gb.paidDate || ''
