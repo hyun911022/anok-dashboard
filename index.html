@@ -4669,6 +4669,14 @@ function calcTotalDailyRate(){
   return rate;
 }
 
+const OUTBOX_SIZE = {shampoo:24, treatment:24, bodywash:24, bodylotion:24, wego120:40};
+function fmtOutbox(qty, k){
+  const box = OUTBOX_SIZE[k]||24;
+  if(qty<=0) return '';
+  const boxes = Math.ceil(qty/box);
+  return `${boxes}박스 (${box}개입 · ${(boxes*box).toLocaleString()}개)`;
+}
+
 function renderOrder(){
   const stock = calcCurrentStock();
   const rate  = calcTotalDailyRate();
@@ -4707,9 +4715,9 @@ function renderOrder(){
         <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
         <div style="font-size:10px;color:var(--text3)">3개월 목표 재고 <span style="color:var(--text2);font-weight:600">${target?target.toLocaleString()+'개':'-'}</span></div>
         <div style="font-size:10px;color:var(--text3);margin-top:3px">
-          즉시 <span style="color:${needNow2===0?'#34D399':'#60A5FA'};font-weight:600">${needNow2!==null?(needNow2===0?'발주불필요':'+'+needNow2.toLocaleString()+'개'):'-'}</span>
+          즉시 <span style="color:${needNow2===0?'#34D399':'#60A5FA'};font-weight:600">${needNow2!==null?(needNow2===0?'발주불필요':'+'+Math.ceil(needNow2/(OUTBOX_SIZE[k]||24))+'박스'):'-'}</span>
           <span style="margin:0 4px;color:var(--border)">·</span>
-          생산 <span style="color:${needProd2===0?'#34D399':'#F97316'};font-weight:600">${needProd2!==null?(needProd2===0?'발주불필요':'+'+needProd2.toLocaleString()+'개'):'-'}</span>
+          생산 <span style="color:${needProd2===0?'#34D399':'#F97316'};font-weight:600">${needProd2!==null?(needProd2===0?'발주불필요':'+'+Math.ceil(needProd2/(OUTBOX_SIZE[k]||24))+'박스'):'-'}</span>
         </div>
       </div>
     </div>`;
@@ -4781,10 +4789,10 @@ function renderOrder(){
               <span style="font-size:10px;font-weight:700;color:${needNow===0?'#34D399':'#60A5FA'}">즉시 입고 가능</span>
             </div>
             <div style="font-size:18px;font-weight:700;color:${needNow===0?'#34D399':'var(--text)'}">
-              ${needNow===0?'발주 불필요':needNow.toLocaleString()+'개'}
+              ${needNow===0?'발주 불필요':fmtOutbox(needNow,k)}
             </div>
             <div style="font-size:10px;color:var(--text3);margin-top:4px">
-              ${needNow===0?`현재고(${qty})가 목표(${target})를 충족`:`목표 ${target}개 − 현재고 ${qty}개`}
+              ${needNow===0?`현재고(${qty})가 목표(${target})를 충족`:`필요 ${needNow.toLocaleString()}개 · 목표 ${target}개 − 현재고 ${qty}개`}
             </div>
           </div>
           <!-- 시나리오 B -->
@@ -4794,13 +4802,13 @@ function renderOrder(){
               <span style="font-size:10px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">생산 필요 (2달 리드타임)</span>
             </div>
             <div style="font-size:18px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">
-              ${needProd===0?'발주 불필요':needProd.toLocaleString()+'개'}
+              ${needProd===0?'발주 불필요':fmtOutbox(needProd,k)}
             </div>
             <div style="font-size:10px;color:var(--text3);margin-top:4px">
               ${needProd===0?`입고 대기 60일간 소진(${leadSogin}개)도 충족`
                 :needNow===0
-                  ?`60일 대기중 ${leadSogin}개 소진 → 잔여(${qty-leadSogin}개) < 목표(${target}개) → ${needProd}개 부족`
-                  :`목표 ${target}개 + 대기 소진 ${leadSogin}개 − 현재고 ${qty}개`}
+                  ?`필요 ${needProd.toLocaleString()}개 · 60일 대기중 ${leadSogin}개 소진 → 잔여(${qty-leadSogin}개) < 목표(${target}개)`
+                  :`필요 ${needProd.toLocaleString()}개 · 목표 ${target}개 + 대기 소진 ${leadSogin}개 − 현재고 ${qty}개`}
             </div>
           </div>
         </div>
