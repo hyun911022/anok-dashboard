@@ -4788,11 +4788,11 @@ function renderOrder(){
               <div style="width:5px;height:5px;border-radius:50%;background:${needNow===0?'#34D399':'#60A5FA'}"></div>
               <span style="font-size:10px;font-weight:700;color:${needNow===0?'#34D399':'#60A5FA'}">즉시 입고 가능</span>
             </div>
-            <div style="font-size:18px;font-weight:700;color:${needNow===0?'#34D399':'var(--text)'}">
-              ${needNow===0?'발주 불필요':fmtOutbox(needNow,k)}
+            <div style="font-size:20px;font-weight:800;color:${needNow===0?'#34D399':'var(--text)'};letter-spacing:-0.5px">
+              ${needNow===0?'발주 불필요':Math.ceil(needNow/(OUTBOX_SIZE[k]||24))+'박스'}<span style="font-size:12px;font-weight:500;color:var(--text3);margin-left:6px">${needNow===0?'':'= '+(Math.ceil(needNow/(OUTBOX_SIZE[k]||24))*(OUTBOX_SIZE[k]||24)).toLocaleString()+'개'}</span>
             </div>
-            <div style="font-size:10px;color:var(--text3);margin-top:4px">
-              ${needNow===0?`현재고(${qty})가 목표(${target})를 충족`:`필요 ${needNow.toLocaleString()}개 · 목표 ${target}개 − 현재고 ${qty}개`}
+            <div style="font-size:10px;color:var(--text3);margin-top:5px">
+              ${needNow===0?`현재고 ${qty}개로 목표 충족`:`필요 ${needNow.toLocaleString()}개 (${OUTBOX_SIZE[k]||24}개입 기준)`}
             </div>
           </div>
           <!-- 시나리오 B -->
@@ -4801,14 +4801,11 @@ function renderOrder(){
               <div style="width:5px;height:5px;border-radius:50%;background:${needProd===0?'#34D399':'#F97316'}"></div>
               <span style="font-size:10px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">생산 필요 (2달 리드타임)</span>
             </div>
-            <div style="font-size:18px;font-weight:700;color:${needProd===0?'#34D399':'#F97316'}">
-              ${needProd===0?'발주 불필요':fmtOutbox(needProd,k)}
+            <div style="font-size:20px;font-weight:800;color:${needProd===0?'#34D399':'#F97316'};letter-spacing:-0.5px">
+              ${needProd===0?'발주 불필요':Math.ceil(needProd/(OUTBOX_SIZE[k]||24))+'박스'}<span style="font-size:12px;font-weight:500;color:${needProd===0?'var(--text3)':'#F9731699'};margin-left:6px">${needProd===0?'':'= '+(Math.ceil(needProd/(OUTBOX_SIZE[k]||24))*(OUTBOX_SIZE[k]||24)).toLocaleString()+'개'}</span>
             </div>
-            <div style="font-size:10px;color:var(--text3);margin-top:4px">
-              ${needProd===0?`입고 대기 60일간 소진(${leadSogin}개)도 충족`
-                :needNow===0
-                  ?`필요 ${needProd.toLocaleString()}개 · 60일 대기중 ${leadSogin}개 소진 → 잔여(${qty-leadSogin}개) < 목표(${target}개)`
-                  :`필요 ${needProd.toLocaleString()}개 · 목표 ${target}개 + 대기 소진 ${leadSogin}개 − 현재고 ${qty}개`}
+            <div style="font-size:10px;color:var(--text3);margin-top:5px">
+              ${needProd===0?`대기 60일 소진분까지 충족`:`필요 ${needProd.toLocaleString()}개 · 대기 소진 ${leadSogin}개 반영`}
             </div>
           </div>
         </div>
