@@ -3693,11 +3693,11 @@ function renderStock(){
   if(outEl) outEl.innerHTML=outTbody;
 
   // ── 4. 입고 내역 ──
-  const inBatches=[...stockBatches].filter(b=>!b.isInitial).sort((a,b)=>b.date.localeCompare(a.date));
+  const inBatches=[...stockBatches].filter(b=>!b.isInitial && b.date && b.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
   const inEl=document.getElementById('stockInList');
   if(inEl){
     inEl.innerHTML=inBatches.length===0
-      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">입고 내역이 없습니다.</div>'
+      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이번 달 입고 내역이 없습니다.</div>'
       : inBatches.map(batch=>{
           const gi=stockBatches.indexOf(batch);
           const items=batch.items.map(it=>`${STOCK_SKU_NAMES[it.sku]} ${it.qty}개${it.expiry?' (유통 '+fmtDate(it.expiry)+')':''}`).join(' · ');
