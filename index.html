@@ -3102,6 +3102,12 @@ function calcCumulativeSold(uptoDate){
 function calcFIFOBatchState(){
   const today = getTodayKST();
   const totalSold = calcCumulativeSold(today);
+  // 미래 날짜로 등록된 수기출고도 현재 재고에 즉시 반영 (등록 = 출고 확정으로 간주)
+  (manualOuts||[]).forEach(r=>{
+    if(r.date && r.date > today){
+      STOCK_SKUS.forEach(k=>{ totalSold[k] = (totalSold[k]||0) + (r[k]||0); });
+    }
+  });
 
   // SKU별 배치를 유통기한 오름차순 정렬 (유통기한 없으면 맨 뒤)
   const batchState = {};
@@ -3134,7 +3140,7 @@ function calcFIFOBatchState(){
     // 배치 지정 출고: pinExp가 달린 수기출고는 해당 유통기한 배치에서 직접 차감 (예외 지시용, 평상시엔 FIFO)
     const pinned = {};
     (manualOuts||[]).forEach(r=>{
-      if(r.pinExp && (r[k]||0)>0 && r.date && r.date <= today){ pinned[r.pinExp]=(pinned[r.pinExp]||0)+(r[k]||0); }
+      if(r.pinExp && (r[k]||0)>0){ pinned[r.pinExp]=(pinned[r.pinExp]||0)+(r[k]||0); }
     });
     const pinnedTotal = Object.values(pinned).reduce((s,v)=>s+v,0);
     remaining = Math.max(0, remaining - pinnedTotal);
