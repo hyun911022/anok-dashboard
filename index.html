@@ -3131,11 +3131,22 @@ function calcFIFOBatchState(){
     let initRemaining = Math.max(0, initTotal - Math.min(remaining, initTotal));
     remaining = Math.max(0, remaining - initTotal);
 
-    // 배치별 차감
+    // 배치 지정 출고: pinExp가 달린 수기출고는 해당 유통기한 배치에서 직접 차감 (예외 지시용, 평상시엔 FIFO)
+    const pinned = {};
+    (manualOuts||[]).forEach(r=>{
+      if(r.pinExp && (r[k]||0)>0 && r.date && r.date <= today){ pinned[r.pinExp]=(pinned[r.pinExp]||0)+(r[k]||0); }
+    });
+    const pinnedTotal = Object.values(pinned).reduce((s,v)=>s+v,0);
+    remaining = Math.max(0, remaining - pinnedTotal);
+
+    // 배치별 차감 (지정 출고 선차감 후 FIFO)
     const processedBatches = skuBatches.map(b=>{
-      const used = Math.min(b.originalQty, remaining);
-      remaining = Math.max(0, remaining - b.originalQty);
-      return { ...b, remaining: Math.max(0, b.originalQty - used) };
+      const pin = Math.min(pinned[b.expiry]||0, b.originalQty);
+      if(pin) pinned[b.expiry] -= pin;
+      const avail = b.originalQty - pin;
+      const used = Math.min(avail, remaining);
+      remaining = Math.max(0, remaining - avail);
+      return { ...b, remaining: Math.max(0, avail - used) };
     });
 
     batchState[k] = { initRemaining, batches: processedBatches };
