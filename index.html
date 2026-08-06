@@ -469,7 +469,7 @@
       <div class="tabs tabs-scroll" style="margin-bottom:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0">
         <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
                 <button class="tab" onclick="switchTab('stock')">재고현황</button>
-        <button class="tab" onclick="switchTab('order')">발주관리</button>
+        
         <button class="tab" onclick="switchTab('products')">상품관리</button>
         <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
         <button class="tab" onclick="switchTab('expenses')">비용관리</button>
@@ -972,33 +972,7 @@
   </div>
 
   <!-- 발주관리 탭 -->
-  <div id="tabOrder" style="display:none">
-
-    <!-- 헤더 -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
-      <div>
-        <div style="font-size:16px;font-weight:700;color:var(--text)">발주관리</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">판매·출고 추이 기반 발주 타이밍 및 수량 제안</div>
-      </div>
-      <button onclick="openOrderModal()" style="background:linear-gradient(135deg,#6366F1,#9B6DFF);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap">+ 발주 등록</button>
-    </div>
-
-    <!-- SKU 상태 요약 카드 4개 -->
-    <div id="orderStatusCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px"></div>
-
-    <!-- 발주 계산기 -->
-    <div id="orderCalculator" style="margin-bottom:24px"></div>
-
-    <!-- 발주 이력 -->
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:14px;font-weight:700;color:var(--text)">발주 이력</div>
-        <div style="font-size:11px;color:var(--text3)">실제 입고 확인 시 업데이트하세요</div>
-      </div>
-      <div id="orderHistory"></div>
-    </div>
-
-  </div>
+  
 
 </div>
 
@@ -2332,7 +2306,6 @@ async function saveDay(){
 function switchTab(tab){
   document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
-  document.getElementById('tabOrder').style.display=tab==='order'?'block':'none';
   document.getElementById('tabProducts').style.display=tab==='products'?'block':'none';
   document.getElementById('tabPricing').style.display=tab==='pricing'?'block':'none';
   const _expEl = document.getElementById('tabExpenses');
@@ -2343,11 +2316,10 @@ function switchTab(tab){
   if(_setEl) _setEl.style.display = tab==='settlement' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i)=>{
     t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='stock'&&i===1)||(tab==='order'&&i===2)||(tab==='products'&&i===3)||(tab==='pricing'&&i===4)||(tab==='expenses'&&i===5)||(tab==='simulator'&&i===6)||(tab==='settlement'&&i===7)
+      (tab==='dashboard'&&i===0)||(tab==='stock'&&i===1)||(tab==='products'&&i===2)||(tab==='pricing'&&i===3)||(tab==='expenses'&&i===4)||(tab==='simulator'&&i===5)||(tab==='settlement'&&i===6)
     );
   });
   if(tab==='stock') renderStock();
-  if(tab==='order') renderOrder();
   if(tab==='products') renderProducts();
   if(tab==='pricing') renderPriceManager();
   if(tab==='expenses' && typeof renderExpenses==='function') renderExpenses();
