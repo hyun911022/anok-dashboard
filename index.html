@@ -5940,7 +5940,7 @@ function renderChannelPopup(){
   el.innerHTML = `
     <div class="ch-summary">
       <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
         <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
@@ -5948,6 +5948,28 @@ function renderChannelPopup(){
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
 }
+
+// ── 신호 색상 규칙 ──
+// 평소엔 무채색. 조치가 필요하거나 특기할 성과일 때만 색을 부여한다.
+const SIG = {danger:'#E2645F', warn:'#D9A441', good:'#D4B896', none:''};
+
+function sigDaysLeft(d){            // 소진 예상일
+  if(d===null || d===undefined) return SIG.none;
+  if(d < 0) return SIG.danger;
+  if(d <= 3) return SIG.danger;
+  if(d <= 7) return SIG.warn;
+  return SIG.none;
+}
+function sigRemain(v){              // 위탁 잔량
+  return v < 0 ? SIG.danger : SIG.none;
+}
+function sigRate(r){                // 목표 대비 달성률
+  if(r < 70) return SIG.danger;
+  if(r < 90) return SIG.warn;
+  if(r >= 120) return SIG.good;
+  return SIG.none;
+}
+const sigStyle = c => c ? `color:${c};font-weight:700` : '';
 
 function renderPopupCard(p){
   const s = calcPopupStats(p);
@@ -5997,9 +6019,9 @@ function renderPopupCard(p){
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
       <td>${con.toLocaleString()}</td>
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
-      <td style="color:var(--text2);font-weight:600">${rem.toLocaleString()}</td>
+      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}</td>
       <td style="color:var(--text3)">${daily.toFixed(1)}</td>
-      <td style="color:var(--text3)">${daysLeft===null?'–':daysLeft+'일'}</td>
+      <td style="color:var(--text3);${sigStyle(sigDaysLeft(daysLeft))}">${daysLeft===null?'–':daysLeft+'일'}</td>
     </tr>`;
   }).join('');
 
@@ -6021,7 +6043,7 @@ function renderPopupCard(p){
 
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:0 0 16px;padding:9px 12px;background:#0F121C;border-radius:8px">
       <span>진행 ${s.elapsed}/${s.totalDays}일</span>
-      <span style="color:var(--text2);font-weight:700">${s.rate.toFixed(1)}%</span>
+      <span style="color:var(--text2);font-weight:700;${sigStyle(sigRate(s.rate))}">${s.rate.toFixed(1)}%</span>
       <span>최종 예상 ₩${_chFmt(s.forecast)}</span>
     </div>
 
@@ -6058,7 +6080,7 @@ function renderPopupCard(p){
             <td style="text-align:left;color:var(--text2);font-weight:600">${label}</td>
             <td>${out.toLocaleString()}</td>
             <td style="color:var(--text)">${used.toLocaleString()}</td>
-            <td style="color:var(--text2);font-weight:600">${rem.toLocaleString()}</td>
+            <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}</td>
             <td style="color:var(--text3)">${daily.toFixed(1)}</td>
             <td style="color:var(--text3)">${ratio}%</td>
           </tr>`;
