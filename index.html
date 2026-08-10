@@ -1736,8 +1736,11 @@ function updateTrendChart(mRecs){
   const nData=Array(daysInMonth).fill(null);
   const oData=Array(daysInMonth).fill(null);
   const mData=Array(daysInMonth).fill(null);
-  const tickColors=Array(daysInMonth).fill('#8898AA');
-  const _dailyBEP=Math.round(TARGET_TOTAL/daysInMonth);
+  // x축 날짜 색상: 요일 기준 (토=파랑, 일=빨강, 평일=기본)
+  const tickColors=Array.from({length:daysInMonth},(_,i)=>{
+    const dow=new Date(sy, sm-1, i+1).getDay();
+    return dow===0 ? '#F87171' : (dow===6 ? '#60A5FA' : '#8898AA');
+  });
   mRecs.forEach(r=>{
     const day=parseInt(r.date.slice(8,10))-1;
     if(day>=0&&day<daysInMonth){
@@ -1746,7 +1749,6 @@ function updateTrendChart(mRecs){
       if(d.nRev>0) nData[day]=d.nRev;
       if(d.oRev>0) oData[day]=d.oRev;
       if((d.mRev||0)>0) mData[day]=d.mRev;
-      tickColors[day]=d.total>=_dailyBEP?'#E24B4A':'#2563EB';
     }
   });
   trendChart.data.labels=labels;
@@ -1764,7 +1766,7 @@ function updateTrendChart(mRecs){
   el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;background:rgba(10,18,36,0.95);color:#fff;border-radius:10px;padding:10px 14px;font-family:-apple-system,sans-serif;font-size:13px;line-height:1.7;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);min-width:160px;transition:opacity 0.12s;opacity:0;`;
   document.body.appendChild(el);
 
-  window._showChartTooltip = function(items, profitInfo) {
+  window._showChartTooltip = function(items) {
     if (!items || !items.length) { el.style.opacity = '0'; return; }
     const total = items.reduce((s,c)=>s+(c.raw||0),0);
     const dayLabel = items[0].label.replace('일','');
@@ -1775,10 +1777,6 @@ function updateTrendChart(mRecs){
       const col = colorMap[c.dataset.label] || '#8898AA';
       html += `<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="color:#CBD5E1">${c.dataset.label}</span><span style="margin-left:auto;font-weight:600;color:#fff">₩${Math.round(c.raw).toLocaleString()}</span></div>`;
     });
-    if (profitInfo && profitInfo.line2) {
-      const pc = profitInfo.profit ? '#F87171' : '#60A5FA';
-      html += `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.12);font-weight:700;color:${pc};font-size:12px">${profitInfo.line2}</div>`;
-    }
     el.innerHTML = html;
     el.style.opacity = '1';
   };
@@ -2265,20 +2263,7 @@ function initCharts(){
             // 매출이 하나도 없는 날이면 툴팁 숨김
             const hasData = items.some(i=>i.raw!=null && i.raw>0);
             if(!hasData){ window._hideChartTooltip && window._hideChartTooltip(); return; }
-            const dayNum=parseInt(items[0].label);
-            const [sy,sm]=selectedMonth.split('-').map(Number);
-            const daysInMo=new Date(sy,sm,0).getDate();
-            const dailyBEP=Math.round(TARGET_TOTAL/daysInMo);
-            const dateStr=`${String(sy)}-${String(sm).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-            const rec=records.find(r=>r.date===dateStr);
-            let profitInfo={line2:'',profit:null};
-            if(rec){
-              const d=calcDay(rec);
-              const gap=d.total-dailyBEP;
-              if(gap>=0){ profitInfo={line2:'₩'+gap.toLocaleString()+' 이익',profit:true}; }
-              else{ profitInfo={line2:'₩'+Math.abs(gap).toLocaleString()+' 더 필요',profit:false}; }
-            }
-            window._showChartTooltip && window._showChartTooltip(items, profitInfo);
+            window._showChartTooltip && window._showChartTooltip(items);
           }
         }
       },
@@ -5902,22 +5887,32 @@ function calcPopupStats(p){
   const gwpOut = p.gwpConsigned || {};
   const gwpRemain = {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
 
-  // GWP 정산: 거래명세서 단가 × 출고량 × 분담률(퍼드가 나머지 부담)
+  // GWP는 '매출 없이 비용만 나가는 상품'으로 취급.
+  // 개당 순부담 = 원가 − (명세단가 × 분담률). 소진된 수량만 손익에 반영하고
+  // 미소진분은 이연(다음 팝업으로 이월)한다.
   const gwpList  = p.gwpListPrice || {};
   const gwpUnitC = p.gwpCost || {};
   const share = (p.gwpShareRate !== undefined) ? p.gwpShareRate : 1;
-  let gwpBilled = 0, gwpCost = 0;
+  let gwpBilled = 0, gwpCogs = 0, gwpBurden = 0, gwpDeferred = 0;
+  const gwpDetail = [];
   ['ball','tag'].forEach(k=>{
-    gwpBilled += (gwpOut[k]||0) * (gwpList[k]||0) * share;
-    gwpCost   += (gwpOut[k]||0) * (gwpUnitC[k]||0);
+    const used = gwp[k]||0, out = gwpOut[k]||0;
+    const unitCost = gwpUnitC[k]||0;
+    const unitRecv = (gwpList[k]||0) * share;
+    const unitNet  = unitCost - unitRecv;      // 개당 퍼드 순부담
+    gwpBilled   += used * unitRecv;
+    gwpCogs     += used * unitCost;
+    gwpBurden   += used * unitNet;
+    gwpDeferred += Math.max(0, out-used) * unitNet;
+    if(out>0 || used>0) gwpDetail.push({key:k, out, used, unitCost, unitRecv, unitNet, burden:used*unitNet});
   });
   const prf = settleAmt - cogs;
   const totalSettle = settleAmt + gwpBilled;
-  const netPrf = prf + gwpBilled - gwpCost;
+  const netPrf = prf - gwpBurden;
 
   return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
           avg, forecast, consigned, remain, settleAmt, cogs, prf,
-          gwpBilled, gwpCost, gwpShare: share, totalSettle, netPrf,
+          gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf,
           rate: target>0 ? rev/target*100 : 0};
 }
 
@@ -6091,18 +6086,17 @@ function renderPopupCard(p){
       if(!items.length) return '';
       return `<div class="pop-sec-lbl" style="margin-top:2px">GWP 소진 <span style="font-weight:400;color:var(--text3)">(재고 미등록 · 팝업 내 관리)</span></div>
       <table class="pop-tbl">
-        <thead><tr><th style="text-align:left">품목</th><th>출고</th><th>소진</th><th>잔량</th><th>일평균</th><th>소진율</th></tr></thead>
+        <thead><tr><th style="text-align:left">품목</th><th>출고</th><th>소진</th><th>잔량</th><th>개당부담</th><th>비용</th></tr></thead>
         <tbody>${items.map(([k,label])=>{
           const out=g[k]||0, used=gs[k]||0, rem=gr[k]||0;
-          const daily = s.elapsed>0 ? used/s.elapsed : 0;
-          const ratio = out>0 ? Math.round(used/out*100) : 0;
+          const det = (s.gwpDetail||[]).find(x=>x.key===k) || {unitNet:0, burden:0};
           return `<tr>
             <td style="text-align:left;color:var(--text2);font-weight:600">${label}</td>
             <td>${out.toLocaleString()}</td>
             <td style="color:var(--text)">${used.toLocaleString()}</td>
             <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}</td>
-            <td style="color:var(--text3)">${daily.toFixed(1)}</td>
-            <td style="color:var(--text3)">${ratio}%</td>
+            <td style="color:var(--text3)">₩${_chFmt(det.unitNet)}</td>
+            <td style="color:var(--text2)">₩${_chFmt(det.burden)}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>`;
@@ -6112,11 +6106,10 @@ function renderPopupCard(p){
     <table class="pop-pl">
       <tbody>
         <tr><td>본품 정산매출</td><td>₩${_chFmt(s.settleAmt)}</td></tr>
+        ${s.gwpBilled>0?`<tr><td>GWP 정산매출 <span class="pop-pl-note">소진분 · 명세가 ${Math.round(s.gwpShare*100)}%</span></td><td>₩${_chFmt(s.gwpBilled)}</td></tr>`:''}
+        <tr class="pop-pl-mid"><td>정산매출 합계</td><td>₩${_chFmt(s.totalSettle)}</td></tr>
         <tr><td>본품 매출원가</td><td>−₩${_chFmt(s.cogs)}</td></tr>
-        <tr class="pop-pl-mid"><td>본품 이익</td><td>₩${_chFmt(s.prf)}</td></tr>
-        ${s.gwpBilled>0||s.gwpCost>0?`
-        <tr><td>GWP 정산 <span class="pop-pl-note">명세가 ${Math.round(s.gwpShare*100)}% 분담</span></td><td>₩${_chFmt(s.gwpBilled)}</td></tr>
-        <tr><td>GWP 원가</td><td>−₩${_chFmt(s.gwpCost)}</td></tr>`:''}
+        ${s.gwpCogs>0?`<tr><td>GWP 매출원가</td><td>−₩${_chFmt(s.gwpCogs)}</td></tr>`:''}
         <tr class="pop-pl-total"><td>팝업 순이익</td><td>₩${_chFmt(s.netPrf)}</td></tr>
       </tbody>
     </table>
@@ -6126,8 +6119,8 @@ function renderPopupCard(p){
         <span class="pop-foot-sub">VAT 포함 ₩${_chFmt(s.totalSettle*1.1)}</span></div>
       <div><span class="pop-foot-lbl">순이익률</span><span class="pop-foot-val">${s.totalSettle>0?(s.netPrf/s.totalSettle*100).toFixed(1):0}%</span>
         <span class="pop-foot-sub">셀아웃 대비 ${s.rev>0?(s.netPrf/s.rev*100).toFixed(1):0}%</span></div>
-      <div><span class="pop-foot-lbl">GWP 순부담</span><span class="pop-foot-val">₩${_chFmt(s.gwpCost-s.gwpBilled)}</span>
-        <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round((s.gwpCost-s.gwpBilled)/s.prf*100):0}%</span></div>
+      <div><span class="pop-foot-lbl">GWP 순부담</span><span class="pop-foot-val">₩${_chFmt(s.gwpBurden)}</span>
+        <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round(s.gwpBurden/s.prf*100):0}% · 미소진 이연 ₩${_chFmt(s.gwpDeferred)}</span></div>
     </div>
   </div>`;
 }
