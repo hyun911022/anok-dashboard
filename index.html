@@ -144,14 +144,13 @@
   .ch-btn{background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
   .ch-btn:hover{border-color:#3A3F63;color:var(--text)}
 
-  .pop-prog{position:relative;height:8px;background:#1A1D2B;border-radius:999px;overflow:visible}
-  .pop-prog-bar{height:100%;border-radius:999px;transition:width .4s ease}
-  .pop-prog-over{position:absolute;right:0;top:-18px;font-size:9px;font-weight:700;color:#D4B896}
   .pop-chart{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
   .pop-chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
   .pop-chart-title{font-size:11px;font-weight:700;color:var(--text2)}
   .pop-chart-base{font-size:9px;color:var(--text3)}
-  .pop-bars{position:relative;height:170px;display:flex;align-items:flex-end;justify-content:center;gap:7px;padding-bottom:26px;box-sizing:content-box}
+  .pop-chart-legend{font-size:9px;color:var(--text3);font-weight:600;display:flex;align-items:center}
+  .pop-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
+  .pop-bars{position:relative;height:170px;display:flex;align-items:flex-end;justify-content:center;gap:7px;margin-bottom:32px}
   .pop-bar-wrap{position:relative;flex:1;max-width:46px;height:100%;display:flex;align-items:flex-end;justify-content:center}
   .pop-bar{width:100%;border-radius:4px 4px 0 0;transition:height .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset}
   .pop-bar-val{position:absolute;left:0;right:0;text-align:center;font-size:10px;font-weight:700;letter-spacing:-0.2px;pointer-events:none}
@@ -160,6 +159,8 @@
   .pop-bar-lbl span{display:block;font-size:8px;font-weight:400;opacity:.7}
   .pop-target-line{position:absolute;left:-4px;right:-4px;border-top:1px dashed rgba(212,184,150,0.55);pointer-events:none;z-index:3}
   .pop-target-line span{position:absolute;right:0;top:-14px;font-size:8px;color:#D4B896;font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
+  .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(155,109,255,0.6);pointer-events:none;z-index:3}
+  .pop-avg-line span{position:absolute;left:0;top:-14px;font-size:8px;color:#9B6DFF;font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
   .pop-sec-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:7px}
   .pop-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
   .pop-tbl th{font-size:9px;color:var(--text3);font-weight:600;padding:4px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -5933,13 +5934,14 @@ function renderChannelPopup(){
   });
 
   // 전체 요약
-  let sumRev=0, sumTarget=0, sumPrf=0, sumSettle=0;
-  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; sumSettle+=s.settleAmt; });
+  let sumRev=0, sumTarget=0, sumPrf=0, sumSettle=0, sumForecast=0;
+  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; sumSettle+=s.settleAmt; sumForecast+=s.forecast; });
 
   el.innerHTML = `
     <div class="ch-summary">
       <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumRev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?Math.round(sumRev/sumTarget*100):0}%</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
+        <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span style="color:${sumForecast>=sumTarget?'#D4B896':'var(--text3)'}">(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
@@ -5964,22 +5966,27 @@ function renderPopupCard(p){
   const span = Math.max(1, maxRev);
   const pct = v => Math.max(2, Math.min(100, Math.round(v/span*100)));
 
+  const maxDayRev = openRevs.length ? Math.max(...openRevs) : 0;
   const bars = s.days.map(d=>{
     const isClosed = s.closed.has(d.date);
     const hv = isClosed ? 0 : pct(d.rev||0);
     const dow = ['일','월','화','수','목','금','토'][new Date(d.date+'T00:00:00').getDay()];
-    const over = (d.rev||0) >= (p.dailyTarget||0);
+    const isMax = !isClosed && (d.rev||0) === maxDayRev;
+    const under = (d.rev||0) < (p.dailyTarget||0);
     const dowIdx = new Date(d.date+'T00:00:00').getDay();
     const dowColor = dowIdx===0 ? '#F87171' : (dowIdx===6 ? '#60A5FA' : 'var(--text3)');
     return `<div class="pop-bar-wrap" title="${d.date} ${isClosed?'휴무':'₩'+(d.rev||0).toLocaleString()}">
       ${isClosed
         ? '<div class="pop-bar-closed">휴무</div>'
-        : `<div class="pop-bar" style="height:${hv}%;background:${over?'linear-gradient(180deg,#E0C9A6,#D4B896)':'linear-gradient(180deg,#7C7FF5,#6366F1)'}"></div>
-           <div class="pop-bar-val" style="bottom:calc(${hv}% + 3px);color:${over?'#D4B896':'var(--text2)'}">${(Math.round((d.rev||0)/10000)).toLocaleString()}</div>`}
+        : `<div class="pop-bar" style="height:${hv}%;background:${isMax?'linear-gradient(180deg,#E8CFA4,#D4B896)':(under?'linear-gradient(180deg,#E2645F,#C4514C)':'linear-gradient(180deg,#7C7FF5,#6366F1)')}"></div>
+           <div class="pop-bar-val" style="bottom:calc(${hv}% + 3px);color:${isMax?'#D4B896':(under?'#E2645F':'var(--text2)')}">${(Math.round((d.rev||0)/10000)).toLocaleString()}</div>`}
       <div class="pop-bar-lbl" style="color:${isClosed?'#3F4459':dowColor}">${d.date.slice(8)}<span>${dow}</span></div>
     </div>`;
   }).join('');
   const targetPct = (p.dailyTarget||0) > 0 ? Math.min(100, p.dailyTarget/span*100) : null;
+  const avgPct = s.avg > 0 ? Math.min(100, s.avg/span*100) : null;
+  // 두 선이 6%p 이내로 붙으면 라벨이 겹치므로 평균 라벨을 위로 띄움
+  const lblClash = (targetPct!==null && avgPct!==null) && Math.abs(targetPct-avgPct) < 6;
 
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
@@ -6013,11 +6020,7 @@ function renderPopupCard(p){
       </div>
     </div>
 
-    <div class="pop-prog">
-      <div class="pop-prog-bar" style="width:${Math.min(100,s.rate)}%;background:${barColor}"></div>
-      ${s.rate>100?`<div class="pop-prog-over">+${Math.round(s.rate-100)}%</div>`:''}
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:5px 0 14px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:0 0 16px;padding:9px 12px;background:#0F121C;border-radius:8px">
       <span>진행 ${s.elapsed}/${s.totalDays}일</span>
       <span style="color:${s.rate>=100?'#D4B896':'var(--text2)'};font-weight:700">${s.rate.toFixed(1)}%</span>
       <span>최종 예상 ₩${_chFmt(s.forecast)}</span>
@@ -6026,11 +6029,12 @@ function renderPopupCard(p){
     <div class="pop-chart">
       <div class="pop-chart-head">
         <span class="pop-chart-title">일별 셀아웃 <span style="color:var(--text3);font-weight:400">(만원)</span></span>
-        <span class="pop-chart-base">최고 ₩${_chFmt(maxRev)}</span>
+        <span class="pop-chart-legend"><i style="background:#D4B896"></i>최고<i style="background:#6366F1;margin-left:8px"></i>목표달성<i style="background:#E2645F;margin-left:8px"></i>목표미달</span>
       </div>
       <div class="pop-bars">
         ${bars}
         ${targetPct!==null?`<div class="pop-target-line" style="bottom:${targetPct.toFixed(1)}%"><span>일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span></div>`:''}
+        ${avgPct!==null?`<div class="pop-avg-line" style="bottom:${avgPct.toFixed(1)}%"><span style="${lblClash?'top:-27px':''}">일평균 ${Math.round(s.avg/10000)}만</span></div>`:''}
       </div>
     </div>
 
