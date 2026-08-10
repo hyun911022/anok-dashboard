@@ -166,6 +166,12 @@
   .pop-tbl th{font-size:9px;color:var(--text3);font-weight:600;padding:4px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   .pop-tbl td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text2)}
   .pop-tbl tbody tr:last-child td{border-bottom:none}
+  .pop-pl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
+  .pop-pl td{padding:5px 6px;color:var(--text2)}
+  .pop-pl td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .pop-pl tr.pop-pl-mid td{border-top:1px solid var(--border);font-weight:700;color:var(--text)}
+  .pop-pl tr.pop-pl-total td{border-top:1px solid #2E3350;font-weight:700;color:var(--text);font-size:12px;padding-top:7px}
+  .pop-pl-note{font-size:9px;color:var(--text3);font-weight:600;margin-left:4px}
   .pop-foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding-top:12px;border-top:1px solid var(--border)}
   .pop-foot>div{display:flex;flex-direction:column;gap:2px}
   .pop-foot-lbl{font-size:9px;color:var(--text3);font-weight:600}
@@ -5896,8 +5902,22 @@ function calcPopupStats(p){
   const gwpOut = p.gwpConsigned || {};
   const gwpRemain = {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
 
+  // GWP 정산: 거래명세서 단가 × 출고량 × 분담률(퍼드가 나머지 부담)
+  const gwpList  = p.gwpListPrice || {};
+  const gwpUnitC = p.gwpCost || {};
+  const share = (p.gwpShareRate !== undefined) ? p.gwpShareRate : 1;
+  let gwpBilled = 0, gwpCost = 0;
+  ['ball','tag'].forEach(k=>{
+    gwpBilled += (gwpOut[k]||0) * (gwpList[k]||0) * share;
+    gwpCost   += (gwpOut[k]||0) * (gwpUnitC[k]||0);
+  });
+  const prf = settleAmt - cogs;
+  const totalSettle = settleAmt + gwpBilled;
+  const netPrf = prf + gwpBilled - gwpCost;
+
   return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
-          avg, forecast, consigned, remain, settleAmt, cogs, prf: settleAmt-cogs,
+          avg, forecast, consigned, remain, settleAmt, cogs, prf,
+          gwpBilled, gwpCost, gwpShare: share, totalSettle, netPrf,
           rate: target>0 ? rev/target*100 : 0};
 }
 
@@ -5935,15 +5955,15 @@ function renderChannelPopup(){
 
   // 전체 요약
   let sumRev=0, sumTarget=0, sumPrf=0, sumSettle=0, sumForecast=0;
-  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; sumSettle+=s.settleAmt; sumForecast+=s.forecast; });
+  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.netPrf; sumSettle+=s.totalSettle; sumForecast+=s.forecast; });
 
   el.innerHTML = `
     <div class="ch-summary">
       <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
         <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
@@ -6088,11 +6108,26 @@ function renderPopupCard(p){
       </table>`;
     })()}
 
+    <div class="pop-sec-lbl" style="margin-top:2px">정산 손익</div>
+    <table class="pop-pl">
+      <tbody>
+        <tr><td>본품 정산매출</td><td>₩${_chFmt(s.settleAmt)}</td></tr>
+        <tr><td>본품 매출원가</td><td>−₩${_chFmt(s.cogs)}</td></tr>
+        <tr class="pop-pl-mid"><td>본품 이익</td><td>₩${_chFmt(s.prf)}</td></tr>
+        ${s.gwpBilled>0||s.gwpCost>0?`
+        <tr><td>GWP 정산 <span class="pop-pl-note">명세가 ${Math.round(s.gwpShare*100)}% 분담</span></td><td>₩${_chFmt(s.gwpBilled)}</td></tr>
+        <tr><td>GWP 원가</td><td>−₩${_chFmt(s.gwpCost)}</td></tr>`:''}
+        <tr class="pop-pl-total"><td>팝업 순이익</td><td>₩${_chFmt(s.netPrf)}</td></tr>
+      </tbody>
+    </table>
     <div class="pop-foot">
       <div><span class="pop-foot-lbl">세트 비중</span><span class="pop-foot-val">${s.rev>0?Math.round(s.setRev/s.rev*100):0}%</span></div>
-      <div><span class="pop-foot-lbl">정산 예정</span><span class="pop-foot-val">₩${_chFmt(s.settleAmt)}</span></div>
-      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val">₩${_chFmt(s.prf)}</span>
-        <span class="pop-foot-sub">셀아웃 ${s.rev>0?(s.prf/s.rev*100).toFixed(1):0}% · 납품가 ${s.settleAmt>0?(s.prf/s.settleAmt*100).toFixed(1):0}%</span></div>
+      <div><span class="pop-foot-lbl">청구 합계</span><span class="pop-foot-val">₩${_chFmt(s.totalSettle)}</span>
+        <span class="pop-foot-sub">VAT 포함 ₩${_chFmt(s.totalSettle*1.1)}</span></div>
+      <div><span class="pop-foot-lbl">순이익률</span><span class="pop-foot-val">${s.totalSettle>0?(s.netPrf/s.totalSettle*100).toFixed(1):0}%</span>
+        <span class="pop-foot-sub">셀아웃 대비 ${s.rev>0?(s.netPrf/s.rev*100).toFixed(1):0}%</span></div>
+      <div><span class="pop-foot-lbl">GWP 순부담</span><span class="pop-foot-val">₩${_chFmt(s.gwpCost-s.gwpBilled)}</span>
+        <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round((s.gwpCost-s.gwpBilled)/s.prf*100):0}%</span></div>
     </div>
   </div>`;
 }
