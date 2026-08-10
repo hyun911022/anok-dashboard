@@ -5901,15 +5901,15 @@ function renderChannelPopup(){
   });
 
   // 전체 요약
-  let sumRev=0, sumTarget=0, sumPrf=0;
-  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; });
+  let sumRev=0, sumTarget=0, sumPrf=0, sumSettle=0;
+  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; sumSettle+=s.settleAmt; });
 
   el.innerHTML = `
     <div class="ch-summary">
       <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumRev)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?Math.round(sumRev/sumTarget*100):0}%</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">진행 팝업</div><div class="ch-sum-val">${list.filter(p=>popupStatus(p)==='live').length} / ${list.length}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumSettle)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}<span style="font-size:10px;font-weight:600;color:var(--text3);margin-left:4px">${sumSettle>0?Math.round(sumPrf/sumSettle*100):0}%</span></div></div>
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
 }
@@ -5926,28 +5926,27 @@ function renderPopupCard(p){
   const openRevs = s.open.map(d=>d.rev||0);
   const maxRev = Math.max(...openRevs, p.dailyTarget||0, 1);
   const minRev = openRevs.length ? Math.min(...openRevs) : 0;
-  // 기준선: 최저 매출과 일목표 중 낮은 쪽의 85% — 막대 편차를 시각적으로 확대
-  let base = Math.min(minRev, p.dailyTarget||minRev) * 0.85;
-  if(!isFinite(base) || base<0) base = 0;
-  if(maxRev - base < 1) base = 0;
-  const span = Math.max(1, maxRev - base);
-  const pct = v => Math.max(3, Math.min(100, Math.round((v-base)/span*100)));
+  // 축은 0부터 — 막대 높이가 매출에 정비례해야 왜곡이 없음
+  const base = 0;
+  const span = Math.max(1, maxRev);
+  const pct = v => Math.max(2, Math.min(100, Math.round(v/span*100)));
 
   const bars = s.days.map(d=>{
     const isClosed = s.closed.has(d.date);
     const hv = isClosed ? 0 : pct(d.rev||0);
     const dow = ['일','월','화','수','목','금','토'][new Date(d.date+'T00:00:00').getDay()];
     const over = (d.rev||0) >= (p.dailyTarget||0);
-    const isWeekend = [0,6].includes(new Date(d.date+'T00:00:00').getDay());
+    const dowIdx = new Date(d.date+'T00:00:00').getDay();
+    const dowColor = dowIdx===0 ? '#F87171' : (dowIdx===6 ? '#60A5FA' : 'var(--text3)');
     return `<div class="pop-bar-wrap" title="${d.date} ${isClosed?'휴무':'₩'+(d.rev||0).toLocaleString()}">
       ${isClosed
         ? '<div class="pop-bar-closed">휴무</div>'
         : `<div class="pop-bar" style="height:${hv}%;background:${over?'linear-gradient(180deg,#E0C9A6,#D4B896)':'linear-gradient(180deg,#7C7FF5,#6366F1)'}"></div>
            <div class="pop-bar-val" style="bottom:calc(${hv}% + 3px);color:${over?'#D4B896':'var(--text2)'}">${(Math.round((d.rev||0)/10000)).toLocaleString()}</div>`}
-      <div class="pop-bar-lbl" style="color:${isClosed?'#3F4459':(isWeekend?'var(--text2)':'var(--text3)')}">${d.date.slice(8)}<span>${dow}</span></div>
+      <div class="pop-bar-lbl" style="color:${isClosed?'#3F4459':dowColor}">${d.date.slice(8)}<span>${dow}</span></div>
     </div>`;
   }).join('');
-  const targetPct = (p.dailyTarget||0) > base ? Math.min(100, (p.dailyTarget-base)/span*100) : null;
+  const targetPct = (p.dailyTarget||0) > 0 ? Math.min(100, p.dailyTarget/span*100) : null;
 
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
@@ -5994,7 +5993,7 @@ function renderPopupCard(p){
     <div class="pop-chart">
       <div class="pop-chart-head">
         <span class="pop-chart-title">일별 셀아웃 <span style="color:var(--text3);font-weight:400">(만원)</span></span>
-        <span class="pop-chart-base">기준선 ₩${_chFmt(base)}부터 표시</span>
+        <span class="pop-chart-base">최고 ₩${_chFmt(maxRev)}</span>
       </div>
       <div class="pop-bars">
         ${bars}
