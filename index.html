@@ -138,6 +138,7 @@
   .ch-sum-item{background:#12151F;border:1px solid var(--border);border-radius:10px;padding:11px 13px}
   .ch-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
   .ch-sum-val{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+  .ch-sum-sub{font-size:9px;color:var(--text3);font-weight:600;margin-top:3px;letter-spacing:-0.1px}
   .ch-card{background:#12151F;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
   .ch-card-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin-bottom:6px}
   .ch-btn{background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
@@ -168,6 +169,7 @@
   .pop-foot>div{display:flex;flex-direction:column;gap:2px}
   .pop-foot-lbl{font-size:9px;color:var(--text3);font-weight:600}
   .pop-foot-val{font-size:12px;font-weight:700;color:var(--text)}
+  .pop-foot-sub{font-size:9px;color:var(--text3);font-weight:600;margin-top:1px}
 
 
   .ach-row{margin-bottom:20px}
@@ -2387,6 +2389,35 @@ function switchTab(tab){
   });
   if(def.render && typeof window[def.render]==='function') window[def.render]();
   window.__activeTab = tab;
+  writeTabHash();
+}
+
+// ── 탭 상태 유지 (새로고침해도 현재 탭 복원) ──
+function writeTabHash(){
+  const tab = window.__activeTab || 'dashboard';
+  const h = (tab==='channel') ? `#${tab}/${channelSub}` : `#${tab}`;
+  if(location.hash !== h){
+    // replaceState 사용 — 스크롤 점프 및 히스토리 오염 방지
+    history.replaceState(null, '', location.pathname + location.search + h);
+  }
+  try{ localStorage.setItem('anok_tab', h); }catch(e){}
+}
+
+function readTabHash(){
+  let raw = location.hash || '';
+  if(!raw){ try{ raw = localStorage.getItem('anok_tab') || ''; }catch(e){} }
+  raw = raw.replace(/^#/,'');
+  if(!raw) return null;
+  const [tab, sub] = raw.split('/');
+  if(!TAB_DEFS.some(d=>d.key===tab)) return null;
+  return {tab, sub: (sub && CH_SUBS.some(s=>s.key===sub)) ? sub : null};
+}
+
+function restoreTab(){
+  const r = readTabHash();
+  if(!r){ window.__activeTab = 'dashboard'; return; }
+  if(r.sub) channelSub = r.sub;
+  switchTab(r.tab);
 }
 
 // ══════════════════════════════════════════
@@ -2411,6 +2442,7 @@ function switchChannelSub(sub){
     b.classList.toggle('active', b.dataset.sub===sub);
   });
   if(typeof window[def.render]==='function') window[def.render]();
+  if(window.__activeTab==='channel' && typeof writeTabHash==='function') writeTabHash();
 }
 
 function renderChannel(){
@@ -5909,7 +5941,8 @@ function renderChannelPopup(){
       <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumRev)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?Math.round(sumRev/sumTarget*100):0}%</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumSettle)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}<span style="font-size:10px;font-weight:600;color:var(--text3);margin-left:4px">${sumSettle>0?Math.round(sumPrf/sumSettle*100):0}%</span></div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}</div>
+        <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
 }
@@ -6033,7 +6066,8 @@ function renderPopupCard(p){
     <div class="pop-foot">
       <div><span class="pop-foot-lbl">세트 비중</span><span class="pop-foot-val">${s.rev>0?Math.round(s.setRev/s.rev*100):0}%</span></div>
       <div><span class="pop-foot-lbl">정산 예정</span><span class="pop-foot-val" style="color:#60A5FA">₩${_chFmt(s.settleAmt)}</span></div>
-      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val" style="color:${s.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(s.prf)} (${s.settleAmt>0?Math.round(s.prf/s.settleAmt*100):0}%)</span></div>
+      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val" style="color:${s.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(s.prf)}</span>
+        <span class="pop-foot-sub">셀아웃 ${s.rev>0?(s.prf/s.rev*100).toFixed(1):0}% · 납품가 ${s.settleAmt>0?(s.prf/s.settleAmt*100).toFixed(1):0}%</span></div>
     </div>
   </div>`;
 }
@@ -6778,7 +6812,20 @@ function simResetToCurrent(){
   renderSimulator();
 }
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); loadExpenses(); loadPopups(); }, 500);
+setTimeout(async function(){
+  // 데이터 로드 전에 먼저 탭을 복원 → 화면 깜빡임 최소화
+  try{ restoreTab(); }catch(e){ console.log('restoreTab error:', e); }
+  await Promise.all([
+    loadData(), loadStockData(), loadOrderData(), loadProducts(),
+    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups()
+  ].map(p => Promise.resolve(p).catch(e=>console.log('load error:', e))));
+  // 로드 완료 후 현재 탭 재렌더 (데이터 반영)
+  const cur = window.__activeTab || 'dashboard';
+  if(cur !== 'dashboard'){
+    const def = TAB_DEFS.find(d=>d.key===cur);
+    if(def && def.render && typeof window[def.render]==='function') window[def.render]();
+  }
+}, 500);
 </script>
 </body>
 </html>
