@@ -146,7 +146,7 @@
 
   .pop-chart{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
   .pop-chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-  .pop-chart-title{font-size:11px;font-weight:700;color:var(--text2)}
+  .pop-chart-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:-0.1px}
   .pop-chart-base{font-size:9px;color:var(--text3)}
   .pop-chart-legend{font-size:9px;color:var(--text3);font-weight:600;display:flex;align-items:center}
   .pop-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
@@ -158,10 +158,10 @@
   .pop-bar-lbl{position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10px;line-height:1.25;padding-top:7px;font-weight:600}
   .pop-bar-lbl span{display:block;font-size:8px;font-weight:400;opacity:.7}
   .pop-target-line{position:absolute;left:-4px;right:-4px;border-top:1px dashed rgba(212,184,150,0.55);pointer-events:none;z-index:3}
-  .pop-target-line span{position:absolute;right:0;top:-14px;font-size:8px;color:#D4B896;font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
+  .pop-target-line span{position:absolute;right:0;top:-14px;font-size:8px;color:var(--text3);font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(155,109,255,0.6);pointer-events:none;z-index:3}
-  .pop-avg-line span{position:absolute;left:0;top:-14px;font-size:8px;color:#9B6DFF;font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
-  .pop-sec-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:7px}
+  .pop-avg-line span{position:absolute;right:0;top:-14px;font-size:8px;color:var(--text3);font-weight:700;background:var(--bg);padding:1px 5px;border-radius:3px;white-space:nowrap}
+  .pop-sec-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:7px;letter-spacing:-0.1px}
   .pop-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
   .pop-tbl th{font-size:9px;color:var(--text3);font-weight:600;padding:4px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   .pop-tbl td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text2)}
@@ -5683,7 +5683,7 @@ function buildB2BDeliveryHTML(month){
       ${items}
       <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0 0;margin-top:3px;border-top:1px dashed var(--border)">
         <span style="color:var(--text3);font-weight:600">건 합계</span>
-        <span style="font-weight:700"><span style="color:#60A5FA">₩${rowRev.toLocaleString()}</span> <span style="color:${rowPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">(이익 ₩${rowPrf.toLocaleString()} · ${rowMargin}%)</span></span>
+        <span style="font-weight:700;color:var(--text2)">₩${rowRev.toLocaleString()} <span style="font-weight:600;color:var(--text3)">(이익 ₩${rowPrf.toLocaleString()} · ${rowMargin}%)</span></span>
       </div>
     </div>`;
   }).join('');
@@ -5692,8 +5692,8 @@ function buildB2BDeliveryHTML(month){
     : b2bRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">B2B 합계</span>
         <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:#60A5FA">매출 ₩${fmt(b2bTotRev)}</div>
-          <div style="font-size:10px;color:${b2bTotPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">이익 ₩${fmt(b2bTotPrf)} (마진 ${b2bTotRev>0?Math.round(b2bTotPrf/b2bTotRev*100):0}%)</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(b2bTotRev)}</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600">이익 ₩${fmt(b2bTotPrf)} (마진 ${b2bTotRev>0?Math.round(b2bTotPrf/b2bTotRev*100):0}%)</div>
         </div>
       </div>`;
   return {html, rev:b2bTotRev, prf:b2bTotPrf, count:b2bRecs.length};
@@ -5723,8 +5723,8 @@ function buildGroupBuyHTML(month){
     : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
         <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:#60A5FA">매출 ₩${fmt(gbTotRev)}</div>
-          <div style="font-size:10px;color:${gbTotPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(gbTotRev)}</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
         </div>
       </div>`;
   return {html, rev:gbTotRev, prf:gbTotPrf, count:monthGB.length};
@@ -5743,13 +5743,13 @@ function buildB2BExpenseHTML(month){
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${x.note||'기타 비용'} <span style="font-size:10px;color:var(--text3);font-weight:400">${x.date}</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
-        <div style="font-size:13px;font-weight:700;color:#EF4444">−₩${(x.amount||0).toLocaleString()}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text2)">−₩${(x.amount||0).toLocaleString()}</div>
         <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
       </div>
     </div>`;
   }).join('') + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
     <span style="font-size:11px;font-weight:700;color:var(--text2)">비용 합계</span>
-    <div style="font-size:12px;font-weight:700;color:#EF4444">−₩${expSum.toLocaleString()}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--text)">−₩${expSum.toLocaleString()}</div>
   </div>`;
   return {html, sum:expSum, count:monthExp.length};
 }
@@ -5761,16 +5761,16 @@ function openB2BDetail(){
   const exp = buildB2BExpenseHTML(month);
   document.getElementById('b2bDetailBody').innerHTML = `
     <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#60A5FA">B2B 납품</div>
+      <div style="font-size:13px;font-weight:700;color:#9B6DFF">B2B 납품</div>
     </div>
     ${b2b.html}
     <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#60A5FA">공구 실적</div>
+      <div style="font-size:13px;font-weight:700;color:#9B6DFF">공구 실적</div>
       <button onclick="openGroupBuyModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
     </div>
     ${gb.html}
     <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#EF4444">B2B 부대비용</div>
+      <div style="font-size:13px;font-weight:700;color:#9B6DFF">B2B 부대비용</div>
       <button onclick="openExpenseModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 비용 추가</button>
     </div>
     ${exp.html}
@@ -5788,17 +5788,17 @@ function renderChannelB2b(){
   const net = b2b.prf - exp.sum;
   el.innerHTML = `
     <div class="ch-summary">
-      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(b2b.rev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">상품이익</div><div class="ch-sum-val" style="color:${b2b.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(b2b.prf)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">부대비용</div><div class="ch-sum-val" style="color:#EF4444">−₩${_chFmt(exp.sum)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">순이익</div><div class="ch-sum-val" style="color:${net>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(net)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val">₩${_chFmt(b2b.rev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">상품이익</div><div class="ch-sum-val">₩${_chFmt(b2b.prf)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">부대비용</div><div class="ch-sum-val">−₩${_chFmt(exp.sum)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">순이익</div><div class="ch-sum-val">₩${_chFmt(net)}</div></div>
     </div>
     <div class="ch-card">
-      <div class="ch-card-head"><span style="color:#60A5FA">B2B 납품</span><span style="font-size:10px;color:var(--text3);font-weight:400">${b2b.count}건 · ${month}</span></div>
+      <div class="ch-card-head"><span style="color:#9B6DFF">B2B 납품</span><span style="font-size:10px;color:var(--text3);font-weight:400">${b2b.count}건 · ${month}</span></div>
       ${b2b.html}
     </div>
     <div class="ch-card">
-      <div class="ch-card-head"><span style="color:#EF4444">부대비용</span>
+      <div class="ch-card-head"><span style="color:#9B6DFF">부대비용</span>
         <button onclick="openExpenseModal()" class="ch-btn">+ 비용 추가</button>
       </div>
       ${exp.html}
@@ -5813,13 +5813,13 @@ function renderChannelGroupbuy(){
   const gb = buildGroupBuyHTML(month);
   el.innerHTML = `
     <div class="ch-summary">
-      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(gb.rev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">순수익</div><div class="ch-sum-val" style="color:${gb.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(gb.prf)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val">₩${_chFmt(gb.rev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">순수익</div><div class="ch-sum-val">₩${_chFmt(gb.prf)}</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">마진율</div><div class="ch-sum-val">${gb.rev>0?Math.round(gb.prf/gb.rev*100):0}%</div></div>
       <div class="ch-sum-item"><div class="ch-sum-lbl">건수</div><div class="ch-sum-val">${gb.count}건</div></div>
     </div>
     <div class="ch-card">
-      <div class="ch-card-head"><span style="color:#60A5FA">공구 실적</span>
+      <div class="ch-card-head"><span style="color:#9B6DFF">공구 실적</span>
         <button onclick="openGroupBuyModal()" class="ch-btn">+ 공구 추가</button>
       </div>
       ${gb.html}
@@ -5939,11 +5939,11 @@ function renderChannelPopup(){
 
   el.innerHTML = `
     <div class="ch-summary">
-      <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumRev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
-        <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span style="color:${sumForecast>=sumTarget?'#D4B896':'var(--text3)'}">(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumSettle)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}</div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
+        <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출</div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
@@ -5954,7 +5954,6 @@ function renderPopupCard(p){
   const st = popupStatus(p);
   const badge = {live:['진행중','#22C55E'], upcoming:['예정','#60A5FA'], done:['종료','var(--text3)']}[st];
   const isStrategic = p.type === 'strategic';
-  const barColor = isStrategic ? '#60A5FA' : (s.rate>=100 ? '#D4B896' : '#9B6DFF');
   const skuNames = CH_SKU_NAMES;
 
   // ── 일별 바 차트 (기준선 절단 축: 차이를 크게 보이게) ──
@@ -5979,14 +5978,14 @@ function renderPopupCard(p){
       ${isClosed
         ? '<div class="pop-bar-closed">휴무</div>'
         : `<div class="pop-bar" style="height:${hv}%;background:${isMax?'linear-gradient(180deg,#E8CFA4,#D4B896)':(under?'linear-gradient(180deg,#E2645F,#C4514C)':'linear-gradient(180deg,#7C7FF5,#6366F1)')}"></div>
-           <div class="pop-bar-val" style="bottom:calc(${hv}% + 3px);color:${isMax?'#D4B896':(under?'#E2645F':'var(--text2)')}">${(Math.round((d.rev||0)/10000)).toLocaleString()}</div>`}
+           <div class="pop-bar-val" style="bottom:calc(${hv}% + 3px);color:var(--text3)">${(Math.round((d.rev||0)/10000)).toLocaleString()}</div>`}
       <div class="pop-bar-lbl" style="color:${isClosed?'#3F4459':dowColor}">${d.date.slice(8)}<span>${dow}</span></div>
     </div>`;
   }).join('');
   const targetPct = (p.dailyTarget||0) > 0 ? Math.min(100, p.dailyTarget/span*100) : null;
   const avgPct = s.avg > 0 ? Math.min(100, s.avg/span*100) : null;
   // 두 선이 6%p 이내로 붙으면 라벨이 겹치므로 평균 라벨을 위로 띄움
-  const lblClash = (targetPct!==null && avgPct!==null) && Math.abs(targetPct-avgPct) < 6;
+  const lblClash = (targetPct!==null && avgPct!==null) && Math.abs(targetPct-avgPct) < 9;
 
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
@@ -5998,9 +5997,9 @@ function renderPopupCard(p){
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
       <td>${con.toLocaleString()}</td>
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
-      <td style="color:${rem<0?'#F43F5E':'var(--text2)'};font-weight:600">${rem.toLocaleString()}</td>
+      <td style="color:var(--text2);font-weight:600">${rem.toLocaleString()}</td>
       <td style="color:var(--text3)">${daily.toFixed(1)}</td>
-      <td style="color:${danger?'#F43F5E':'var(--text3)'};font-weight:${danger?'700':'400'}">${daysLeft===null?'–':daysLeft+'일'}</td>
+      <td style="color:var(--text3)">${daysLeft===null?'–':daysLeft+'일'}</td>
     </tr>`;
   }).join('');
 
@@ -6015,14 +6014,14 @@ function renderPopupCard(p){
         <div style="font-size:11px;color:var(--text3);margin-top:3px">${p.fromDate} ~ ${p.toDate} · 영업 ${s.totalDays}일 · ${p.clientName||''}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:20px;font-weight:700;color:${barColor};letter-spacing:-0.5px">₩${_chFmt(s.rev)}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px">₩${_chFmt(s.rev)}</div>
         <div style="font-size:10px;color:var(--text3)">목표 ₩${_chFmt(s.target)} · 일평균 ₩${_chFmt(s.avg)}</div>
       </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:0 0 16px;padding:9px 12px;background:#0F121C;border-radius:8px">
       <span>진행 ${s.elapsed}/${s.totalDays}일</span>
-      <span style="color:${s.rate>=100?'#D4B896':'var(--text2)'};font-weight:700">${s.rate.toFixed(1)}%</span>
+      <span style="color:var(--text2);font-weight:700">${s.rate.toFixed(1)}%</span>
       <span>최종 예상 ₩${_chFmt(s.forecast)}</span>
     </div>
 
@@ -6059,7 +6058,7 @@ function renderPopupCard(p){
             <td style="text-align:left;color:var(--text2);font-weight:600">${label}</td>
             <td>${out.toLocaleString()}</td>
             <td style="color:var(--text)">${used.toLocaleString()}</td>
-            <td style="color:${rem<0?'#F43F5E':'var(--text2)'};font-weight:600">${rem.toLocaleString()}</td>
+            <td style="color:var(--text2);font-weight:600">${rem.toLocaleString()}</td>
             <td style="color:var(--text3)">${daily.toFixed(1)}</td>
             <td style="color:var(--text3)">${ratio}%</td>
           </tr>`;
@@ -6069,8 +6068,8 @@ function renderPopupCard(p){
 
     <div class="pop-foot">
       <div><span class="pop-foot-lbl">세트 비중</span><span class="pop-foot-val">${s.rev>0?Math.round(s.setRev/s.rev*100):0}%</span></div>
-      <div><span class="pop-foot-lbl">정산 예정</span><span class="pop-foot-val" style="color:#60A5FA">₩${_chFmt(s.settleAmt)}</span></div>
-      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val" style="color:${s.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(s.prf)}</span>
+      <div><span class="pop-foot-lbl">정산 예정</span><span class="pop-foot-val">₩${_chFmt(s.settleAmt)}</span></div>
+      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val">₩${_chFmt(s.prf)}</span>
         <span class="pop-foot-sub">셀아웃 ${s.rev>0?(s.prf/s.rev*100).toFixed(1):0}% · 납품가 ${s.settleAmt>0?(s.prf/s.settleAmt*100).toFixed(1):0}%</span></div>
     </div>
   </div>`;
