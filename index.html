@@ -139,6 +139,16 @@
   .ch-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
   .ch-sum-val{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
   .ch-sum-sub{font-size:9px;color:var(--text3);font-weight:600;margin-top:3px;letter-spacing:-0.1px}
+  .ch-clickable{cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+  .ch-clickable:hover{border-color:#3A3F63;background:#161A28}
+  .ch-clickable::after{content:'›';position:absolute;top:9px;right:11px;font-size:13px;color:var(--text3);opacity:.5}
+  .drill-sec{font-size:13px;font-weight:700;color:#9B6DFF;margin:4px 0 8px}
+  .drill-sec:not(:first-child){margin-top:22px}
+  .drill-tbl th{white-space:nowrap}
+  .drill-tbl tfoot td{border-top:1px solid #2E3350;font-weight:700;color:var(--text);padding-top:7px}
+  .drill-tbl tr.drill-mid td{border-top:1px solid var(--border);font-weight:700;color:var(--text)}
+  .drill-tbl td.lft,.drill-tbl th.lft{text-align:left}
+  .drill-note{font-size:10px;color:var(--text3);font-weight:600;padding:8px 6px 0;border-top:1px solid var(--border);margin-top:2px}
   .ch-card{background:#12151F;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
   .ch-card-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin-bottom:6px}
   .ch-btn{background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
@@ -1059,6 +1069,18 @@
 </div>
 
 <!-- B2B 납품 실적 팝업 -->
+<div class="modal-bg" id="chDrillBg" onclick="if(event.target===this)closeChDrill()">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1B1533,#2A2050)">
+      <h2 id="chDrillTitle" style="color:#9B6DFF">상세</h2>
+      <button class="modal-close" onclick="closeChDrill()" style="color:#9B6DFF">×</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="chDrillBody" style="padding:20px"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="b2bDetailBg" onclick="if(event.target===this)closeB2BDetail()">
   <div class="modal" style="max-width:480px">
     <div class="modal-header" style="background:linear-gradient(135deg,#0D1E3A,#1A2E50)">
@@ -5954,11 +5976,11 @@ function renderChannelPopup(){
 
   el.innerHTML = `
     <div class="ch-summary">
-      <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('sellout')"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('target')"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
         <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('settle')"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
     ${list.map(p=>renderPopupCard(p)).join('')}`;
@@ -6123,6 +6145,134 @@ function renderPopupCard(p){
         <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round(s.gwpBurden/s.prf*100):0}% · 미소진 이연 ₩${_chFmt(s.gwpDeferred)}</span></div>
     </div>
   </div>`;
+}
+
+// ══════════════════════════════════════════
+//  채널 카드 드릴다운
+// ══════════════════════════════════════════
+function openChDrill(kind){
+  const bg = document.getElementById('chDrillBg');
+  if(!bg) return;
+  const list = popups.slice();
+  const titles = {sellout:'셀아웃 상세', target:'목표 대비 상세', settle:'정산 매출 상세', profit:'팝업 순이익 상세'};
+  document.getElementById('chDrillTitle').textContent = titles[kind] || '상세';
+  const fns = {sellout:drillSellout, target:drillTarget, settle:drillSettle, profit:drillProfit};
+  document.getElementById('chDrillBody').innerHTML = (fns[kind] || (()=>''))(list);
+  bg.classList.add('open');
+}
+function closeChDrill(){ document.getElementById('chDrillBg').classList.remove('open'); }
+
+// ── 1. 셀아웃: 일별 내역 ──
+function drillSellout(list){
+  return list.map(p=>{
+    const s = calcPopupStats(p);
+    const rows = s.days.map(d=>{
+      const cl = s.closed.has(d.date);
+      const dt = new Date(d.date+'T00:00:00');
+      const dow = ['일','월','화','수','목','금','토'][dt.getDay()];
+      const dc = dt.getDay()===0?'#F87171':(dt.getDay()===6?'#60A5FA':'var(--text3)');
+      const units = STOCK_SKUS.reduce((a,k)=>a+(d[k]||0),0);
+      return `<tr${cl?' style="opacity:.45"':''}>
+        <td class="lft">${d.date.slice(5)} <span style="color:${dc};font-weight:700">${dow}</span></td>
+        <td>${cl?'휴무':'₩'+(d.rev||0).toLocaleString()}</td>
+        <td>${cl?'–':units}</td>
+        <td>${cl?'–':(d.rev>0?Math.round((d.setRev||0)/d.rev*100)+'%':'0%')}</td>
+        ${STOCK_SKUS.map(k=>`<td>${cl?'–':(d[k]||0)}</td>`).join('')}
+      </tr>`;
+    }).join('');
+    return `<div class="drill-sec">${p.name}</div>
+    <table class="pop-tbl drill-tbl">
+      <thead><tr><th class="lft">날짜</th><th>매출</th><th>수량</th><th>세트</th>
+      ${STOCK_SKUS.map(k=>`<th>${CH_SKU_NAMES[k].slice(0,3)}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td class="lft">합계 (${s.elapsed}일)</td>
+        <td>₩${_chFmt(s.rev)}</td>
+        <td>${STOCK_SKUS.reduce((a,k)=>a+s.sold[k],0)}</td>
+        <td>${s.rev>0?Math.round(s.setRev/s.rev*100):0}%</td>
+        ${STOCK_SKUS.map(k=>`<td>${s.sold[k]}</td>`).join('')}
+      </tr></tfoot>
+    </table>`;
+  }).join('');
+}
+
+// ── 2. 목표 대비 ──
+function drillTarget(list){
+  return list.map(p=>{
+    const s = calcPopupStats(p);
+    const left = s.totalDays - s.elapsed;
+    const need = Math.max(0, s.target - s.rev);
+    const needDaily = left>0 ? need/left : 0;
+    const bestDay = s.open.reduce((a,d)=>(d.rev>(a?.rev||0)?d:a), null);
+    const worstDay = s.open.reduce((a,d)=>(a===null||d.rev<a.rev?d:a), null);
+    return `<div class="drill-sec">${p.name} <span style="font-weight:400;color:var(--text3);font-size:10px">${p.fromDate} ~ ${p.toDate}</span></div>
+    <table class="pop-tbl drill-tbl"><tbody>
+      <tr><td class="lft">일 목표</td><td>₩${_chFmt(p.dailyTarget||0)}</td></tr>
+      <tr><td class="lft">총 영업일 / 경과</td><td>${s.totalDays}일 / ${s.elapsed}일 (잔여 ${left}일)</td></tr>
+      <tr><td class="lft">기간 목표</td><td>₩${_chFmt(s.target)}</td></tr>
+      <tr><td class="lft">현재 실적</td><td>₩${_chFmt(s.rev)}</td></tr>
+      <tr><td class="lft">달성률</td><td style="${sigStyle(sigRate(s.rate))}">${s.rate.toFixed(1)}%</td></tr>
+      <tr><td class="lft">일평균</td><td>₩${_chFmt(s.avg)} <span style="color:var(--text3)">(목표의 ${p.dailyTarget?Math.round(s.avg/p.dailyTarget*100):0}%)</span></td></tr>
+      <tr><td class="lft">잔여기간 필요 일매출</td><td>${left>0?(need>0?'₩'+_chFmt(needDaily):'목표 달성'):'종료'}</td></tr>
+      <tr><td class="lft">최종 예상</td><td>₩${_chFmt(s.forecast)} <span style="color:var(--text3)">(목표의 ${s.target>0?Math.round(s.forecast/s.target*100):0}%)</span></td></tr>
+      <tr><td class="lft">최고 / 최저 일매출</td><td>${bestDay?'₩'+_chFmt(bestDay.rev)+' ('+bestDay.date.slice(5)+')':'–'} / ${worstDay?'₩'+_chFmt(worstDay.rev)+' ('+worstDay.date.slice(5)+')':'–'}</td></tr>
+      ${(p.closedDates||[]).length?`<tr><td class="lft">휴무일</td><td>${p.closedDates.map(d=>d.slice(5)).join(', ')}</td></tr>`:''}
+    </tbody></table>`;
+  }).join('');
+}
+
+// ── 3. 정산 매출 ──
+function drillSettle(list){
+  return list.map(p=>{
+    const s = calcPopupStats(p);
+    const preset = p.supplyPreset||{};
+    const rows = STOCK_SKUS.map(k=>{
+      const q = s.sold[k]||0, up = preset[k]||0;
+      return `<tr><td class="lft">${CH_SKU_NAMES[k]}</td><td>${q}</td><td>₩${up.toLocaleString()}</td><td>₩${_chFmt(q*up)}</td></tr>`;
+    }).join('');
+    const gwpRows = (s.gwpDetail||[]).map(d=>{
+      const label = d.key==='ball'?'샤워볼':'프래그런스 샤쉐';
+      return `<tr><td class="lft">${label}</td><td>${d.used}</td><td>₩${_chFmt(d.unitRecv)}</td><td>₩${_chFmt(d.used*d.unitRecv)}</td></tr>`;
+    }).join('');
+    return `<div class="drill-sec">${p.name}</div>
+    <table class="pop-tbl drill-tbl">
+      <thead><tr><th class="lft">품목</th><th>판매</th><th>공급단가</th><th>정산액</th></tr></thead>
+      <tbody>${rows}
+        <tr class="drill-mid"><td class="lft">본품 소계</td><td></td><td></td><td>₩${_chFmt(s.settleAmt)}</td></tr>
+        ${gwpRows}
+        ${s.gwpBilled>0?`<tr class="drill-mid"><td class="lft">GWP 소계 <span style="font-weight:400;color:var(--text3);font-size:9px">명세가 ${Math.round(s.gwpShare*100)}%</span></td><td></td><td></td><td>₩${_chFmt(s.gwpBilled)}</td></tr>`:''}
+      </tbody>
+      <tfoot><tr><td class="lft">청구 합계</td><td></td><td></td><td>₩${_chFmt(s.totalSettle)}</td></tr>
+      <tr><td class="lft" style="font-weight:400;color:var(--text3)">VAT 포함</td><td></td><td></td><td style="font-weight:400;color:var(--text3)">₩${_chFmt(s.totalSettle*1.1)}</td></tr></tfoot>
+    </table>
+    <div class="drill-note">셀아웃 ₩${_chFmt(s.rev)} 중 정산 매출 비중 ${s.rev>0?(s.totalSettle/s.rev*100).toFixed(1):0}%</div>`;
+  }).join('');
+}
+
+// ── 4. 팝업 순이익 ──
+function drillProfit(list){
+  return list.map(p=>{
+    const s = calcPopupStats(p);
+    const preset = p.supplyPreset||{};
+    const rows = STOCK_SKUS.map(k=>{
+      const q = s.sold[k]||0, up = preset[k]||0, c = UNIT_COSTS[k]||0;
+      const rev = q*up, prf = q*(up-c);
+      return `<tr><td class="lft">${CH_SKU_NAMES[k]}</td><td>${q}</td><td>₩${_chFmt(rev)}</td><td>₩${_chFmt(q*c)}</td><td>₩${_chFmt(prf)}</td><td>${rev>0?Math.round(prf/rev*100):0}%</td></tr>`;
+    }).join('');
+    const gwpRows = (s.gwpDetail||[]).map(d=>{
+      const label = d.key==='ball'?'샤워볼':'프래그런스 샤쉐';
+      return `<tr><td class="lft">${label}</td><td>${d.used}</td><td>₩${_chFmt(d.used*d.unitRecv)}</td><td>₩${_chFmt(d.used*d.unitCost)}</td><td>−₩${_chFmt(d.burden)}</td><td>–</td></tr>`;
+    }).join('');
+    return `<div class="drill-sec">${p.name}</div>
+    <table class="pop-tbl drill-tbl">
+      <thead><tr><th class="lft">품목</th><th>판매</th><th>정산매출</th><th>원가</th><th>이익</th><th>마진</th></tr></thead>
+      <tbody>${rows}
+        <tr class="drill-mid"><td class="lft">본품 소계</td><td></td><td>₩${_chFmt(s.settleAmt)}</td><td>₩${_chFmt(s.cogs)}</td><td>₩${_chFmt(s.prf)}</td><td>${s.settleAmt>0?Math.round(s.prf/s.settleAmt*100):0}%</td></tr>
+        ${gwpRows}
+      </tbody>
+      <tfoot><tr><td class="lft">팝업 순이익</td><td></td><td>₩${_chFmt(s.totalSettle)}</td><td>₩${_chFmt(s.cogs+s.gwpCogs)}</td><td>₩${_chFmt(s.netPrf)}</td><td>${s.totalSettle>0?(s.netPrf/s.totalSettle*100).toFixed(1):0}%</td></tr></tfoot>
+    </table>
+    <div class="drill-note">GWP 순부담 ₩${_chFmt(s.gwpBurden)} · 미소진 이연 ₩${_chFmt(s.gwpDeferred)} · 셀아웃 대비 순이익률 ${s.rev>0?(s.netPrf/s.rev*100).toFixed(1):0}%</div>`;
+  }).join('');
 }
 
 // 저장/삭제 후 채널 탭이 열려 있으면 갱신
