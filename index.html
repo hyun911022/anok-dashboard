@@ -130,6 +130,41 @@
   .tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-weight:600}
   .tab.active{background:#252840;color:#9B6DFF;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
 
+  .chsub{padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;color:var(--text3);border:1px solid var(--border);background:#12151F;font-weight:600;transition:all .15s}
+  .chsub:hover{color:var(--text2);border-color:#2E3350}
+  .chsub.active{background:#252840;color:#9B6DFF;border-color:#3A3F63}
+
+  .ch-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+  .ch-sum-item{background:#12151F;border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+  .ch-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
+  .ch-sum-val{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+  .ch-card{background:#12151F;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .ch-card-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin-bottom:6px}
+  .ch-btn{background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+  .ch-btn:hover{border-color:#3A3F63;color:var(--text)}
+
+  .pop-prog{position:relative;height:8px;background:#1A1D2B;border-radius:999px;overflow:visible}
+  .pop-prog-bar{height:100%;border-radius:999px;transition:width .4s ease}
+  .pop-prog-over{position:absolute;right:0;top:-18px;font-size:9px;font-weight:700;color:#D4B896}
+  .pop-chart{position:relative;display:flex;gap:3px;align-items:flex-end;height:120px;padding:14px 0 0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+  .pop-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;min-width:0}
+  .pop-bar-val{font-size:8px;color:var(--text3);margin-bottom:2px;height:10px}
+  .pop-bar-track{flex:1;width:100%;display:flex;align-items:flex-end}
+  .pop-bar{width:100%;border-radius:3px 3px 0 0;transition:height .4s ease}
+  .pop-bar-lbl{font-size:9px;text-align:center;line-height:1.15;margin-top:4px;height:22px}
+  .pop-target-line{position:absolute;left:0;right:0;border-top:1px dashed rgba(212,184,150,0.45);pointer-events:none}
+  .pop-target-line span{position:absolute;right:0;top:-13px;font-size:8px;color:#D4B896;font-weight:600}
+  .pop-sec-lbl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:7px}
+  .pop-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
+  .pop-tbl th{font-size:9px;color:var(--text3);font-weight:600;padding:4px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  .pop-tbl td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text2)}
+  .pop-tbl tbody tr:last-child td{border-bottom:none}
+  .pop-foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding-top:12px;border-top:1px solid var(--border)}
+  .pop-foot>div{display:flex;flex-direction:column;gap:2px}
+  .pop-foot-lbl{font-size:9px;color:var(--text3);font-weight:600}
+  .pop-foot-val{font-size:12px;font-weight:700;color:var(--text)}
+
+
   .ach-row{margin-bottom:20px}
   .ach-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
   .ach-label{font-size:12px;font-weight:600;color:var(--text)}
@@ -467,14 +502,14 @@
   <div class="tab-sticky" style="position:sticky;top:60px;z-index:99;background:var(--bg);padding:10px 0 6px;margin-bottom:6px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div class="tabs tabs-scroll" style="margin-bottom:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0">
-        <button class="tab active" onclick="switchTab('dashboard')">대시보드</button>
-                <button class="tab" onclick="switchTab('stock')">재고현황</button>
-        
-        <button class="tab" onclick="switchTab('products')">상품관리</button>
-        <button class="tab" onclick="switchTab('pricing')">판매가 관리</button>
-        <button class="tab" onclick="switchTab('expenses')">비용관리</button>
-        <button class="tab" onclick="switchTab('simulator')">수익 시뮬레이션</button>
-        <button class="tab" onclick="switchTab('settlement')">정산일정</button>
+        <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">대시보드</button>
+        <button class="tab" data-tab="channel" onclick="switchTab('channel')">채널</button>
+        <button class="tab" data-tab="stock" onclick="switchTab('stock')">재고현황</button>
+        <button class="tab" data-tab="products" onclick="switchTab('products')">상품관리</button>
+        <button class="tab" data-tab="pricing" onclick="switchTab('pricing')">판매가 관리</button>
+        <button class="tab" data-tab="expenses" onclick="switchTab('expenses')">비용관리</button>
+        <button class="tab" data-tab="simulator" onclick="switchTab('simulator')">수익 시뮬레이션</button>
+        <button class="tab" data-tab="settlement" onclick="switchTab('settlement')">정산일정</button>
       </div>
       <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
     </div>
@@ -713,6 +748,26 @@
 
 
   <!-- 재고현황 탭 -->
+  <div id="tabChannel" style="display:none">
+    <div style="padding:20px">
+      <!-- 헤더 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px">채널</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">팝업 · 공구 · B2B 납품</div>
+        </div>
+        <div id="chSubTabs" style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="chsub active" data-sub="popup" onclick="switchChannelSub('popup')">팝업</button>
+          <button class="chsub" data-sub="groupbuy" onclick="switchChannelSub('groupbuy')">공구</button>
+          <button class="chsub" data-sub="b2b" onclick="switchChannelSub('b2b')">B2B 납품</button>
+        </div>
+      </div>
+      <div id="chPanePopup"></div>
+      <div id="chPaneGroupbuy" style="display:none"></div>
+      <div id="chPaneB2b" style="display:none"></div>
+    </div>
+  </div>
+
   <div id="tabStock" style="display:none">
 
     <!-- 헤더 -->
@@ -2303,28 +2358,58 @@ async function saveDay(){
   showToast(`${date} 실적이 저장되었습니다`);
 }
 
+// 탭 레지스트리 — 탭 추가 시 이 배열에만 한 줄 추가하면 됨
+const TAB_DEFS = [
+  {key:'dashboard',  panel:'tabDashboard'},
+  {key:'channel',    panel:'tabChannel',    render:'renderChannel'},
+  {key:'stock',      panel:'tabStock',      render:'renderStock'},
+  {key:'products',   panel:'tabProducts',   render:'renderProducts'},
+  {key:'pricing',    panel:'tabPricing',    render:'renderPriceManager'},
+  {key:'expenses',   panel:'tabExpenses',   render:'renderExpenses'},
+  {key:'simulator',  panel:'tabSimulator',  render:'renderSimulator'},
+  {key:'settlement', panel:'tabSettlement', render:'renderSettlement'}
+];
+
 function switchTab(tab){
-  document.getElementById('tabDashboard').style.display=tab==='dashboard'?'block':'none';
-  document.getElementById('tabStock').style.display=tab==='stock'?'block':'none';
-  document.getElementById('tabProducts').style.display=tab==='products'?'block':'none';
-  document.getElementById('tabPricing').style.display=tab==='pricing'?'block':'none';
-  const _expEl = document.getElementById('tabExpenses');
-  if(_expEl) _expEl.style.display = tab==='expenses' ? 'block' : 'none';
-  const _simEl = document.getElementById('tabSimulator');
-  if(_simEl) _simEl.style.display = tab==='simulator' ? 'block' : 'none';
-  const _setEl = document.getElementById('tabSettlement');
-  if(_setEl) _setEl.style.display = tab==='settlement' ? 'block' : 'none';
-  document.querySelectorAll('.tab').forEach((t,i)=>{
-    t.classList.toggle('active',
-      (tab==='dashboard'&&i===0)||(tab==='stock'&&i===1)||(tab==='products'&&i===2)||(tab==='pricing'&&i===3)||(tab==='expenses'&&i===4)||(tab==='simulator'&&i===5)||(tab==='settlement'&&i===6)
-    );
+  const def = TAB_DEFS.find(d=>d.key===tab);
+  if(!def){ console.warn('switchTab: 알 수 없는 탭', tab); return; }
+  TAB_DEFS.forEach(d=>{
+    const el = document.getElementById(d.panel);
+    if(el) el.style.display = (d.key===tab) ? 'block' : 'none';
   });
-  if(tab==='stock') renderStock();
-  if(tab==='products') renderProducts();
-  if(tab==='pricing') renderPriceManager();
-  if(tab==='expenses' && typeof renderExpenses==='function') renderExpenses();
-  if(tab==='simulator' && typeof renderSimulator==='function') renderSimulator();
-  if(tab==='settlement' && typeof renderSettlement==='function') renderSettlement();
+  document.querySelectorAll('.tab[data-tab]').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab===tab);
+  });
+  if(def.render && typeof window[def.render]==='function') window[def.render]();
+  window.__activeTab = tab;
+}
+
+// ══════════════════════════════════════════
+//  채널 탭 (팝업 · 공구 · B2B 납품)
+// ══════════════════════════════════════════
+const CH_SUBS = [
+  {key:'popup',    pane:'chPanePopup',    render:'renderChannelPopup'},
+  {key:'groupbuy', pane:'chPaneGroupbuy', render:'renderChannelGroupbuy'},
+  {key:'b2b',      pane:'chPaneB2b',      render:'renderChannelB2b'}
+];
+let channelSub = 'popup';
+
+function switchChannelSub(sub){
+  const def = CH_SUBS.find(s=>s.key===sub);
+  if(!def) return;
+  channelSub = sub;
+  CH_SUBS.forEach(s=>{
+    const el = document.getElementById(s.pane);
+    if(el) el.style.display = (s.key===sub) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.chsub[data-sub]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub===sub);
+  });
+  if(typeof window[def.render]==='function') window[def.render]();
+}
+
+function renderChannel(){
+  switchChannelSub(channelSub);
 }
 
 function renderInsight(){
@@ -4307,6 +4392,7 @@ async function saveExpense(){
   if(typeof renderExpenses==='function') renderExpenses();
   // 디테일 모달이 열려있으면 다시 그리기
   if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(typeof refreshChannelPanes==='function') refreshChannelPanes();
   if(document.getElementById('profitDetailBg')?.classList.contains('open')) openProfitDetail();
 }
 
@@ -4318,6 +4404,7 @@ async function deleteExpense(idx){
   render();
   if(typeof renderExpenses==='function') renderExpenses();
   if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(typeof refreshChannelPanes==='function') refreshChannelPanes();
   if(document.getElementById('profitDetailBg')?.classList.contains('open')) openProfitDetail();
 }
 
@@ -4492,6 +4579,7 @@ async function saveGroupBuy(){
   if(typeof renderStock === 'function') renderStock();
   // B2B 디테일 모달이 열려있으면 다시 그리기
   if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(typeof refreshChannelPanes==='function') refreshChannelPanes();
 }
 
 async function deleteGroupBuy(idx){
@@ -4502,6 +4590,7 @@ async function deleteGroupBuy(idx){
   render();
   if(typeof renderStock === 'function') renderStock();
   if(document.getElementById('b2bDetailBg')?.classList.contains('open')) openB2BDetail();
+  if(typeof refreshChannelPanes==='function') refreshChannelPanes();
 }
 
 async function loadB2BClients(){
@@ -5527,12 +5616,15 @@ function closeProfitDetail(){
   document.getElementById('profitDetailBg').classList.remove('open');
 }
 
-function openB2BDetail(){
-  const month = selectedMonth;
-  const fmt = v => Math.round(v).toLocaleString();
-  const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
+// ══════════════════════════════════════════
+//  B2B · 공구 · 부대비용 섹션 빌더
+//  모달(openB2BDetail)과 채널 탭이 동일 함수를 공유 → 숫자 불일치 원천 차단
+// ══════════════════════════════════════════
+const CH_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
+const _chFmt = v => Math.round(v).toLocaleString();
 
-  // ── B2B 섹션 ──
+function buildB2BDeliveryHTML(month){
+  const fmt = _chFmt, skuNames = CH_SKU_NAMES;
   const b2bRecs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0)).sort((a,b) => b.date.localeCompare(a.date));
   let b2bTotRev=0, b2bTotPrf=0;
   const b2bRows = b2bRecs.map(r => {
@@ -5557,7 +5649,7 @@ function openB2BDetail(){
       </div>
     </div>`;
   }).join('');
-  const b2bBody = b2bRecs.length===0
+  const html = b2bRecs.length===0
     ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 납품 실적이 없습니다.</div>'
     : b2bRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">B2B 합계</span>
@@ -5566,8 +5658,11 @@ function openB2BDetail(){
           <div style="font-size:10px;color:${b2bTotPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">이익 ₩${fmt(b2bTotPrf)} (마진 ${b2bTotRev>0?Math.round(b2bTotPrf/b2bTotRev*100):0}%)</div>
         </div>
       </div>`;
+  return {html, rev:b2bTotRev, prf:b2bTotPrf, count:b2bRecs.length};
+}
 
-  // ── 공구 섹션 ──
+function buildGroupBuyHTML(month){
+  const fmt = _chFmt;
   const monthGB = (typeof groupBuys !== 'undefined' ? groupBuys : []).filter(gb => gb.toDate && gb.toDate.startsWith(month)).sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''));
   let gbTotRev=0, gbTotPrf=0;
   const gbRows = monthGB.map((gb)=>{
@@ -5585,7 +5680,7 @@ function openB2BDetail(){
       </div>
     </div>`;
   }).join('');
-  const gbBody = monthGB.length===0
+  const html = monthGB.length===0
     ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 공구 실적이 없습니다.</div>'
     : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
@@ -5594,47 +5689,311 @@ function openB2BDetail(){
           <div style="font-size:10px;color:${gbTotPrf>=0?'#22C55E':'#F43F5E'};font-weight:600">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
         </div>
       </div>`;
+  return {html, rev:gbTotRev, prf:gbTotPrf, count:monthGB.length};
+}
 
+function buildB2BExpenseHTML(month){
+  const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='b2b').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(monthExp.length===0){
+    return {html:'<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 부대비용이 없습니다.</div>', sum:0, count:0};
+  }
+  const expSum = monthExp.reduce((s,x)=>s+(x.amount||0),0);
+  const html = monthExp.map(x=>{
+    const realIdx = expenses.indexOf(x);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${x.note||'기타 비용'} <span style="font-size:10px;color:var(--text3);font-weight:400">${x.date}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
+        <div style="font-size:13px;font-weight:700;color:#EF4444">−₩${(x.amount||0).toLocaleString()}</div>
+        <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
+      </div>
+    </div>`;
+  }).join('') + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:11px;font-weight:700;color:var(--text2)">비용 합계</span>
+    <div style="font-size:12px;font-weight:700;color:#EF4444">−₩${expSum.toLocaleString()}</div>
+  </div>`;
+  return {html, sum:expSum, count:monthExp.length};
+}
+
+function openB2BDetail(){
+  const month = selectedMonth;
+  const b2b = buildB2BDeliveryHTML(month);
+  const gb  = buildGroupBuyHTML(month);
+  const exp = buildB2BExpenseHTML(month);
   document.getElementById('b2bDetailBody').innerHTML = `
     <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:13px;font-weight:700;color:#60A5FA">B2B 납품</div>
     </div>
-    ${b2bBody}
+    ${b2b.html}
     <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:13px;font-weight:700;color:#60A5FA">공구 실적</div>
       <button onclick="openGroupBuyModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
     </div>
-    ${gbBody}
-    ${(()=>{
-      const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='b2b').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-      let expBody = '';
-      if(monthExp.length===0){
-        expBody = '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 부대비용이 없습니다.</div>';
-      } else {
-        const expSum = monthExp.reduce((s,x)=>s+(x.amount||0),0);
-        expBody = monthExp.map(x=>{
-          const realIdx = expenses.indexOf(x);
-          return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="flex:1">
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${x.note||'기타 비용'} <span style="font-size:10px;color:var(--text3);font-weight:400">${x.date}</span></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
-              <div style="font-size:13px;font-weight:700;color:#EF4444">−₩${(x.amount||0).toLocaleString()}</div>
-              <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
-            </div>
-          </div>`;
-        }).join('') + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:11px;font-weight:700;color:var(--text2)">비용 합계</span>
-          <div style="font-size:12px;font-weight:700;color:#EF4444">−₩${expSum.toLocaleString()}</div>
-        </div>`;
-      }
-      return `<div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:700;color:#EF4444">B2B 부대비용</div>
-        <button onclick="openExpenseModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 비용 추가</button>
-      </div>${expBody}`;
-    })()}
+    ${gb.html}
+    <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:700;color:#EF4444">B2B 부대비용</div>
+      <button onclick="openExpenseModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 비용 추가</button>
+    </div>
+    ${exp.html}
   `;
   document.getElementById('b2bDetailBg').classList.add('open');
+}
+
+// ── 채널 탭: B2B 납품 ──
+function renderChannelB2b(){
+  const el = document.getElementById('chPaneB2b');
+  if(!el) return;
+  const month = selectedMonth;
+  const b2b = buildB2BDeliveryHTML(month);
+  const exp = buildB2BExpenseHTML(month);
+  const net = b2b.prf - exp.sum;
+  el.innerHTML = `
+    <div class="ch-summary">
+      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(b2b.rev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">상품이익</div><div class="ch-sum-val" style="color:${b2b.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(b2b.prf)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">부대비용</div><div class="ch-sum-val" style="color:#EF4444">−₩${_chFmt(exp.sum)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">순이익</div><div class="ch-sum-val" style="color:${net>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(net)}</div></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-card-head"><span style="color:#60A5FA">B2B 납품</span><span style="font-size:10px;color:var(--text3);font-weight:400">${b2b.count}건 · ${month}</span></div>
+      ${b2b.html}
+    </div>
+    <div class="ch-card">
+      <div class="ch-card-head"><span style="color:#EF4444">부대비용</span>
+        <button onclick="openExpenseModal()" class="ch-btn">+ 비용 추가</button>
+      </div>
+      ${exp.html}
+    </div>`;
+}
+
+// ── 채널 탭: 공구 ──
+function renderChannelGroupbuy(){
+  const el = document.getElementById('chPaneGroupbuy');
+  if(!el) return;
+  const month = selectedMonth;
+  const gb = buildGroupBuyHTML(month);
+  el.innerHTML = `
+    <div class="ch-summary">
+      <div class="ch-sum-item"><div class="ch-sum-lbl">매출</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(gb.rev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">순수익</div><div class="ch-sum-val" style="color:${gb.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(gb.prf)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">마진율</div><div class="ch-sum-val">${gb.rev>0?Math.round(gb.prf/gb.rev*100):0}%</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">건수</div><div class="ch-sum-val">${gb.count}건</div></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-card-head"><span style="color:#60A5FA">공구 실적</span>
+        <button onclick="openGroupBuyModal()" class="ch-btn">+ 공구 추가</button>
+      </div>
+      ${gb.html}
+    </div>`;
+}
+
+// ══════════════════════════════════════════
+//  팝업 (위탁 판매 채널)
+// ══════════════════════════════════════════
+let popups = [];
+
+async function loadPopups(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'popups'));
+    if(snap.exists() && snap.data()?.items) popups = snap.data().items;
+  } catch(e){ console.log('popups load error:', e); }
+}
+
+async function savePopups(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'popups'), {items: popups});
+  } catch(e){ console.log('popups save error:', e); }
+}
+
+// ── 팝업 집계 ──
+// 위탁 출고량: manualOuts 중 해당 거래처 + 기간 내 + 단가 0 (후정산)
+function calcPopupConsigned(p){
+  const out = {}; STOCK_SKUS.forEach(k=>out[k]=0);
+  (manualOuts||[]).forEach(r=>{
+    if(!r.date) return;
+    if(p.clientId && r.clientId !== p.clientId) return;
+    if(r.date < p.consignFrom || r.date > (p.consignTo || p.toDate)) return;
+    STOCK_SKUS.forEach(k=>{ if((r[k]||0)>0 && !(r['price_'+k]>0)) out[k] += r[k]; });
+  });
+  return out;
+}
+
+function calcPopupStats(p){
+  const days = (p.days||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const closed = new Set(p.closedDates||[]);
+  const open = days.filter(d=>!closed.has(d.date));
+  const rev = open.reduce((s,d)=>s+(d.rev||0),0);
+  const setRev = open.reduce((s,d)=>s+(d.setRev||0),0);
+  const sold = {}; STOCK_SKUS.forEach(k=>sold[k]=open.reduce((s,d)=>s+(d[k]||0),0));
+  const gwp = {tag:open.reduce((s,d)=>s+(d.gwpTag||0),0), ball:open.reduce((s,d)=>s+(d.gwpBall||0),0)};
+
+  // 총 영업일 (기간 내 휴무 제외)
+  const totalDays = countOpenDays(p.fromDate, p.toDate, p.closedDates||[]);
+  const target = (p.dailyTarget||0) * totalDays;
+  const elapsed = open.length;
+  const avg = elapsed>0 ? rev/elapsed : 0;
+  const forecast = avg * totalDays;
+
+  // 위탁 잔량 = 출고 − 셀아웃
+  const consigned = calcPopupConsigned(p);
+  const remain = {}; STOCK_SKUS.forEach(k=>remain[k] = (consigned[k]||0) - (sold[k]||0));
+
+  // 정산 예정액 (공급가 기준)
+  const preset = p.supplyPreset||{};
+  let settleAmt = 0;
+  STOCK_SKUS.forEach(k=>{ settleAmt += (sold[k]||0) * (preset[k]||0); });
+  let cogs = 0;
+  STOCK_SKUS.forEach(k=>{ cogs += (sold[k]||0) * (UNIT_COSTS[k]||0); });
+
+  return {days, open, closed, rev, setRev, sold, gwp, totalDays, target, elapsed,
+          avg, forecast, consigned, remain, settleAmt, cogs, prf: settleAmt-cogs,
+          rate: target>0 ? rev/target*100 : 0};
+}
+
+function countOpenDays(from, to, closedDates){
+  const closed = new Set(closedDates||[]);
+  let n=0; const d=new Date(from+'T00:00:00'), end=new Date(to+'T00:00:00');
+  while(d<=end){
+    const s = d.toISOString().slice(0,10);
+    if(!closed.has(s)) n++;
+    d.setDate(d.getDate()+1);
+  }
+  return n;
+}
+
+function popupStatus(p){
+  const today = (typeof getTodayKST==='function') ? getTodayKST() : new Date().toISOString().slice(0,10);
+  if(today < p.fromDate) return 'upcoming';
+  if(today > p.toDate) return 'done';
+  return 'live';
+}
+
+// ── 렌더 ──
+function renderChannelPopup(){
+  const el = document.getElementById('chPanePopup');
+  if(!el) return;
+  if(!popups.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px;font-size:12px">등록된 팝업이 없습니다.</div>';
+    return;
+  }
+  const order = {live:0, upcoming:1, done:2};
+  const list = popups.slice().sort((a,b)=>{
+    const d = order[popupStatus(a)] - order[popupStatus(b)];
+    return d !== 0 ? d : (b.fromDate||'').localeCompare(a.fromDate||'');
+  });
+
+  // 전체 요약
+  let sumRev=0, sumTarget=0, sumPrf=0;
+  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.prf; });
+
+  el.innerHTML = `
+    <div class="ch-summary">
+      <div class="ch-sum-item"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val" style="color:#60A5FA">₩${_chFmt(sumRev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="color:${sumRev>=sumTarget?'#D4B896':'var(--text)'}">${sumTarget>0?Math.round(sumRev/sumTarget*100):0}%</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">정산 기준 이익</div><div class="ch-sum-val" style="color:${sumPrf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(sumPrf)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">진행 팝업</div><div class="ch-sum-val">${list.filter(p=>popupStatus(p)==='live').length} / ${list.length}</div></div>
+    </div>
+    ${list.map(p=>renderPopupCard(p)).join('')}`;
+}
+
+function renderPopupCard(p){
+  const s = calcPopupStats(p);
+  const st = popupStatus(p);
+  const badge = {live:['진행중','#22C55E'], upcoming:['예정','#60A5FA'], done:['종료','var(--text3)']}[st];
+  const isStrategic = p.type === 'strategic';
+  const barColor = isStrategic ? '#60A5FA' : (s.rate>=100 ? '#D4B896' : '#9B6DFF');
+  const skuNames = CH_SKU_NAMES;
+
+  // 일별 바 차트
+  const maxRev = Math.max(...s.days.map(d=>d.rev||0), p.dailyTarget||0, 1);
+  const bars = s.days.map(d=>{
+    const isClosed = s.closed.has(d.date);
+    const h = isClosed ? 0 : Math.max(2, Math.round((d.rev||0)/maxRev*100));
+    const dow = ['일','월','화','수','목','금','토'][new Date(d.date+'T00:00:00').getDay()];
+    const over = (d.rev||0) >= (p.dailyTarget||0);
+    return `<div class="pop-bar-wrap" title="${d.date} ${isClosed?'휴무':'₩'+(d.rev||0).toLocaleString()}">
+      <div class="pop-bar-val">${isClosed?'':Math.round((d.rev||0)/10000)}</div>
+      <div class="pop-bar-track"><div class="pop-bar" style="height:${h}%;background:${isClosed?'#2A2E42':(over?'#D4B896':'#6366F1')}"></div></div>
+      <div class="pop-bar-lbl" style="color:${isClosed?'#4A4F68':'var(--text3)'}">${d.date.slice(8)}<br><span style="font-size:8px">${dow}</span></div>
+    </div>`;
+  }).join('');
+  const targetTop = Math.round((p.dailyTarget||0)/maxRev*100);
+
+  // SKU 구성 + 위탁 잔량
+  const skuRows = STOCK_SKUS.map(k=>{
+    const sold = s.sold[k]||0, con = s.consigned[k]||0, rem = s.remain[k]||0;
+    const daily = s.elapsed>0 ? sold/s.elapsed : 0;
+    const daysLeft = daily>0 ? Math.floor(rem/daily) : null;
+    const danger = daysLeft!==null && daysLeft<=3;
+    return `<tr>
+      <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
+      <td>${con.toLocaleString()}</td>
+      <td style="color:var(--text)">${sold.toLocaleString()}</td>
+      <td style="color:${rem<0?'#F43F5E':'var(--text2)'};font-weight:600">${rem.toLocaleString()}</td>
+      <td style="color:var(--text3)">${daily.toFixed(1)}</td>
+      <td style="color:${danger?'#F43F5E':'var(--text3)'};font-weight:${danger?'700':'400'}">${daysLeft===null?'–':daysLeft+'일'}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="ch-card" style="padding:16px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.name}</span>
+          <span style="font-size:9px;font-weight:700;color:${badge[1]};border:1px solid ${badge[1]};padding:1px 6px;border-radius:999px">${badge[0]}</span>
+          ${isStrategic?'<span style="font-size:9px;font-weight:700;color:#60A5FA;background:rgba(96,165,250,0.12);padding:2px 7px;border-radius:999px">전략 진입</span>':''}
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">${p.fromDate} ~ ${p.toDate} · 영업 ${s.totalDays}일 · ${p.clientName||''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:700;color:${barColor};letter-spacing:-0.5px">₩${_chFmt(s.rev)}</div>
+        <div style="font-size:10px;color:var(--text3)">목표 ₩${_chFmt(s.target)} · 일평균 ₩${_chFmt(s.avg)}</div>
+      </div>
+    </div>
+
+    <div class="pop-prog">
+      <div class="pop-prog-bar" style="width:${Math.min(100,s.rate)}%;background:${barColor}"></div>
+      ${s.rate>100?`<div class="pop-prog-over">+${Math.round(s.rate-100)}%</div>`:''}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:5px 0 14px">
+      <span>진행 ${s.elapsed}/${s.totalDays}일</span>
+      <span style="color:${s.rate>=100?'#D4B896':'var(--text2)'};font-weight:700">${s.rate.toFixed(1)}%</span>
+      <span>최종 예상 ₩${_chFmt(s.forecast)}</span>
+    </div>
+
+    <div class="pop-chart">${bars}
+      <div class="pop-target-line" style="bottom:calc(22px + ${targetTop}% * 0.72)"><span>일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span></div>
+    </div>
+
+    <div class="pop-sec-lbl">SKU별 판매 · 위탁 잔량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
+    <table class="pop-tbl">
+      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>잔량</th><th>일평균</th><th>소진</th></tr></thead>
+      <tbody>${skuRows}</tbody>
+    </table>
+
+    <div class="pop-foot">
+      <div><span class="pop-foot-lbl">세트 비중</span><span class="pop-foot-val">${s.rev>0?Math.round(s.setRev/s.rev*100):0}%</span></div>
+      <div><span class="pop-foot-lbl">GWP 소진</span><span class="pop-foot-val">샤워볼 ${s.gwp.ball} · 태그 ${s.gwp.tag}</span></div>
+      <div><span class="pop-foot-lbl">정산 예정</span><span class="pop-foot-val" style="color:#60A5FA">₩${_chFmt(s.settleAmt)}</span></div>
+      <div><span class="pop-foot-lbl">정산 기준 이익</span><span class="pop-foot-val" style="color:${s.prf>=0?'#22C55E':'#F43F5E'}">₩${_chFmt(s.prf)} (${s.settleAmt>0?Math.round(s.prf/s.settleAmt*100):0}%)</span></div>
+    </div>
+  </div>`;
+}
+
+// 저장/삭제 후 채널 탭이 열려 있으면 갱신
+function refreshChannelPanes(){
+  if(window.__activeTab !== 'channel') return;
+  const def = CH_SUBS.find(s=>s.key===channelSub);
+  if(def && typeof window[def.render]==='function') window[def.render]();
 }
 
 function closeB2BDetail(){
@@ -6370,7 +6729,7 @@ function simResetToCurrent(){
   renderSimulator();
 }
 
-setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); loadExpenses(); }, 500);
+setTimeout(function(){ loadData(); loadStockData(); loadOrderData(); loadProducts(); loadB2BClients(); loadGroupBuys(); loadExpenses(); loadPopups(); }, 500);
 </script>
 </body>
 </html>
