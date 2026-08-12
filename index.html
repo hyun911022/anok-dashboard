@@ -815,6 +815,7 @@
     <!-- 인사이트 -->
     <div id="stockInsightCard" style="display:none;margin-bottom:20px"></div>
 
+    <div id="stockLocationCard" style="margin-bottom:20px"></div>
     <div id="stockCards" style="margin-bottom:20px"></div>
     <!-- 재고 전환 가치 -->
     <div id="stockValueCard" style="margin-bottom:20px"></div>
@@ -3190,6 +3191,42 @@ function calcManualOutAll(){
   return mo;
 }
 
+// 쿠팡(로켓) 판매만 집계 — 쿠팡 FC에서 차감된다
+function calcCoupangSold(uptoDate){
+  const sold={shampoo:0,treatment:0,bodywash:0,bodylotion:0,wego120:0};
+  records.filter(r=>r.date<=uptoDate).forEach(r=>{
+    const o=r.coupang||{};
+    STOCK_SKUS.forEach(k=>{ sold[k]+=(o[k]||0); });
+  });
+  return sold;
+}
+
+// 쿠팡 채널 SKU별 일평균 판매량 (최근 N일)
+function calcCoupangDailyRate(days){
+  const n = days || 14;
+  const today = getTodayKST();
+  const from = new Date(today); from.setDate(from.getDate()-n);
+  const fromStr = from.toISOString().slice(0,10);
+  const recs = records.filter(r=>r.date>fromStr && r.date<=today);
+  const rate={}; STOCK_SKUS.forEach(k=>rate[k]=0);
+  recs.forEach(r=>{ const o=r.coupang||{}; STOCK_SKUS.forEach(k=>{ rate[k]+=(o[k]||0); }); });
+  STOCK_SKUS.forEach(k=>{ rate[k] = rate[k]/n; });
+  return rate;
+}
+
+// 쿠팡 FC 현재고 = 대화창고→FC 입고 누계 − 쿠팡 판매 누계
+function calcCoupangFCStock(uptoDate){
+  const d = uptoDate || getTodayKST();
+  const sent={}; STOCK_SKUS.forEach(k=>sent[k]=0);
+  (fcInbounds||[]).filter(r=>r.date<=d).forEach(r=>{
+    STOCK_SKUS.forEach(k=>{ sent[k]+=(r[k]||0); });
+  });
+  const sold = calcCoupangSold(d);
+  const out={}; STOCK_SKUS.forEach(k=>out[k]=sent[k]-sold[k]);
+  return out;
+}
+
+// 총재고 기준 누적 판매 (보관처 무관 — 팔린 건 전부 차감)
 function calcCumulativeSold(uptoDate){
   const sold={shampoo:0,treatment:0,bodywash:0,bodylotion:0,wego120:0};
   records.filter(r=>r.date<=uptoDate).forEach(r=>{
@@ -3777,6 +3814,42 @@ function renderStock(){
     cardsEl.style.gridTemplateColumns='repeat(2,1fr)';
     cardsEl.style.gap='12px';
     cardsEl.innerHTML = skuHtml;
+  }
+
+  // ── 보관처별 재고 (대화창고 / 쿠팡 FC) ──
+  const locEl = document.getElementById('stockLocationCard');
+  if(locEl){
+    const fc = calcCoupangFCStock(today);
+    const coupRate = calcCoupangDailyRate ? calcCoupangDailyRate() : null;
+    const rows = STOCK_SKUS.map(k=>{
+      const total = currentStock[k]||0;   // 총재고
+      const fcQty = fc[k]||0;             // 쿠팡 FC
+      const dh = total - fcQty;           // 대화창고
+      const cRate = coupRate ? (coupRate[k]||0) : 0;
+      const fcDays = cRate>0 ? Math.floor(fcQty/cRate) : null;
+      const sig = fcDays!==null ? sigDaysLeft(fcDays) : '';
+      return `<tr>
+        <td style="text-align:left;color:var(--text2);font-weight:600">${CH_SKU_NAMES[k]}</td>
+        <td>${dh.toLocaleString()}</td>
+        <td>${fcQty.toLocaleString()}</td>
+        <td style="color:var(--text3)">${cRate>0?cRate.toFixed(1):'–'}</td>
+        <td style="color:var(--text3);${sig?`color:${sig};font-weight:700`:''}">${fcDays===null?'–':fcDays+'일'}</td>
+        <td style="font-weight:700;color:var(--text)">${total.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+    const fcTot = STOCK_SKUS.reduce((s,k)=>s+(fc[k]||0),0);
+    const allTot = STOCK_SKUS.reduce((s,k)=>s+(currentStock[k]||0),0);
+    locEl.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">보관처별 재고</div>
+          <div style="font-size:10px;color:var(--text3)">쿠팡 FC ${fcTot.toLocaleString()}개 · 전체 ${allTot.toLocaleString()}개</div>
+        </div>
+        <table class="pop-tbl" style="margin-bottom:0">
+          <thead><tr><th style="text-align:left">SKU</th><th>대화창고</th><th>쿠팡 FC</th><th>쿠팡 일평균</th><th>FC 소진</th><th>합계</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   }
 
   // ── 3. 출고 현황 ──
@@ -5849,6 +5922,28 @@ function renderChannelGroupbuy(){
 //  팝업 (위탁 판매 채널)
 // ══════════════════════════════════════════
 let popups = [];
+let fcInbounds = [];   // 대화창고 → 쿠팡 FC 입고 이력
+
+async function loadFCInbounds(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'fcInbounds'));
+    if(snap.exists() && snap.data()?.items) fcInbounds = snap.data().items;
+  } catch(e){ console.log('fcInbounds load error:', e); }
+}
+
+async function saveFCInbounds(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'fcInbounds'), {items: fcInbounds});
+  } catch(e){ console.log('fcInbounds save error:', e); }
+}
 
 async function loadPopups(){
   if(!window._firestore) return;
@@ -7032,7 +7127,7 @@ setTimeout(async function(){
   try{ restoreTab(); }catch(e){ console.log('restoreTab error:', e); }
   await Promise.all([
     loadData(), loadStockData(), loadOrderData(), loadProducts(),
-    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups()
+    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups(), loadFCInbounds()
   ].map(p => Promise.resolve(p).catch(e=>console.log('load error:', e))));
   // 로드 완료 후 현재 탭 재렌더 (데이터 반영)
   const cur = window.__activeTab || 'dashboard';
