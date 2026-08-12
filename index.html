@@ -816,6 +816,7 @@
     <div id="stockInsightCard" style="display:none;margin-bottom:20px"></div>
 
     <div id="stockLocationCard" style="margin-bottom:20px"></div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:9px">대화물류 창고 재고 <span style="font-weight:400;color:var(--text3);font-size:11px">· 쿠팡 FC 제외</span></div>
     <div id="stockCards" style="margin-bottom:20px"></div>
     <!-- 재고 전환 가치 -->
     <div id="stockValueCard" style="margin-bottom:20px"></div>
@@ -3201,6 +3202,17 @@ function calcCoupangSold(uptoDate){
   return sold;
 }
 
+// 대화창고 기준 일평균 — 쿠팡(로켓) 판매를 뺀 소진 속도
+function calcDaehwaDailyRate(){
+  const total = calcTotalDailyRate();
+  const coup  = calcCoupangDailyRate(30);
+  const rate = {};
+  STOCK_SKUS.forEach(k=>{
+    rate[k] = Math.max(0, Math.round(((total[k]||0) - (coup[k]||0))*100)/100);
+  });
+  return rate;
+}
+
 // 쿠팡 채널 SKU별 일평균 판매량 (최근 N일)
 function calcCoupangDailyRate(days){
   const n = days || 14;
@@ -3728,11 +3740,20 @@ function renderStock(){
   if(insightEl) insightEl.style.display='none';
 
   // ── 2. SKU 카드 — 2열 그리드, compact ──
+  // 이 섹션은 대화물류 창고 기준으로 표시한다 (쿠팡 FC 제외)
+  const _fcStock = calcCoupangFCStock(today);
+  const _dhRate  = calcDaehwaDailyRate();
   const skuHtml = STOCK_SKUS.map(k=>{
-    const stock = currentStock[k]||0;
-    const avg   = avgSales[k]||0;
+    const stock = Math.max(0, (currentStock[k]||0) - (_fcStock[k]||0));
+    const avg   = _dhRate[k]||0;
     const dl    = avg>0?Math.round(stock/avg):null;
-    const batches = batchState[k].batches.filter(b=>b.originalQty>0);
+    // 쿠팡 FC로 나간 물량은 먼저 출고된 것이므로 오래된 배치부터 제외
+    let _fcLeft = _fcStock[k]||0;
+    const batches = batchState[k].batches.filter(b=>b.originalQty>0).map(b=>{
+      const cut = Math.min(_fcLeft, b.remaining);
+      _fcLeft -= cut;
+      return {...b, remaining: b.remaining - cut};
+    });
     const color = STOCK_COLORS[k];
 
     // 배치 행 (한 줄씩 compact)
@@ -3799,6 +3820,7 @@ function renderStock(){
             <div style="width:3px;height:14px;background:${color};border-radius:2px;flex-shrink:0"></div>
             <span style="font-size:14px;font-weight:700;color:var(--text)">${STOCK_SKU_NAMES[k]}</span>
             <span style="font-size:20px;font-weight:700;color:var(--text)">${stock.toLocaleString()}<span style="font-size:11px;font-weight:500;color:var(--text3)">개</span></span>
+            ${(_fcStock[k]||0)>0?`<span style="font-size:9px;font-weight:600;color:var(--text3);background:#1A1D2B;padding:2px 6px;border-radius:4px;white-space:nowrap">FC ${(_fcStock[k]||0).toLocaleString()} 별도</span>`:''}
           </div>
           <div style="font-size:10px;color:var(--text3);text-align:right">일평균 ${avg>0?avg.toFixed(1)+'개':'집계중'}</div>
         </div>
