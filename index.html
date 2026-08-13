@@ -338,7 +338,7 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBfIt4-fxvBaYs0QQlsVvjChxrIRb9Ge-E",
@@ -366,7 +366,30 @@
   async function saveToFirestore(records) {
     try {
       const docRef = doc(db, 'anok', 'records');
-      await setDoc(docRef, { records: records });
+      // ── 덮어쓰기 방지: 서버 최신본을 읽어 '날짜 단위'로 병합 ──
+      // 다른 기기가 그 사이 추가한 날짜를 지우지 않는다.
+      let merged = records;
+      try {
+        const snap = await getDoc(docRef);
+        const server = (snap.exists() && snap.data().records) ? snap.data().records : [];
+        if (server.length) {
+          const byDate = new Map();
+          server.forEach(r => { if(r && r.date) byDate.set(r.date, r); });
+          // 이 기기가 들고 있는 날짜로 덮어쓴다 (내가 방금 수정한 날짜 우선)
+          records.forEach(r => { if(r && r.date) byDate.set(r.date, r); });
+          // 이 기기에서 '삭제'한 날짜는 window.__deletedDates__ 에 기록해 반영
+          (window.__deletedDates__ || []).forEach(d => byDate.delete(d));
+          merged = Array.from(byDate.values()).sort((a,b)=>a.date.localeCompare(b.date));
+        }
+      } catch(mergeErr) { console.log('merge skip:', mergeErr); }
+      markSelfWrite();
+      await setDoc(docRef, { records: merged });
+      window.__deletedDates__ = [];
+      if (merged.length !== records.length) {
+        // 다른 기기의 변경분을 흡수했으면 화면도 최신으로 맞춘다
+        window.records = merged;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch(e){}
+      }
     } catch(e) { console.log('Firestore save error:', e); }
   }
 
@@ -384,7 +407,28 @@
   async function saveStockToFirestore(stockInitByMonth, manualOuts, stockIns, stockBatches) {
     try {
       const docRef = doc(db, 'anok', 'stock');
-      await setDoc(docRef, { stockInitByMonth, manualOuts, stockBatches: stockBatches||[] });
+      // 배치는 id로 병합 — 다른 기기가 추가한 배치를 잃지 않는다
+      let mBatches = stockBatches || [];
+      try {
+        const snap = await getDoc(docRef);
+        const srv = snap.exists() ? snap.data() : null;
+        if (srv && Array.isArray(srv.stockBatches) && srv.stockBatches.length) {
+          const byId = new Map();
+          srv.stockBatches.forEach(b => { if(b && b.id) byId.set(b.id, b); });
+          const localIds = new Set((stockBatches||[]).map(b=>b.id));
+          // 이 기기에서 의도적으로 지운 배치는 제외
+          (window.__deletedBatchIds__ || []).forEach(id => byId.delete(id));
+          (stockBatches||[]).forEach(b => { if(b && b.id) byId.set(b.id, b); });
+          // 서버에만 있고 로컬에 없는 배치 = 다른 기기가 추가 → 유지
+          mBatches = Array.from(byId.values());
+          if (mBatches.length !== (stockBatches||[]).length) {
+            window.stockBatches = mBatches;
+          }
+        }
+      } catch(mergeErr) { console.log('stock merge skip:', mergeErr); }
+      markSelfWrite();
+      await setDoc(docRef, { stockInitByMonth, manualOuts, stockBatches: mBatches });
+      window.__deletedBatchIds__ = [];
     } catch(e) { console.log('Firestore stock save error:', e); }
   }
 
@@ -407,7 +451,27 @@
     } catch(e) {}
   }
 
+  // ── 실시간 동기화: 다른 기기가 저장하면 이 화면도 자동 갱신 ──
+  let _selfWrite = false;
+  function markSelfWrite(){ _selfWrite = true; setTimeout(()=>{ _selfWrite=false; }, 1500); }
+
+  function subscribeRealtime(onRecords, onStock){
+    try {
+      onSnapshot(doc(db,'anok','records'), (snap)=>{
+        if(!snap.exists() || snap.metadata.hasPendingWrites || _selfWrite) return;
+        const rs = snap.data().records || [];
+        if(rs.length) onRecords(rs);
+      });
+      onSnapshot(doc(db,'anok','stock'), (snap)=>{
+        if(!snap.exists() || snap.metadata.hasPendingWrites || _selfWrite) return;
+        onStock(snap.data());
+      });
+    } catch(e){ console.log('realtime subscribe error:', e); }
+  }
+
   window._firestore = {
+    subscribe: subscribeRealtime,
+    markSelfWrite: markSelfWrite,
     load: loadFromFirestore,
     save: saveToFirestore,
     loadStock: loadStockFromFirestore,
@@ -4429,6 +4493,11 @@ function renderSettlement(){
 
 function deleteBatch(idx){
   if(!confirm('이 입고 배치를 삭제할까요?')) return;
+  const removed = stockBatches[idx];
+  if(removed && removed.id){
+    window.__deletedBatchIds__ = window.__deletedBatchIds__ || [];
+    window.__deletedBatchIds__.push(removed.id);
+  }
   stockBatches.splice(idx,1);
   saveStockData(); renderStock(); showToast('삭제되었습니다');
 }
@@ -7156,6 +7225,28 @@ setTimeout(async function(){
   if(cur !== 'dashboard'){
     const def = TAB_DEFS.find(d=>d.key===cur);
     if(def && def.render && typeof window[def.render]==='function') window[def.render]();
+  }
+
+  // ── 실시간 동기화 시작 (다른 기기 변경 즉시 반영) ──
+  if(window._firestore && window._firestore.subscribe){
+    window._firestore.subscribe(
+      (rs)=>{                       // records 변경
+        const before = records.length;
+        records = rs;
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){}
+        refreshTargets(); render();
+        if(typeof renderStock==='function' && window.__activeTab==='stock') renderStock();
+        if(rs.length !== before && typeof showToast==='function') showToast('다른 기기의 변경사항을 불러왔습니다');
+      },
+      (sd)=>{                       // stock 변경
+        if(sd.stockInitByMonth) stockInitByMonth = sd.stockInitByMonth;
+        if(Array.isArray(sd.manualOuts))   manualOuts   = sd.manualOuts;
+        if(Array.isArray(sd.stockBatches)) stockBatches = sd.stockBatches;
+        try{ localStorage.setItem(STOCK_KEY, JSON.stringify({stockInitByMonth, stockBatches, manualOuts})); }catch(e){}
+        if(typeof renderStock==='function' && window.__activeTab==='stock') renderStock();
+        render();
+      }
+    );
   }
 }, 500);
 </script>
