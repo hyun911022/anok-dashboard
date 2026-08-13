@@ -184,6 +184,12 @@
   .pop-tbl td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
   .pop-tbl tbody tr:hover td{background:#171B29}
   .pop-tbl tbody tr:last-child td{border-bottom:none}
+  .pay-tbl td.lft, .pay-tbl th.lft{text-align:left}
+  .pay-tbl th:nth-child(1){width:auto;min-width:150px}
+  .pay-tbl th:nth-child(2){width:auto;min-width:130px}
+  .pay-tbl tbody tr{cursor:pointer}
+  .pay-tbl tbody tr:not(.pay-total):hover td{background:#171B29}
+  .pay-tbl tr.pay-total td{border-top:1px solid #2E3350;border-bottom:none;font-weight:700;color:var(--text);padding-top:9px}
   .pop-pl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
   .pop-pl td{padding:7px 10px;color:var(--text2)}
   .pop-pl td:first-child{width:auto}
@@ -398,6 +404,12 @@
     .drill-tbl td { padding:5px 3px !important; }
     .drill-note { font-size:10px !important; }
     #chDrillBody { padding:14px !important; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+    /* 미지급금 */
+    #payableBody { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    #payableBody .pay-tbl { min-width:480px; }
+    .pay-tbl th:nth-child(1){ min-width:100px !important; }
+    .pay-tbl th:nth-child(2){ min-width:100px !important; }
 
     /* 보관처별 재고 카드 */
     #stockLocationCard .pop-tbl { font-size:11px !important; }
@@ -1098,10 +1110,50 @@
       </div>
       <div id="settlementSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px"></div>
       <div id="settlementBody"></div>
+
+      <!-- ── 미지급금 (내가 줘야 하는 돈) ── -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:26px 0 14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:16px;background:linear-gradient(#EF4444,#F87171);border-radius:2px"></div>
+          <span style="font-size:16px;font-weight:700;color:var(--text)">미지급금</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px">세금계산서 발행분 · 지급 예정</span>
+        </div>
+        <button class="ch-btn" onclick="openPayableModal()">+ 추가</button>
+      </div>
+      <div id="payableSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px"></div>
+      <div id="payableBody"></div>
     </div>
   </div>
 
   <!-- SKU 추가 모달 -->
+  <div class="modal-bg" id="payableModalBg" onclick="if(event.target===this)closePayableModal()">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header" style="background:linear-gradient(135deg,#2E1A1A,#4A2A2A)">
+        <h2 style="color:#F87171">미지급금 등록</h2>
+        <button class="modal-close" onclick="closePayableModal()" style="color:#F87171">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">거래처 *</label>
+            <input id="pmVendor" class="inp" placeholder="콜마글로벌 주식회사"></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">품목</label>
+            <input id="pmItem" class="inp" placeholder="아녹 위고 슬림핏"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">발행일</label>
+            <input id="pmIssue" type="date" class="inp"></div>
+          <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">지급기한</label>
+            <input id="pmDue" type="date" class="inp"></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">공급가액 * <span style="color:var(--text3)">(세액 10%는 자동 계산)</span></label>
+          <input id="pmSupply" class="inp" inputmode="numeric" placeholder="7584000">
+        </div>
+        <button onclick="savePayableFromModal()" style="width:100%;background:#B91C1C;border:none;color:#fff;padding:11px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">등록</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-bg" id="addSkuModalBg" onclick="if(event.target===this)closeAddSkuModal()">
     <div class="modal" style="max-width:480px">
       <div class="modal-header" style="background:linear-gradient(135deg,#1A2E1A,#2A4A2A)">
@@ -4474,6 +4526,7 @@ function _stlRow(r, mode){
 }
 
 function renderSettlement(){
+  if(typeof renderPayables==='function') setTimeout(renderPayables,0);
   const sumEl = document.getElementById('settlementSummary');
   const el = document.getElementById('settlementBody');
   if(!el) return;
@@ -6543,6 +6596,117 @@ function drillProfit(list){
   }).join('');
 }
 
+// ══════════════════════════════════════════
+//  미지급금 (매입 세금계산서 · 지급 예정)
+// ══════════════════════════════════════════
+let payables = [];
+
+async function loadPayables(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'payables'));
+    if(snap.exists() && snap.data()?.items) payables = snap.data().items;
+  } catch(e){ console.log('payables load error:', e); }
+}
+
+async function savePayables(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    await setDoc(doc(db, 'anok', 'payables'), {items: payables});
+  } catch(e){ console.log('payables save error:', e); }
+}
+
+function renderPayables(){
+  const sumEl = document.getElementById('payableSummary');
+  const el = document.getElementById('payableBody');
+  if(!el) return;
+  if(sumEl) sumEl.innerHTML = '';
+
+  const unpaid = payables.filter(p=>!p.paid);
+  const done   = payables.filter(p=>p.paid).sort((a,b)=>(b.paidDate||'').localeCompare(a.paidDate||''));
+
+  const block = (list, title, muted) => {
+    if(!list.length) return '';
+    const tSupply = list.reduce((s,p)=>s+(p.supply||0),0);
+    const tTax    = list.reduce((s,p)=>s+(p.tax||0),0);
+    const tAmt    = list.reduce((s,p)=>s+(p.amount||0),0);
+    return `${title?`<div class="pop-sec-lbl" style="margin-top:16px">${title} <span style="font-weight:400;color:var(--text3)">${list.length}건</span></div>`:''}
+    <table class="pop-tbl pay-tbl"${muted?' style="opacity:.55"':''}>
+      <thead><tr><th class="lft">거래처</th><th class="lft">품목</th><th>공급가액</th><th>세액</th><th>합계</th></tr></thead>
+      <tbody>
+        ${list.map(p=>`<tr onclick="togglePayablePaid(${payables.indexOf(p)})" title="클릭하면 ${p.paid?'미지급':'지급완료'}로 변경">
+          <td class="lft" style="color:var(--text2)">${p.vendor||'-'}</td>
+          <td class="lft" style="color:var(--text2)">${p.item||'-'}</td>
+          <td>${(p.supply||0).toLocaleString()}</td>
+          <td>${(p.tax||0).toLocaleString()}</td>
+          <td>${(p.amount||0).toLocaleString()}</td>
+        </tr>`).join('')}
+        <tr class="pay-total">
+          <td class="lft"></td><td class="lft"></td>
+          <td>${tSupply.toLocaleString()}</td>
+          <td>${tTax.toLocaleString()}</td>
+          <td>${tAmt.toLocaleString()}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  };
+
+  el.innerHTML = payables.length===0
+    ? '<div style="text-align:center;color:var(--text3);padding:24px;font-size:12px">등록된 미지급금이 없습니다.</div>'
+    : block(unpaid, '', false) + block(done, '지급 완료', true);
+}
+
+async function togglePayablePaid(idx){
+  const p = payables[idx];
+  if(!p) return;
+  p.paid = !p.paid;
+  p.paidDate = p.paid ? getTodayKST() : '';
+  await savePayables();
+  renderPayables();
+  showToast(p.paid ? '지급 완료로 변경했습니다' : '미지급으로 되돌렸습니다');
+}
+
+async function deletePayable(idx){
+  if(!confirm('이 건을 삭제할까요?')) return;
+  payables.splice(idx,1);
+  await savePayables();
+  renderPayables();
+  showToast('삭제되었습니다');
+}
+
+function openPayableModal(){
+  const bg = document.getElementById('payableModalBg');
+  if(!bg) return;
+  document.getElementById('pmVendor').value = '';
+  document.getElementById('pmItem').value = '';
+  document.getElementById('pmIssue').value = getTodayKST();
+  document.getElementById('pmSupply').value = '';
+  document.getElementById('pmDue').value = '';
+  bg.classList.add('open');
+}
+function closePayableModal(){ document.getElementById('payableModalBg').classList.remove('open'); }
+
+async function savePayableFromModal(){
+  const vendor = document.getElementById('pmVendor').value.trim();
+  const item   = document.getElementById('pmItem').value.trim();
+  const issueDate = document.getElementById('pmIssue').value;
+  const supply = parseInt(document.getElementById('pmSupply').value.replace(/[^0-9-]/g,'')||'0');
+  const dueDate = document.getElementById('pmDue').value;
+  if(!vendor || !supply){ alert('거래처와 공급가액은 필수입니다.'); return; }
+  const tax = Math.round(supply*0.1);
+  payables.push({ id:'pay_'+Date.now(), vendor, item, issueDate, supply, tax, amount: supply+tax, dueDate, paid:false, paidDate:'' });
+  await savePayables();
+  closePayableModal();
+  renderPayables();
+  showToast('미지급금을 등록했습니다');
+}
+
 // 저장/삭제 후 채널 탭이 열려 있으면 갱신
 function refreshChannelPanes(){
   if(window.__activeTab !== 'channel') return;
@@ -7288,7 +7452,7 @@ setTimeout(async function(){
   try{ restoreTab(); }catch(e){ console.log('restoreTab error:', e); }
   await Promise.all([
     loadData(), loadStockData(), loadOrderData(), loadProducts(),
-    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups(), loadFCInbounds()
+    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups(), loadFCInbounds(), loadPayables()
   ].map(p => Promise.resolve(p).catch(e=>console.log('load error:', e))));
   // 로드 완료 후 현재 탭 재렌더 (데이터 반영)
   const cur = window.__activeTab || 'dashboard';
