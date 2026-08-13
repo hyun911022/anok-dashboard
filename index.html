@@ -406,6 +406,9 @@
     #chDrillBody { padding:14px !important; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
     /* 미지급금 */
+    #payableSummary { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
+    #payableSummary > div { padding:11px 12px !important; }
+    #payableSummary > div > div:nth-child(2) { font-size:16px !important; }
     #payableBody { overflow-x:auto; -webkit-overflow-scrolling:touch; }
     #payableBody .pay-tbl { min-width:480px; }
     .pay-tbl th:nth-child(1){ min-width:100px !important; }
@@ -6626,40 +6629,75 @@ function renderPayables(){
   const sumEl = document.getElementById('payableSummary');
   const el = document.getElementById('payableBody');
   if(!el) return;
-  if(sumEl) sumEl.innerHTML = '';
+  const today = getTodayKST();
+  const thisMonth = today.slice(0,7);
 
   const unpaid = payables.filter(p=>!p.paid);
   const done   = payables.filter(p=>p.paid).sort((a,b)=>(b.paidDate||'').localeCompare(a.paidDate||''));
+  const sum = arr => arr.reduce((s,p)=>s+(p.amount||0),0);
 
-  const block = (list, title, muted) => {
-    if(!list.length) return '';
-    const tSupply = list.reduce((s,p)=>s+(p.supply||0),0);
-    const tTax    = list.reduce((s,p)=>s+(p.tax||0),0);
-    const tAmt    = list.reduce((s,p)=>s+(p.amount||0),0);
-    return `${title?`<div class="pop-sec-lbl" style="margin-top:16px">${title} <span style="font-weight:400;color:var(--text3)">${list.length}건</span></div>`:''}
-    <table class="pop-tbl pay-tbl"${muted?' style="opacity:.55"':''}>
+  const overdue  = unpaid.filter(p=>p.dueDate && p.dueDate < today);
+  const upcoming = unpaid.filter(p=>p.dueDate && p.dueDate >= today);
+  const nodate   = unpaid.filter(p=>!p.dueDate);
+  const thisMoSum = sum(unpaid.filter(p=>p.dueDate && p.dueDate.startsWith(thisMonth)));
+
+  if(sumEl){
+    const card = (label, val, color, sub) => `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${label}</div>
+      <div style="font-size:19px;font-weight:800;color:${color};letter-spacing:-0.5px">₩${Math.round(val).toLocaleString()}</div>
+      ${sub?`<div style="font-size:10px;color:var(--text3);margin-top:3px">${sub}</div>`:''}
+    </div>`;
+    sumEl.innerHTML =
+      card('미지급 총액', sum(unpaid), '#F87171', `${unpaid.length}건 · VAT 포함`) +
+      card('지급기한 경과', sum(overdue), sum(overdue)>0?'#F43F5E':'var(--text3)', `${overdue.length}건`) +
+      card('이번 달 지급 예정', thisMoSum, '#FBBF24', `${unpaid.filter(p=>p.dueDate&&p.dueDate.startsWith(thisMonth)).length}건`) +
+      card('이 중 매입세액', unpaid.reduce((s,p)=>s+(p.tax||0),0), '#22C55E', '신고 시 공제');
+  }
+
+  const table = list => `<table class="pop-tbl pay-tbl" style="margin-bottom:0">
       <thead><tr><th class="lft">거래처</th><th class="lft">품목</th><th>공급가액</th><th>세액</th><th>합계</th></tr></thead>
       <tbody>
         ${list.map(p=>`<tr onclick="togglePayablePaid(${payables.indexOf(p)})" title="클릭하면 ${p.paid?'미지급':'지급완료'}로 변경">
           <td class="lft" style="color:var(--text2)">${p.vendor||'-'}</td>
-          <td class="lft" style="color:var(--text2)">${p.item||'-'}</td>
+          <td class="lft" style="color:var(--text2)">${p.item||'-'}${p.issueDate?` <span style="color:var(--text3);font-size:10px">${p.issueDate.slice(5)}</span>`:''}</td>
           <td>${(p.supply||0).toLocaleString()}</td>
           <td>${(p.tax||0).toLocaleString()}</td>
           <td>${(p.amount||0).toLocaleString()}</td>
         </tr>`).join('')}
         <tr class="pay-total">
           <td class="lft"></td><td class="lft"></td>
-          <td>${tSupply.toLocaleString()}</td>
-          <td>${tTax.toLocaleString()}</td>
-          <td>${tAmt.toLocaleString()}</td>
+          <td>${list.reduce((s,p)=>s+(p.supply||0),0).toLocaleString()}</td>
+          <td>${list.reduce((s,p)=>s+(p.tax||0),0).toLocaleString()}</td>
+          <td>${sum(list).toLocaleString()}</td>
         </tr>
-      </tbody>
-    </table>`;
+      </tbody></table>`;
+
+  const section = (title, arr, color, desc, muted) => {
+    if(!arr.length) return '';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px${muted?';opacity:.6':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:3px;height:13px;background:${color};border-radius:2px"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${title}</span>
+          <span style="font-size:11px;color:var(--text3)">${arr.length}건</span>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:#F87171">₩${sum(arr).toLocaleString()}</span>
+      </div>
+      ${desc?`<div style="font-size:10px;color:var(--text3);margin-bottom:6px">${desc}</div>`:''}
+      ${table(arr)}
+    </div>`;
   };
 
-  el.innerHTML = payables.length===0
-    ? '<div style="text-align:center;color:var(--text3);padding:24px;font-size:12px">등록된 미지급금이 없습니다.</div>'
-    : block(unpaid, '', false) + block(done, '지급 완료', true);
+  if(payables.length===0){
+    el.innerHTML = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--text3);font-size:12px">등록된 미지급금이 없습니다.</div>';
+    return;
+  }
+  let out = '';
+  out += section('지급기한 경과', overdue, '#F43F5E', '지급 기한이 지난 건이에요');
+  out += section('지급 예정', upcoming, '#FBBF24');
+  out += section('지급기한 미입력', nodate, '#8898AA', '지급 기한을 입력하면 일정에 반영돼요 · 행을 클릭하면 지급완료로 바뀝니다');
+  out += section('지급 완료', done, '#22C55E', '', true);
+  el.innerHTML = out;
 }
 
 async function togglePayablePaid(idx){
