@@ -6302,6 +6302,8 @@ function countOpenDays(from, to, closedDates){
 }
 
 function popupStatus(p){
+  // 마감 확정된 팝업은 날짜와 무관하게 종료 처리 (마지막 날 데이터까지 입력 완료 시)
+  if(p.closed === true) return 'done';
   const today = (typeof getTodayKST==='function') ? getTodayKST() : new Date().toISOString().slice(0,10);
   if(today < p.fromDate) return 'upcoming';
   if(today > p.toDate) return 'done';
