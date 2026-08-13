@@ -171,12 +171,27 @@
   .pop-target-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
   .pop-avg-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
+  .pop-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:#12151F;border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s}
+  .pop-row:hover{border-color:#3A3F63;background:#161A28}
+  .pop-row-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+  .pop-row-name{font-size:13.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
+  .pop-row-badge{font-size:9px;font-weight:700;border:1px solid;padding:1px 6px;border-radius:999px}
+  .pop-row-date{font-size:11px;color:var(--text3)}
+  .pop-row-nums{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .pop-row-rev{font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+  .pop-row-rate{font-size:12px;color:var(--text2);font-weight:600}
+  .pop-row-sub{font-size:11px;color:var(--text3);font-weight:600}
+  .pop-row-chev{font-size:13px;color:var(--text3);opacity:.5}
   .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .pop-head-num{text-align:right}
   .pop-head-rev{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
   .pop-head-sub{font-size:10px;color:var(--text3)}
   .pop-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:26px;align-items:start;margin-bottom:4px}
   @media(max-width:900px){ .pop-grid{grid-template-columns:1fr;gap:6px} }
+  .pop-note{font-size:10px;color:var(--text3);font-weight:600;padding:7px 10px;background:#0F121C;border-radius:7px;margin:-6px 0 14px;line-height:1.5}
+  .pop-note-warn{color:#D9A441;background:rgba(217,164,65,0.07);border:1px solid rgba(217,164,65,0.18)}
+  .pop-note b{font-weight:800}
   .pop-sec-lbl{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:9px;letter-spacing:-0.2px}
   .pop-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;table-layout:auto}
   .pop-tbl th{font-size:10px;color:var(--text3);font-weight:600;padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;width:88px}
@@ -355,6 +370,15 @@
     .ch-clickable::after { top:7px !important; right:9px !important; }
     .ch-card { padding:13px 13px !important; border-radius:11px !important; }
     .ch-card-head { font-size:12px !important; }
+
+    /* 접힌 팝업 행 */
+    .pop-row { padding:12px 13px !important; gap:6px !important; }
+    .pop-row-main { gap:6px !important; width:100% !important; }
+    .pop-row-name { font-size:13px !important; }
+    .pop-row-date { font-size:10px !important; width:100%; }
+    .pop-row-nums { gap:9px !important; width:100% !important; }
+    .pop-row-rev { font-size:13.5px !important; }
+    .pop-row-chev { margin-left:auto !important; }
 
     /* 팝업 카드 헤더: 실적 좌측 정렬 */
     .pop-head { gap:8px !important; margin-bottom:14px !important; }
@@ -6186,7 +6210,7 @@ async function savePopups(){
 // ── 팝업 집계 ──
 // 위탁 출고량: manualOuts 중 해당 거래처 + 기간 내 + 단가 0 (후정산)
 function calcPopupConsigned(p){
-  const out = {}; STOCK_SKUS.forEach(k=>out[k]=0);
+  const out = {}; STOCK_SKUS.forEach(k=>out[k]= (p.carryIn && p.carryIn[k]) ? p.carryIn[k] : 0);
   (manualOuts||[]).forEach(r=>{
     if(!r.date) return;
     if(p.clientId && r.clientId !== p.clientId) return;
@@ -6207,24 +6231,34 @@ function calcPopupStats(p){
 
   // 총 영업일 (기간 내 휴무 제외)
   const totalDays = countOpenDays(p.fromDate, p.toDate, p.closedDates||[]);
+  const hasTarget = (p.dailyTarget||0) > 0;
   const target = (p.dailyTarget||0) * totalDays;
   const elapsed = open.length;
   const avg = elapsed>0 ? rev/elapsed : 0;
   const forecast = avg * totalDays;
 
-  // 위탁 잔량 = 출고 − 셀아웃
+  // 위탁 잔량 = 출고 − 셀아웃 (추정치)
+  // finalStock(초인 실물 잔량)이 입력되면 그것이 확정값이 되고,
+  // 정산수량 = 출고 − 실물잔량 → 셀아웃과의 차이는 테스터·파손분
   const consigned = calcPopupConsigned(p);
-  const remain = {}; STOCK_SKUS.forEach(k=>remain[k] = (consigned[k]||0) - (sold[k]||0));
+  const hasFinal = !!p.finalStock;
+  const remain = {}; STOCK_SKUS.forEach(k=>{
+    remain[k] = hasFinal ? (p.finalStock[k]||0) : ((consigned[k]||0) - (sold[k]||0));
+  });
+  const billQty = {}; STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0));
+  const testerQty = {}; STOCK_SKUS.forEach(k=>testerQty[k] = (billQty[k]||0) - (sold[k]||0));
 
   // 정산 예정액 (공급가 기준)
   const preset = p.supplyPreset||{};
-  let settleAmt = 0;
-  STOCK_SKUS.forEach(k=>{ settleAmt += (sold[k]||0) * (preset[k]||0); });
-  let cogs = 0;
-  STOCK_SKUS.forEach(k=>{ cogs += (sold[k]||0) * (UNIT_COSTS[k]||0); });
+  let settleAmt = 0, cogs = 0;
+  STOCK_SKUS.forEach(k=>{
+    settleAmt += (billQty[k]||0) * (preset[k]||0);
+    cogs      += (billQty[k]||0) * (UNIT_COSTS[k]||0);
+  });
 
   // GWP (대시보드 재고 미등록 품목 — 팝업 내에서만 관리)
-  const gwpOut = p.gwpConsigned || {};
+  const gwpOut = {};
+  ['ball','tag'].forEach(k=>{ gwpOut[k] = ((p.gwpConsigned||{})[k]||0) + ((p.gwpCarryIn||{})[k]||0); });
   const gwpRemain = {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
 
   // GWP는 '매출 없이 비용만 나가는 상품'으로 취급.
@@ -6251,8 +6285,8 @@ function calcPopupStats(p){
   const netPrf = prf - gwpBurden;
 
   return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
-          avg, forecast, consigned, remain, settleAmt, cogs, prf,
-          gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf,
+          avg, forecast, consigned, remain, billQty, testerQty, hasFinal, settleAmt, cogs, prf,
+          gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf, hasTarget,
           rate: target>0 ? rev/target*100 : 0};
 }
 
@@ -6301,7 +6335,45 @@ function renderChannelPopup(){
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
-    ${list.map(p=>renderPopupCard(p)).join('')}`;
+    ${list.map(p=>{
+      const st = popupStatus(p);
+      const open = (window.__popExpand__ && window.__popExpand__[p.id] !== undefined)
+                   ? window.__popExpand__[p.id] : (st === 'live');
+      return open ? renderPopupCard(p) : renderPopupRow(p, st);
+    }).join('')}`;
+}
+
+// ── 접힌 한 줄 요약 ──
+function renderPopupRow(p, st){
+  const s = calcPopupStats(p);
+  const badge = {live:['진행중','#22C55E'], upcoming:['예정','#60A5FA'], done:['종료','var(--text3)']}[st];
+  const rate = s.hasTarget ? s.rate : null;
+  const rateTxt = rate===null ? '–' : rate.toFixed(0)+'%';
+  const sig = rate===null ? '' : sigRate(rate);
+  return `<div class="pop-row" onclick="togglePopupCard('${p.id}')">
+    <div class="pop-row-main">
+      <span class="pop-row-name">${p.name}</span>
+      <span class="pop-row-badge" style="color:${badge[1]};border-color:${badge[1]}">${badge[0]}</span>
+      <span class="pop-row-date">${p.fromDate.slice(5).replace('-','.')}~${p.toDate.slice(5).replace('-','.')} · ${s.totalDays}일</span>
+    </div>
+    <div class="pop-row-nums">
+      ${st==='upcoming'
+        ? `<span class="pop-row-sub">위탁 ${STOCK_SKUS.reduce((a,k)=>a+(s.consigned[k]||0),0).toLocaleString()}개 준비</span>`
+        : `<span class="pop-row-rev">₩${_chFmt(s.rev)}</span>
+           <span class="pop-row-rate" style="${sig?`color:${sig};font-weight:700`:''}">${rateTxt}</span>
+           <span class="pop-row-sub">순이익 ₩${_chFmt(s.netPrf)}</span>`}
+      <span class="pop-row-chev">›</span>
+    </div>
+  </div>`;
+}
+
+function togglePopupCard(id){
+  window.__popExpand__ = window.__popExpand__ || {};
+  const cur = window.__popExpand__[id];
+  const p = popups.find(x=>x.id===id);
+  const def = p ? (popupStatus(p)==='live') : false;
+  window.__popExpand__[id] = (cur===undefined) ? !def : !cur;
+  renderChannelPopup();
 }
 
 // ── 신호 색상 규칙 ──
@@ -6367,21 +6439,22 @@ function renderPopupCard(p){
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
     const sold = s.sold[k]||0, con = s.consigned[k]||0, rem = s.remain[k]||0;
+    const bill = s.billQty[k]||0, tester = s.testerQty[k]||0;
     const daily = s.elapsed>0 ? sold/s.elapsed : 0;
     const daysLeft = daily>0 ? Math.floor(rem/daily) : null;
-    const danger = daysLeft!==null && daysLeft<=3;
     return `<tr>
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
       <td>${con.toLocaleString()}</td>
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
-      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}</td>
-      <td style="color:var(--text3)">${daily.toFixed(1)}</td>
+      ${s.hasFinal?`<td style="color:var(--text3)">${tester.toLocaleString()}</td>`:''}
+      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>
+      <td style="font-weight:700;color:var(--text)">${bill.toLocaleString()}</td>
       <td style="color:var(--text3);${sigStyle(sigDaysLeft(daysLeft))}">${daysLeft===null?'–':daysLeft+'일'}</td>
     </tr>`;
   }).join('');
 
   return `<div class="ch-card" style="padding:16px 18px">
-    <div class="pop-head">
+    <div class="pop-head" onclick="togglePopupCard('${p.id}')" style="cursor:pointer">
       <div>
         <div style="display:flex;align-items:center;gap:7px">
           <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px">${p.name}</span>
@@ -6392,13 +6465,13 @@ function renderPopupCard(p){
       </div>
       <div class="pop-head-num">
         <div class="pop-head-rev">₩${_chFmt(s.rev)}</div>
-        <div class="pop-head-sub">목표 ₩${_chFmt(s.target)} · 일평균 ₩${_chFmt(s.avg)}</div>
+        <div class="pop-head-sub">${s.hasTarget?`목표 ₩${_chFmt(s.target)} · `:'목표 미설정 · '}일평균 ₩${_chFmt(s.avg)}</div>
       </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin:0 0 16px;padding:9px 12px;background:#0F121C;border-radius:8px">
       <span>진행 ${s.elapsed}/${s.totalDays}일</span>
-      <span style="color:var(--text2);font-weight:700;${sigStyle(sigRate(s.rate))}">${s.rate.toFixed(1)}%</span>
+      <span style="color:var(--text2);font-weight:700;${s.hasTarget?sigStyle(sigRate(s.rate)):''}">${s.hasTarget?s.rate.toFixed(1)+'%':'–'}</span>
       <span>최종 예상 ₩${_chFmt(s.forecast)}</span>
     </div>
 
@@ -6416,11 +6489,15 @@ function renderPopupCard(p){
 
     <div class="pop-grid">
     <div>
-    <div class="pop-sec-lbl">SKU별 판매 · 위탁 잔량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
+    ${p.carryInEstimated?`<div class="pop-note pop-note-warn">이월 물량은 이전 팝업의 <b>추정 잔량</b>입니다. 초인 실물 확인 후 확정됩니다.</div>`:''}
+    <div class="pop-sec-lbl">SKU별 판매 · 정산수량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
     <table class="pop-tbl">
-      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>잔량</th><th>일평균</th><th>소진</th></tr></thead>
+      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th>${s.hasFinal?'<th>테스터등</th>':''}<th>잔량</th><th>정산수량</th><th>소진</th></tr></thead>
       <tbody>${skuRows}</tbody>
     </table>
+    ${s.hasFinal
+      ? `<div class="pop-note">초인 실물 잔량 확정 (${p.finalStockDate||'-'}) · 정산수량 = 위탁출고 − 실물잔량</div>`
+      : `<div class="pop-note pop-note-warn">잔량은 <b>판매수량 기준 추정치</b>입니다. 테스터·파손분이 빠져 있어 실제보다 많습니다. 초인에서 실물 잔량을 받으면 정산수량이 확정됩니다.</div>`}
 
     ${(()=>{
       const g = s.gwpOut||{}, gs = s.gwp||{}, gr = s.gwpRemain||{};
