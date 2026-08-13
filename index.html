@@ -333,7 +333,67 @@
     .profit-banner { padding: 12px 14px; }
     .profit-val { font-size: 18px; }
     .roas-val { font-size: 16px; }
+
+    /* ══════ 채널 탭 (팝업 · 공구 · B2B) ══════ */
+    .chsub { padding:5px 11px !important; font-size:11px !important; }
+    #chSubTabs { gap:5px !important; }
+    .ch-summary { grid-template-columns: repeat(2,1fr) !important; gap:7px !important; }
+    .ch-sum-item { padding:9px 11px !important; }
+    .ch-sum-lbl { font-size:10px !important; margin-bottom:3px !important; }
+    .ch-sum-val { font-size:15px !important; }
+    .ch-sum-sub { font-size:9px !important; }
+    .ch-clickable::after { top:7px !important; right:9px !important; }
+    .ch-card { padding:13px 13px !important; border-radius:11px !important; }
+    .ch-card-head { font-size:12px !important; }
+
+    /* 팝업 카드: 2단 → 1단 */
+    .pop-grid { grid-template-columns: 1fr !important; gap:4px !important; }
+    .pop-sec-lbl { font-size:12px !important; margin-bottom:7px !important; }
+
+    /* 표: 가로 스크롤 대신 폭 압축 */
+    .pop-tbl { font-size:11px !important; margin-bottom:12px !important; }
+    .pop-tbl th { font-size:9px !important; padding:5px 4px !important; width:auto !important; }
+    .pop-tbl th:first-child { min-width:56px !important; }
+    .pop-tbl td { padding:6px 4px !important; }
+    .pop-pl { font-size:11px !important; margin-bottom:12px !important; }
+    .pop-pl td { padding:6px 4px !important; }
+    .pop-pl td:last-child { width:auto !important; }
+    .pop-pl tr.pop-pl-total td { font-size:12px !important; }
+    .pop-pl-note { display:block !important; margin-left:0 !important; font-size:9px !important; }
+
+    /* 일별 차트 */
+    .pop-bars { height:150px !important; gap:3px !important; margin-bottom:30px !important; }
+    .pop-bar-wrap { max-width:none !important; }
+    .pop-bar-val { font-size:8px !important; }
+    .pop-bar-lbl { font-size:9px !important; padding-top:5px !important; }
+    .pop-bar-lbl span { font-size:7px !important; }
+    .pop-chart-title { font-size:12px !important; }
+    /* 범례: 헤더 아래 줄바꿈 (가로로 붙으면 잘림) */
+    .pop-chart-head { flex-direction:column !important; align-items:flex-start !important; gap:5px !important; }
+    .pop-chart-legend { font-size:8px !important; }
+    .pop-chart-legend i { width:6px !important; height:6px !important; }
+    /* 기준선 라벨: 좌우로 분리해 막대 가림 최소화 */
+    .pop-target-line span, .pop-avg-line span { font-size:7.5px !important; padding:1px 4px !important; top:-12px !important; }
+    .pop-avg-line span { right:auto !important; left:0 !important; }
+
+    /* 하단 요약: 2열 */
+    .pop-foot { grid-template-columns: repeat(2,1fr) !important; gap:10px !important; }
+    .pop-foot-val { font-size:12.5px !important; }
+    .pop-foot-lbl, .pop-foot-sub { font-size:9px !important; }
+
+    /* 드릴다운 모달 */
+    .drill-sec { font-size:12.5px !important; }
+    .drill-tbl { font-size:10.5px !important; }
+    .drill-tbl th { font-size:9px !important; padding:5px 3px !important; }
+    .drill-tbl td { padding:5px 3px !important; }
+    .drill-note { font-size:10px !important; }
+    #chDrillBody { padding:14px !important; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+    /* 보관처별 재고 카드 */
+    #stockLocationCard .pop-tbl { font-size:11px !important; }
+    #stockLocationCard > div { padding:14px 13px !important; }
   }
+
 </style>
 
 <script type="module">
