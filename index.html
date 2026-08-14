@@ -171,6 +171,42 @@
   .pop-target-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
   .pop-avg-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
+  .b2b-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:18px}
+  .b2b-sum-item{background:#12151F;border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+  .b2b-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px}
+  .b2b-sum-val{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;font-variant-numeric:tabular-nums}
+  .b2b-sum-sub{font-size:9px;color:var(--text3);font-weight:600;margin-top:3px}
+  .b2b-sec{margin-bottom:20px}
+  .b2b-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .b2b-sec-title{font-size:12.5px;font-weight:700;color:#9B6DFF;letter-spacing:-0.2px}
+  .pop-tbl.b2b-tbl{table-layout:fixed;width:100%}
+  .pop-tbl.b2b-tbl th{padding:6px 6px}
+  .pop-tbl.b2b-tbl td{padding:7px 6px;white-space:normal;word-break:keep-all;line-height:1.45}
+  .pop-tbl.b2b-tbl th:nth-child(1){width:44px}
+  .pop-tbl.b2b-tbl td:nth-last-child(-n+3){white-space:nowrap}
+  /* 납품 표 (6열) */
+  .pop-tbl.b2b-deliv th:nth-child(2){width:22%}
+  .pop-tbl.b2b-deliv th:nth-child(4),.pop-tbl.b2b-deliv th:nth-child(5){width:19%}
+  .pop-tbl.b2b-deliv th:nth-child(6){width:38px}
+  /* 비용 표 (4열) */
+  .pop-tbl.b2b-exp th:nth-child(3){width:100px}
+  .pop-tbl.b2b-exp th:nth-child(4){width:44px}
+  /* 공구 표 (7열) */
+  .pop-tbl.b2b-gb th:nth-child(1){width:88px}
+  .pop-tbl.b2b-gb th:nth-child(3){width:52px}
+  .pop-tbl.b2b-gb th:nth-child(4),.pop-tbl.b2b-gb th:nth-child(5){width:88px}
+  .pop-tbl.b2b-gb th:nth-child(6){width:38px}
+  .pop-tbl.b2b-gb th:nth-child(7){width:56px}
+  .b2b-qty{display:block;font-size:10px;color:var(--text3);font-weight:600;margin-top:1px}
+  .b2b-tbl td.lft,.b2b-tbl th.lft{text-align:left}
+  .b2b-tbl td.b2b-dim{color:var(--text3)}
+  .b2b-tbl tbody tr:hover td{background:#171B29}
+  .b2b-tbl tr.b2b-total td{border-top:1px solid #2E3350;border-bottom:none;font-weight:700;color:var(--text);padding-top:9px}
+  .b2b-tbl tr.b2b-total:hover td{background:transparent}
+  .b2b-act{white-space:nowrap;text-align:right}
+  .b2b-act button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:2px 5px;font-weight:600}
+  .b2b-act button:hover{color:var(--text)}
+  .b2b-empty{text-align:center;color:var(--text3);padding:20px;font-size:12px;background:#12151F;border:1px solid var(--border);border-radius:10px}
   .pop-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     background:#12151F;border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s}
   .pop-row:hover{border-color:#3A3F63;background:#161A28}
@@ -5995,96 +6031,91 @@ const CH_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'�
 const _chFmt = v => Math.round(v).toLocaleString();
 
 function buildB2BDeliveryHTML(month){
-  const fmt = _chFmt, skuNames = CH_SKU_NAMES;
-  const b2bRecs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0)).sort((a,b) => b.date.localeCompare(a.date));
-  let b2bTotRev=0, b2bTotPrf=0;
-  const b2bRows = b2bRecs.map(r => {
-    let rowRev=0, rowPrf=0;
-    const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0).map(k=>{
+  const recs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0))
+                         .sort((a,b) => b.date.localeCompare(a.date));
+  let totRev=0, totPrf=0;
+  const rows = recs.map(r => {
+    const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0);
+    return items.map((k,i) => {
       const rev = r[k]*r['price_'+k];
       const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
-      b2bTotRev += rev; b2bTotPrf += prf;
-      rowRev += rev; rowPrf += prf;
-      return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:2px 0">
-        <span>${skuNames[k]||k} ${r[k]}개 @₩${r['price_'+k].toLocaleString()}</span>
-        <span style="color:var(--text2)">₩${rev.toLocaleString()} (이익 ₩${prf.toLocaleString()})</span>
-      </div>`;
+      totRev += rev; totPrf += prf;
+      return `<tr>
+        <td class="lft b2b-dim">${i===0 ? r.date.slice(5) : ''}</td>
+        <td class="lft">${i===0 ? (r.clientName||r.reason||'-') : ''}</td>
+        <td class="lft">${CH_SKU_NAMES[k]||k}<span class="b2b-qty">${r[k].toLocaleString()}개 · @${r['price_'+k].toLocaleString()}</span></td>
+        <td>${rev.toLocaleString()}</td>
+        <td>${prf.toLocaleString()}</td>
+        <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
+      </tr>`;
     }).join('');
-    const rowMargin = rowRev>0?Math.round(rowPrf/rowRev*100):0;
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${r.date} · ${r.reason||'B2B 납품'}${r.clientName?' · <span style=\'color:var(--text2)\'>'+r.clientName+'</span>':''}</div>
-      ${items}
-      <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0 0;margin-top:3px;border-top:1px dashed var(--border)">
-        <span style="color:var(--text3);font-weight:600">건 합계</span>
-        <span style="font-weight:700;color:var(--text2)">₩${rowRev.toLocaleString()} <span style="font-weight:600;color:var(--text3)">(이익 ₩${rowPrf.toLocaleString()} · ${rowMargin}%)</span></span>
-      </div>
-    </div>`;
   }).join('');
-  const html = b2bRecs.length===0
-    ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 납품 실적이 없습니다.</div>'
-    : b2bRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:11px;font-weight:700;color:var(--text2)">B2B 합계</span>
-        <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(b2bTotRev)}</div>
-          <div style="font-size:10px;color:var(--text3);font-weight:600">이익 ₩${fmt(b2bTotPrf)} (마진 ${b2bTotRev>0?Math.round(b2bTotPrf/b2bTotRev*100):0}%)</div>
-        </div>
-      </div>`;
-  return {html, rev:b2bTotRev, prf:b2bTotPrf, count:b2bRecs.length};
+
+  const html = recs.length===0
+    ? '<div class="b2b-empty">이번 달 B2B 납품 실적이 없습니다.</div>'
+    : `<table class="pop-tbl b2b-tbl b2b-deliv">
+        <thead><tr><th class="lft">일자</th><th class="lft">거래처</th><th class="lft">품목</th><th>매출</th><th>이익</th><th>마진</th></tr></thead>
+        <tbody>${rows}
+          <tr class="b2b-total"><td class="lft" colspan="3">합계 ${recs.length}건</td>
+            <td>${totRev.toLocaleString()}</td><td>${totPrf.toLocaleString()}</td>
+            <td>${totRev>0?Math.round(totPrf/totRev*100):0}%</td></tr>
+        </tbody></table>`;
+  return {html, rev:totRev, prf:totPrf, count:recs.length};
 }
 
 function buildGroupBuyHTML(month){
-  const fmt = _chFmt;
-  const monthGB = (typeof groupBuys !== 'undefined' ? groupBuys : []).filter(gb => gb.toDate && gb.toDate.startsWith(month)).sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''));
-  let gbTotRev=0, gbTotPrf=0;
-  const gbRows = monthGB.map((gb)=>{
-    const realIdx = groupBuys.indexOf(gb);
-    gbTotRev += gb.revenue||0; gbTotPrf += gb.netProfit||0;
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">${gb.label} <span style="font-size:10px;color:var(--text3);font-weight:400">${gb.fromDate}~${gb.toDate}</span></div>
-        <div style="font-size:11px;color:var(--text3)">샴푸 ${gb.shampoo||0} · 트리트먼트 ${gb.treatment||0} · 바디워시 ${gb.bodywash||0} · 바디로션 ${gb.bodylotion||0}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">매출 ₩${(gb.revenue||0).toLocaleString()} · 순수익 ₩${(gb.netProfit||0).toLocaleString()}</div>
-      </div>
-      <div style="display:flex;gap:2px;margin-left:8px">
-        <button onclick="openGroupBuyModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 5px" title="수정">✏️</button>
-        <button onclick="deleteGroupBuy(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 5px" title="삭제">×</button>
-      </div>
-    </div>`;
+  const list = (typeof groupBuys !== 'undefined' ? groupBuys : [])
+    .filter(gb => gb.toDate && gb.toDate.startsWith(month))
+    .sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''));
+  let totRev=0, totPrf=0;
+  const rows = list.map(gb=>{
+    const i = groupBuys.indexOf(gb);
+    totRev += gb.revenue||0; totPrf += gb.netProfit||0;
+    const qty = STOCK_SKUS.reduce((s,k)=>s+(gb[k]||0),0);
+    return `<tr>
+      <td class="lft b2b-dim">${(gb.fromDate||'').slice(5)}~${(gb.toDate||'').slice(5)}</td>
+      <td class="lft">${gb.label||'-'}</td>
+      <td>${qty.toLocaleString()}</td>
+      <td>${(gb.revenue||0).toLocaleString()}</td>
+      <td>${(gb.netProfit||0).toLocaleString()}</td>
+      <td class="b2b-dim">${gb.revenue>0?Math.round((gb.netProfit||0)/gb.revenue*100):0}%</td>
+      <td class="b2b-act"><button onclick="event.stopPropagation();openGroupBuyModal(${i})">수정</button><button onclick="event.stopPropagation();deleteGroupBuy(${i})">×</button></td>
+    </tr>`;
   }).join('');
-  const html = monthGB.length===0
-    ? '<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 공구 실적이 없습니다.</div>'
-    : gbRows + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:11px;font-weight:700;color:var(--text2)">공구 합계</span>
-        <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">매출 ₩${fmt(gbTotRev)}</div>
-          <div style="font-size:10px;color:var(--text3);font-weight:600">순수익 ₩${fmt(gbTotPrf)} (${gbTotRev>0?Math.round(gbTotPrf/gbTotRev*100):0}%)</div>
-        </div>
-      </div>`;
-  return {html, rev:gbTotRev, prf:gbTotPrf, count:monthGB.length};
+  const html = list.length===0
+    ? '<div class="b2b-empty">이번 달 공구 실적이 없습니다.</div>'
+    : `<table class="pop-tbl b2b-tbl b2b-gb">
+        <thead><tr><th class="lft">기간</th><th class="lft">공구명</th><th>수량</th><th>매출</th><th>순수익</th><th>마진</th><th></th></tr></thead>
+        <tbody>${rows}
+          <tr class="b2b-total"><td class="lft" colspan="3">합계 ${list.length}건</td>
+            <td>${totRev.toLocaleString()}</td><td>${totPrf.toLocaleString()}</td>
+            <td>${totRev>0?Math.round(totPrf/totRev*100):0}%</td><td></td></tr>
+        </tbody></table>`;
+  return {html, rev:totRev, prf:totPrf, count:list.length};
 }
 
 function buildB2BExpenseHTML(month){
-  const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='b2b').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  if(monthExp.length===0){
-    return {html:'<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px">이번 달 B2B 부대비용이 없습니다.</div>', sum:0, count:0};
-  }
-  const expSum = monthExp.reduce((s,x)=>s+(x.amount||0),0);
-  const html = monthExp.map(x=>{
-    const realIdx = expenses.indexOf(x);
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${x.note||'기타 비용'} <span style="font-size:10px;color:var(--text3);font-weight:400">${x.date}</span></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
-        <div style="font-size:13px;font-weight:700;color:var(--text2)">−₩${(x.amount||0).toLocaleString()}</div>
-        <button onclick="openExpenseModal(${realIdx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px">수정</button>
-      </div>
-    </div>`;
-  }).join('') + `<div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:11px;font-weight:700;color:var(--text2)">비용 합계</span>
-    <div style="font-size:12px;font-weight:700;color:var(--text)">−₩${expSum.toLocaleString()}</div>
-  </div>`;
-  return {html, sum:expSum, count:monthExp.length};
+  const list = (typeof expenses!=='undefined' ? expenses : [])
+    .filter(x=>x.date && x.date.startsWith(month) && x.category==='b2b')
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(list.length===0) return {html:'<div class="b2b-empty">이번 달 B2B 부대비용이 없습니다.</div>', sum:0, count:0};
+  const sum = list.reduce((s,x)=>s+(x.amount||0),0);
+  const rows = list.map(x=>{
+    const i = expenses.indexOf(x);
+    return `<tr>
+      <td class="lft b2b-dim">${(x.date||'').slice(5)}</td>
+      <td class="lft">${x.note||'기타 비용'}</td>
+      <td>−${(x.amount||0).toLocaleString()}</td>
+      <td class="b2b-act"><button onclick="event.stopPropagation();openExpenseModal(${i})">수정</button></td>
+    </tr>`;
+  }).join('');
+  const html = `<table class="pop-tbl b2b-tbl b2b-exp">
+      <thead><tr><th class="lft">일자</th><th class="lft">항목</th><th>금액</th><th></th></tr></thead>
+      <tbody>${rows}
+        <tr class="b2b-total"><td class="lft" colspan="2">합계 ${list.length}건</td>
+          <td>−${sum.toLocaleString()}</td><td></td></tr>
+      </tbody></table>`;
+  return {html, sum, count:list.length};
 }
 
 function openB2BDetail(){
@@ -6092,21 +6123,32 @@ function openB2BDetail(){
   const b2b = buildB2BDeliveryHTML(month);
   const gb  = buildGroupBuyHTML(month);
   const exp = buildB2BExpenseHTML(month);
+  const net = b2b.prf + gb.prf - exp.sum;
+  const rev = b2b.rev + gb.rev;
+
+  const card = (label, val, sub) => `<div class="b2b-sum-item">
+      <div class="b2b-sum-lbl">${label}</div>
+      <div class="b2b-sum-val">₩${_chFmt(val)}</div>
+      ${sub?`<div class="b2b-sum-sub">${sub}</div>`:''}
+    </div>`;
+
+  const sec = (title, body, btn) => `<div class="b2b-sec">
+      <div class="b2b-sec-head">
+        <span class="b2b-sec-title">${title}</span>
+        ${btn||''}
+      </div>${body}
+    </div>`;
+
   document.getElementById('b2bDetailBody').innerHTML = `
-    <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#9B6DFF">B2B 납품</div>
+    <div class="b2b-sum">
+      ${card('매출', rev, `납품 ${b2b.count}건 · 공구 ${gb.count}건`)}
+      ${card('상품이익', b2b.prf + gb.prf, rev>0?`마진 ${Math.round((b2b.prf+gb.prf)/rev*100)}%`:'')}
+      ${card('부대비용', -exp.sum, `${exp.count}건`)}
+      ${card('순이익', net, rev>0?`마진 ${Math.round(net/rev*100)}%`:'')}
     </div>
-    ${b2b.html}
-    <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#9B6DFF">공구 실적</div>
-      <button onclick="openGroupBuyModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 공구 추가</button>
-    </div>
-    ${gb.html}
-    <div style="margin-top:20px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:13px;font-weight:700;color:#9B6DFF">B2B 부대비용</div>
-      <button onclick="openExpenseModal()" style="background:#1A1D27;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">+ 비용 추가</button>
-    </div>
-    ${exp.html}
+    ${sec('B2B 납품', b2b.html)}
+    ${sec('공구 실적', gb.html, '<button class="ch-btn" onclick="openGroupBuyModal()">+ 공구 추가</button>')}
+    ${sec('부대비용', exp.html, '<button class="ch-btn" onclick="openExpenseModal()">+ 비용 추가</button>')}
   `;
   document.getElementById('b2bDetailBg').classList.add('open');
 }
