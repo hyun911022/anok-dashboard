@@ -6311,6 +6311,7 @@ function calcPopupStats(p){
   });
   const billQty = {}; STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0));
   const testerQty = {}; STOCK_SKUS.forEach(k=>testerQty[k] = (billQty[k]||0) - (sold[k]||0));
+  const usedQty = billQty;   // 소진 = 정산수량 (위탁출고 − 실물잔량)
 
   // 정산 예정액 (공급가 기준)
   const preset = p.supplyPreset||{};
@@ -6323,7 +6324,9 @@ function calcPopupStats(p){
   // GWP (대시보드 재고 미등록 품목 — 팝업 내에서만 관리)
   const gwpOut = {};
   ['ball','tag'].forEach(k=>{ gwpOut[k] = ((p.gwpConsigned||{})[k]||0) + ((p.gwpCarryIn||{})[k]||0); });
-  const gwpRemain = {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
+  const gwpRemain = p.gwpFinalStock
+    ? {ball:(p.gwpFinalStock.ball||0), tag:(p.gwpFinalStock.tag||0)}
+    : {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
 
   // GWP는 '매출 없이 비용만 나가는 상품'으로 취급.
   // 개당 순부담 = 원가 − (명세단가 × 분담률). 소진된 수량만 손익에 반영하고
@@ -6333,23 +6336,28 @@ function calcPopupStats(p){
   const share = (p.gwpShareRate !== undefined) ? p.gwpShareRate : 1;
   let gwpBilled = 0, gwpCogs = 0, gwpBurden = 0, gwpDeferred = 0;
   const gwpDetail = [];
+  const gwpFinal = p.gwpFinalStock || null;
   ['ball','tag'].forEach(k=>{
-    const used = gwp[k]||0, out = gwpOut[k]||0;
+    const out = gwpOut[k]||0;
+    const sold = gwp[k]||0;                                   // 셀아웃(판매)
+    const rest = gwpFinal ? (gwpFinal[k]||0) : Math.max(0,out-sold);   // 실물 잔량
+    const used = gwpFinal ? (out - rest) : sold;              // 실제 소진 = 정산수량
+    const other = Math.max(0, used - sold);                   // 기타(DP·샘플 등)
     const unitCost = gwpUnitC[k]||0;
     const unitRecv = (gwpList[k]||0) * share;
-    const unitNet  = unitCost - unitRecv;      // 개당 퍼드 순부담
+    const unitNet  = unitCost - unitRecv;
     gwpBilled   += used * unitRecv;
     gwpCogs     += used * unitCost;
     gwpBurden   += used * unitNet;
-    gwpDeferred += Math.max(0, out-used) * unitNet;
-    if(out>0 || used>0) gwpDetail.push({key:k, out, used, unitCost, unitRecv, unitNet, burden:used*unitNet});
+    gwpDeferred += rest * unitNet;
+    if(out>0 || used>0) gwpDetail.push({key:k, out, sold, other, used, rest, unitCost, unitRecv, unitNet, burden:used*unitNet});
   });
   const prf = settleAmt - cogs;
   const totalSettle = settleAmt + gwpBilled;
   const netPrf = prf - gwpBurden;
 
   return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
-          avg, forecast, consigned, remain, billQty, testerQty, hasFinal, settleAmt, cogs, prf,
+          avg, forecast, consigned, remain, billQty, testerQty, usedQty, hasFinal, settleAmt, cogs, prf,
           gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf, hasTarget,
           rate: target>0 ? rev/target*100 : 0};
 }
@@ -6505,17 +6513,15 @@ function renderPopupCard(p){
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
     const sold = s.sold[k]||0, con = s.consigned[k]||0, rem = s.remain[k]||0;
-    const bill = s.billQty[k]||0, tester = s.testerQty[k]||0;
-    const daily = s.elapsed>0 ? sold/s.elapsed : 0;
-    const daysLeft = daily>0 ? Math.floor(rem/daily) : null;
+    const used = s.usedQty[k]||0, other = s.testerQty[k]||0;
     return `<tr>
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
       <td>${con.toLocaleString()}</td>
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
-      ${s.hasFinal?`<td style="color:var(--text3)">${tester.toLocaleString()}</td>`:''}
+      <td style="color:var(--text3)">${s.hasFinal ? other.toLocaleString() : '–'}</td>
+      <td style="color:var(--text)">${used.toLocaleString()}</td>
       <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>
-      <td style="font-weight:700;color:var(--text)">${bill.toLocaleString()}</td>
-      <td style="color:var(--text3);${sigStyle(sigDaysLeft(daysLeft))}">${daysLeft===null?'–':daysLeft+'일'}</td>
+      <td style="font-weight:700;color:var(--text)">${used.toLocaleString()}</td>
     </tr>`;
   }).join('');
 
@@ -6558,7 +6564,7 @@ function renderPopupCard(p){
     ${p.carryInEstimated?`<div class="pop-note pop-note-warn">이월 물량은 이전 팝업의 <b>추정 잔량</b>입니다. 초인 실물 확인 후 확정됩니다.</div>`:''}
     <div class="pop-sec-lbl">SKU별 판매 · 정산수량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
     <table class="pop-tbl">
-      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th>${s.hasFinal?'<th>테스터등</th>':''}<th>잔량</th><th>정산수량</th><th>소진</th></tr></thead>
+      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>기타</th><th>소진</th><th>잔량</th><th>정산수량</th></tr></thead>
       <tbody>${skuRows}</tbody>
     </table>
     ${s.hasFinal
@@ -6566,29 +6572,25 @@ function renderPopupCard(p){
       : `<div class="pop-note pop-note-warn">잔량은 <b>판매수량 기준 추정치</b>입니다. 테스터·파손분이 빠져 있어 실제보다 많습니다. 초인에서 실물 잔량을 받으면 정산수량이 확정됩니다.</div>`}
 
     ${(()=>{
-      const g = s.gwpOut||{}, gs = s.gwp||{}, gr = s.gwpRemain||{};
-      const items = [['ball','샤워볼'],['tag','프래그런스 샤쉐']].filter(([k])=>(g[k]||0)>0 || (gs[k]||0)>0);
-      if(!items.length) return '';
+      const det = s.gwpDetail||[];
+      if(!det.length) return '';
+      const label = {ball:'샤워볼', tag:'프래그런스 샤쉐'};
       return `<div class="pop-sec-lbl" style="margin-top:2px">GWP 소진 <span style="font-weight:400;color:var(--text3)">(재고 미등록 · 팝업 내 관리)</span></div>
       <table class="pop-tbl">
-        <thead><tr><th style="text-align:left">품목</th><th>출고</th><th>소진</th><th>잔량</th><th>개당부담</th><th>비용</th></tr></thead>
-        <tbody>${items.map(([k,label])=>{
-          const out=g[k]||0, used=gs[k]||0, rem=gr[k]||0;
-          const det = (s.gwpDetail||[]).find(x=>x.key===k) || {unitNet:0, burden:0};
-          return `<tr>
-            <td style="text-align:left;color:var(--text2);font-weight:600">${label}</td>
-            <td>${out.toLocaleString()}</td>
-            <td style="color:var(--text)">${used.toLocaleString()}</td>
-            <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}</td>
-            <td style="color:var(--text3)">₩${_chFmt(det.unitNet)}</td>
-            <td style="color:var(--text2)">₩${_chFmt(det.burden)}</td>
-          </tr>`;
-        }).join('')}</tbody>
+        <thead><tr><th style="text-align:left">품목</th><th>출고</th><th>판매</th><th>기타</th><th>소진</th><th>잔량</th><th>개당부담</th><th>비용</th></tr></thead>
+        <tbody>${det.map(d=>`<tr>
+          <td style="text-align:left;color:var(--text2);font-weight:600">${label[d.key]||d.key}</td>
+          <td>${d.out.toLocaleString()}</td>
+          <td style="color:var(--text)">${d.sold.toLocaleString()}</td>
+          <td style="color:var(--text3)">${s.hasFinal||p.gwpFinalStock ? d.other.toLocaleString() : '–'}</td>
+          <td style="color:var(--text)">${d.used.toLocaleString()}</td>
+          <td style="color:var(--text2);font-weight:600">${d.rest.toLocaleString()}</td>
+          <td style="color:var(--text3)">₩${_chFmt(d.unitNet)}</td>
+          <td style="color:var(--text2)">₩${_chFmt(d.burden)}</td>
+        </tr>`).join('')}</tbody>
       </table>`;
     })()}
 
-    </div>
-    <div>
     <div class="pop-sec-lbl">정산 손익</div>
     <table class="pop-pl">
       <tbody>
