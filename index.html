@@ -171,11 +171,14 @@
   .pop-target-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
   .pop-avg-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
-  .b2b-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:18px}
-  .b2b-sum-item{background:#12151F;border:1px solid var(--border);border-radius:10px;padding:11px 13px}
-  .b2b-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px}
-  .b2b-sum-val{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;font-variant-numeric:tabular-nums}
-  .b2b-sum-sub{font-size:9px;color:var(--text3);font-weight:600;margin-top:3px}
+  .b2b-sum{display:grid;grid-template-columns:repeat(4,1fr);background:#12151F;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;margin-bottom:18px}
+  .b2b-sum-item{padding:13px 14px;border-left:1px solid var(--border)}
+  .b2b-sum-item:first-child{border-left:none}
+  .b2b-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
+  .b2b-sum-val{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.4px;font-variant-numeric:tabular-nums;line-height:1.2}
+  .b2b-sum-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:4px;min-height:12px}
+  .b2b-sum-item:last-child .b2b-sum-val{color:#fff}
   .b2b-sec{margin-bottom:20px}
   .b2b-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .b2b-sec-title{font-size:12.5px;font-weight:700;color:#9B6DFF;letter-spacing:-0.2px}
@@ -427,6 +430,9 @@
     .pop-tbl.b2b-gb th:nth-child(3){ display:none !important; }
     .pop-tbl.b2b-gb td:nth-child(3){ display:none !important; }
     .b2b-sum { grid-template-columns:repeat(2,1fr) !important; }
+    .b2b-sum-item { padding:11px 12px !important; }
+    .b2b-sum-item:nth-child(3){ border-left:none !important; }
+    .b2b-sum-item:nth-child(n+3){ border-top:1px solid var(--border) !important; }
     .b2b-sum-val { font-size:15px !important; }
 
     /* 접힌 팝업 행 */
@@ -6154,10 +6160,10 @@ function openB2BDetail(){
   const net = b2b.prf + gb.prf - exp.sum;
   const rev = b2b.rev + gb.rev;
 
-  const card = (label, val, sub) => `<div class="b2b-sum-item">
+  const card = (label, val, sub, neg) => `<div class="b2b-sum-item">
       <div class="b2b-sum-lbl">${label}</div>
-      <div class="b2b-sum-val">₩${_chFmt(val)}</div>
-      ${sub?`<div class="b2b-sum-sub">${sub}</div>`:''}
+      <div class="b2b-sum-val">${neg&&val>0?'−':''}₩${_chFmt(Math.abs(val))}</div>
+      <div class="b2b-sum-sub">${sub||''}</div>
     </div>`;
 
   const sec = (title, body, btn) => `<div class="b2b-sec">
@@ -6171,7 +6177,7 @@ function openB2BDetail(){
     <div class="b2b-sum">
       ${card('매출', rev, `납품 ${b2b.count}건 · 공구 ${gb.count}건`)}
       ${card('상품이익', b2b.prf + gb.prf, rev>0?`마진 ${Math.round((b2b.prf+gb.prf)/rev*100)}%`:'')}
-      ${card('부대비용', -exp.sum, `${exp.count}건`)}
+      ${card('부대비용', exp.sum, `${exp.count}건`, true)}
       ${card('순이익', net, rev>0?`마진 ${Math.round(net/rev*100)}%`:'')}
     </div>
     ${sec('B2B 납품', b2b.html)}
