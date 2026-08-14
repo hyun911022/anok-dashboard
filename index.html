@@ -139,6 +139,18 @@
   .ch-sum-lbl{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
   .ch-sum-val{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.4px}
   .ch-sum-sub{font-size:10px;color:var(--text3);font-weight:600;margin-top:4px;letter-spacing:-0.1px}
+
+  .alert-wrap{background:#12151F;border:1px solid var(--border);border-radius:14px;padding:15px 17px;margin-bottom:16px}
+  .alert-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+  .alert-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
+  .alert-count{font-size:11px;color:var(--text3);font-weight:600}
+  .alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+  .alert-item{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1px solid;border-radius:9px;cursor:pointer;transition:transform .12s}
+  .alert-item:hover{transform:translateY(-1px)}
+  .alert-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+  .alert-txt{font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.35}
+  .alert-sub{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .alert-empty{text-align:center;color:var(--text3);font-size:12px;padding:8px 0}
   .ch-clickable{cursor:pointer;transition:border-color .15s,background .15s;position:relative}
   .ch-clickable:hover{border-color:#3A3F63;background:#161A28}
   .ch-clickable::after{content:'›';position:absolute;top:9px;right:11px;font-size:13px;color:var(--text3);opacity:.5}
@@ -788,19 +800,8 @@
   <!-- 대시보드 탭 -->
   <div id="tabDashboard">
 
-    <!-- 월간 성과 요약 배너 -->
-    <div style="background:linear-gradient(135deg,#1C3A2A 0%,#2E6347 100%);border-radius:14px;padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:rgba(255,255,255,0.03);border-radius:50%"></div>
-      <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;background:rgba(99,102,241,0.15);border-radius:50%"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📊</div>
-        <div>
-          <div style="color:#fff;font-size:14px;font-weight:700" id="insightTitle">월간 성과 요약</div>
-          <div style="color:#7B96B2;font-size:11px;margin-top:1px" id="insightSubtitle">—</div>
-        </div>
-      </div>
-      <div style="color:#AEC6E8;font-size:12px;line-height:1.6" id="insightSummaryText">—</div>
-    </div>
+    <!-- 오늘 챙길 것 -->
+    <div id="alertBanner" class="alert-wrap"></div>
 
     <!-- 채널 매출 + 수익 통합 그리드 -->
     <div class="channel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;grid-template-rows:auto;gap:12px;margin-bottom:20px">
@@ -874,7 +875,7 @@
           <span style="color:var(--text3)">공구 <span id="kpiGBOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
-          <div class="kpi-label" style="color:#60A5FA">B2B 수익</div>
+          <div class="kpi-label" style="color:#60A5FA">B2B 순이익 <span style="color:var(--text3);font-weight:400">부대비용 차감</span></div>
           <div class="kpi-value" id="profitB2BVal" style="margin:4px 0">-</div>
           <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
             <span style="color:var(--text3)">납품 <span id="profitB2BOnly" style="color:var(--text2);font-weight:600">-</span></span>
@@ -1967,7 +1968,12 @@ function render(){
   if(gbOnlyEl) gbOnlyEl.textContent='₩'+fmt(Math.round(_gbM.rev));
   if(b2bPrfOnlyEl) b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
   if(gbPrfOnlyEl) gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbM.prf));
-  if(b2bPrfEl){ b2bPrfEl.textContent=(_combPrf>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combPrf))); b2bPrfEl.style.color=_combPrf>=0?'var(--text)':'#E24B4A'; }
+  // B2B 순이익 = 상품이익 − B2B 부대비용
+  const _b2bExpM = (typeof expenses!=='undefined' ? expenses : [])
+    .filter(x=>x.date && x.date.startsWith(selectedMonth) && x.category==='b2b')
+    .reduce((s,x)=>s+(x.amount||0),0);
+  const _combNet = _combPrf - _b2bExpM;
+  if(b2bPrfEl){ b2bPrfEl.textContent=(_combNet>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combNet))); b2bPrfEl.style.color=_combNet>=0?'var(--text)':'#E24B4A'; }
   const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
@@ -2758,8 +2764,9 @@ function renderInsight(){
   const daysInMonth = new Date(_iy, _im, 0).getDate();
 
   if(!days){
-    document.getElementById('insightSubtitle').textContent='데이터 없음';
-    document.getElementById('insightSummaryText').textContent='이번 달 입력된 데이터가 없습니다.';
+    if(typeof renderAlerts==='function') renderAlerts();
+    const _s1=document.getElementById('insightSubtitle'); if(_s1) _s1.textContent='데이터 없음';
+    const _s2=document.getElementById('insightSummaryText'); if(_s2) _s2.textContent='이번 달 입력된 데이터가 없습니다.';
     document.getElementById('insightCards').innerHTML='';
     document.getElementById('insightChannelRow').innerHTML='';
     return;
@@ -2810,14 +2817,16 @@ function renderInsight(){
   const effectiveProjTotal = isPastMonth ? grandTotRev : projTotal;
   const effectiveProjAchRate = Math.round(effectiveProjTotal / targetTotal * 100);
 
-  document.getElementById('insightTitle').textContent = isPastMonth ? `${_im}월 최종 리포트` : '월간 성과 요약';
-  document.getElementById('insightSubtitle').textContent = isPastMonth
-    ? `${_im}월 최종 실적`
-    : `${_im}월 ${days}일 기준`;
+  if(typeof renderAlerts==='function') renderAlerts();
+  const _ttlEl=document.getElementById('insightTitle');
+  if(_ttlEl) _ttlEl.textContent = isPastMonth ? `${_im}월 최종 리포트` : '월간 성과 요약';
+  const _subEl=document.getElementById('insightSubtitle');
+  if(_subEl) _subEl.textContent = isPastMonth ? `${_im}월 최종 실적` : `${_im}월 ${days}일 기준`;
   // 누적 총손익 = 이커머스(부대비용 차감 후) + B2B + 공구 − B2B 부대비용
   const grandNetProfit = netProfit + Math.round(totB2BPrf + totGBPrf - _b2bExpI);
   const _fmtN = v => (v>=0?'':'−')+'₩'+fmt(Math.abs(v));
-  document.getElementById('insightSummaryText').textContent = isPastMonth
+  const _sumEl=document.getElementById('insightSummaryText');
+  if(_sumEl) _sumEl.textContent = isPastMonth
     ? `최종 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 일평균 매출 ₩${fmt(avgDaily)}`
     : `누적 매출 ₩${fmt(grandTotRev)} · 누적 총손익 ${_fmtN(grandNetProfit)} · 이번 달 일평균 ₩${fmt(avgDaily)} · 예상 월매출 ₩${fmt(projTotal)} (이번 달 평균 기준)`;
 
@@ -3076,7 +3085,8 @@ function renderInsight(){
   if(_gbOnlyEl) _gbOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.rev));
   if(_b2bPrfOnlyEl) _b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
   if(_gbPrfOnlyEl) _gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.prf));
-  if(_b2bPrfEl){ _b2bPrfEl.textContent=(_combPrfI>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combPrfI))); _b2bPrfEl.style.color=_combPrfI>=0?'var(--text)':'#E24B4A'; }
+  const _combNetI = _combPrfI - _b2bExpI;
+  if(_b2bPrfEl){ _b2bPrfEl.textContent=(_combNetI>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combNetI))); _b2bPrfEl.style.color=_combNetI>=0?'var(--text)':'#E24B4A'; }
   // 채널 총매출/수익도 grandTot으로
   const _totEl=document.getElementById('kpiTotal');
   const _totPrfEl=document.getElementById('kpiTotalProfit');
@@ -6916,6 +6926,120 @@ async function savePayableFromModal(){
   closePayableModal();
   renderPayables();
   showToast('미지급금을 등록했습니다');
+}
+
+// ══════════════════════════════════════════
+//  대시보드 상단 알림 — 조치가 필요한 것만
+// ══════════════════════════════════════════
+function buildAlerts(){
+  const today = getTodayKST();
+  const D = d => Math.round((new Date(d+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
+  const won = v => '₩' + Math.round(v).toLocaleString();
+  const A = [];   // {lv:0위험/1주의/2정보, txt, sub, tab}
+
+  // ── 1. 정산 (받을 돈) ──
+  try{
+    const rows = (typeof _settlementRows==='function' ? _settlementRows() : []).filter(r=>!r.paid);
+    const over = rows.filter(r=>r.payDate && r.payDate < today);
+    if(over.length){
+      A.push({lv:0, txt:`정산 연체 ${over.length}건 ${won(over.reduce((s,r)=>s+r.vatIncl,0))}`,
+              sub:over.map(r=>r.client).slice(0,2).join(', '), tab:'settlement'});
+    }
+    const soon = rows.filter(r=>r.payDate && D(r.payDate)>=0 && D(r.payDate)<=21)
+                     .sort((a,b)=>a.payDate.localeCompare(b.payDate));
+    if(soon.length){
+      const nd = D(soon[0].payDate);
+      A.push({lv:1, txt:`${nd===0?'오늘':'D-'+nd} 입금 예정 ${won(soon.reduce((s,r)=>s+r.vatIncl,0))}`,
+              sub:`${soon.length}건 · ${soon[0].payDate.slice(5)} ${soon[0].client}`, tab:'settlement'});
+    }
+    // 미수금 총액 (정보)
+    const totalAR = rows.reduce((s,r)=>s+r.vatIncl,0);
+    if(totalAR>0 && !over.length) A.push({lv:2, txt:`미수금 ${won(totalAR)}`, sub:`${rows.length}건 회수 예정`, tab:'settlement'});
+  }catch(e){}
+
+  // ── 2. 미지급금 (줄 돈) ──
+  try{
+    const p = (typeof payables!=='undefined'?payables:[]).filter(x=>!x.paid);
+    const po = p.filter(x=>x.dueDate && x.dueDate < today);
+    if(po.length) A.push({lv:0, txt:`지급기한 경과 ${won(po.reduce((s,x)=>s+x.amount,0))}`, sub:po[0].vendor, tab:'settlement'});
+    else if(p.length) A.push({lv:2, txt:`미지급금 ${won(p.reduce((s,x)=>s+x.amount,0))}`, sub:`${p.length}건 · 기한 미입력`, tab:'settlement'});
+  }catch(e){}
+
+  // ── 3. 재고 소진 ──
+  try{
+    const tot = calcCurrentStock(), rate = calcTotalDailyRate();
+    STOCK_SKUS.forEach(k=>{
+      const q=tot[k]||0, r=rate[k]||0;
+      if(r<=0) return;
+      const d=Math.floor(q/r);
+      if(d<=30) A.push({lv:d<=14?0:1, txt:`${CH_SKU_NAMES[k]} 재고 ${d}일분`, sub:`${q.toLocaleString()}개 · 일평균 ${r.toFixed(1)}`, tab:'stock'});
+    });
+  }catch(e){}
+
+  // ── 4. 유통기한 ──
+  try{
+    const st = calcFIFOBatchState();
+    STOCK_SKUS.forEach(k=>(st[k].batches||[]).forEach(b=>{
+      if(b.remaining>0 && b.expiry){
+        const d=D(b.expiry);
+        if(d<=180) A.push({lv:d<=90?0:1, txt:`${CH_SKU_NAMES[k]} 유통기한 ${d}일`, sub:`${b.remaining.toLocaleString()}개 · ${b.expiry}`, tab:'stock'});
+      }
+    }));
+  }catch(e){}
+
+  // ── 5. 팝업 ──
+  try{
+    (popups||[]).forEach(p=>{
+      const st = popupStatus(p);
+      if(st==='live'){
+        const s = calcPopupStats(p);
+        const left = s.totalDays - s.elapsed;
+        A.push({lv:2, txt:`${p.name} 진행중 ${s.hasTarget?s.rate.toFixed(0)+'%':''}`,
+                sub:`${left}일 남음 · 누계 ${won(s.rev)}`, tab:'channel'});
+        // 위탁 잔량 부족
+        STOCK_SKUS.forEach(k=>{
+          const daily = s.elapsed>0 ? (s.sold[k]||0)/s.elapsed : 0;
+          if(daily>0){ const d=Math.floor((s.remain[k]||0)/daily);
+            if(d<left) A.push({lv:0, txt:`${p.name} ${CH_SKU_NAMES[k]} 부족`, sub:`잔량 ${s.remain[k]}개 · ${d}일분 (${left}일 남음)`, tab:'channel'}); }
+        });
+      }
+      if(st==='upcoming'){
+        const d=D(p.fromDate);
+        if(d<=14) A.push({lv:d<=5?1:2, txt:`${p.name} ${d===0?'오늘':'D-'+d} 오픈`, sub:`${p.fromDate.slice(5)} ~ ${p.toDate.slice(5)}`, tab:'channel'});
+      }
+    });
+  }catch(e){}
+
+  A.sort((a,b)=>a.lv-b.lv);
+  return A;
+}
+
+function renderAlerts(){
+  const wrap = document.getElementById('alertBanner');
+  if(!wrap) return;
+  const A = buildAlerts();
+  const C = ['#F87171','#D9A441','#60A5FA'];
+  const BG = ['rgba(248,113,113,0.10)','rgba(217,164,65,0.10)','rgba(96,165,250,0.09)'];
+  if(!A.length){
+    wrap.innerHTML = `<div class="alert-empty">지금 조치가 필요한 항목이 없습니다.</div>`;
+    return;
+  }
+  const show = A.slice(0,6);
+  wrap.innerHTML = `
+    <div class="alert-head">
+      <span class="alert-title">오늘 챙길 것</span>
+      <span class="alert-count">${A.length}건${A.length>show.length?` · 상위 ${show.length}건 표시`:''}</span>
+    </div>
+    <div class="alert-grid">
+      ${show.map(a=>`<div class="alert-item" style="background:${BG[a.lv]};border-color:${C[a.lv]}33"
+          ${a.tab?`onclick="switchTab('${a.tab}')"`:''}>
+        <div class="alert-dot" style="background:${C[a.lv]}"></div>
+        <div style="min-width:0">
+          <div class="alert-txt">${a.txt}</div>
+          <div class="alert-sub">${a.sub||''}</div>
+        </div>
+      </div>`).join('')}
+    </div>`;
 }
 
 // 저장/삭제 후 채널 탭이 열려 있으면 갱신
