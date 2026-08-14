@@ -184,20 +184,24 @@
   .pop-tbl.b2b-tbl td{padding:7px 6px;white-space:normal;word-break:keep-all;line-height:1.45}
   .pop-tbl.b2b-tbl th:nth-child(1){width:44px}
   .pop-tbl.b2b-tbl td:nth-last-child(-n+3){white-space:nowrap}
+  .pop-tbl.b2b-tbl td:nth-child(1){white-space:nowrap}
   /* 납품 표 (6열) */
   .pop-tbl.b2b-deliv th:nth-child(2){width:22%}
   .pop-tbl.b2b-deliv th:nth-child(4),.pop-tbl.b2b-deliv th:nth-child(5){width:19%}
   .pop-tbl.b2b-deliv th:nth-child(6){width:38px}
   /* 비용 표 (4열) */
-  .pop-tbl.b2b-exp th:nth-child(3){width:100px}
-  .pop-tbl.b2b-exp th:nth-child(4){width:44px}
+  .pop-tbl.b2b-exp th:nth-child(1){width:52px}
+  .pop-tbl.b2b-exp th:nth-child(3){width:110px}
+  .pop-tbl.b2b-exp th:nth-child(4){width:48px}
+  .pop-tbl.b2b-exp td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* 공구 표 (7열) */
   .pop-tbl.b2b-gb th:nth-child(1){width:88px}
   .pop-tbl.b2b-gb th:nth-child(3){width:52px}
   .pop-tbl.b2b-gb th:nth-child(4),.pop-tbl.b2b-gb th:nth-child(5){width:88px}
   .pop-tbl.b2b-gb th:nth-child(6){width:38px}
   .pop-tbl.b2b-gb th:nth-child(7){width:56px}
-  .b2b-qty{display:block;font-size:10px;color:var(--text3);font-weight:600;margin-top:1px}
+  .b2b-qty{display:block;font-size:10px;color:var(--text3);font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b2b-client{display:none}
   .b2b-tbl td.lft,.b2b-tbl th.lft{text-align:left}
   .b2b-tbl td.b2b-dim{color:var(--text3)}
   .b2b-tbl tbody tr:hover td{background:#171B29}
@@ -406,6 +410,24 @@
     .ch-clickable::after { top:7px !important; right:9px !important; }
     .ch-card { padding:13px 13px !important; border-radius:11px !important; }
     .ch-card-head { font-size:12px !important; }
+
+    /* B2B 표: 좁은 화면에선 거래처를 품목 아래로 합쳐 3열로 축약 */
+    .pop-tbl.b2b-tbl { min-width:0 !important; }
+    .pop-tbl.b2b-tbl td { padding:8px 5px !important; }
+    .pop-tbl.b2b-tbl th { padding:6px 5px !important; }
+    .pop-tbl.b2b-deliv th:nth-child(2), .pop-tbl.b2b-deliv td:nth-child(2){ display:none !important; }
+    .pop-tbl.b2b-deliv th:nth-child(1){ width:44px !important; }
+    .pop-tbl.b2b-deliv th:nth-child(4),.pop-tbl.b2b-deliv th:nth-child(5){ width:80px !important; }
+    .pop-tbl.b2b-deliv th:nth-child(6){ width:34px !important; }
+    .b2b-client{ display:block !important; }
+    .pop-tbl.b2b-exp th:nth-child(1){ width:44px !important; }
+    .pop-tbl.b2b-exp th:nth-child(3){ width:88px !important; }
+    .pop-tbl.b2b-exp th:nth-child(4){ width:40px !important; }
+    .pop-tbl.b2b-gb th:nth-child(1){ width:76px !important; }
+    .pop-tbl.b2b-gb th:nth-child(3){ display:none !important; }
+    .pop-tbl.b2b-gb td:nth-child(3){ display:none !important; }
+    .b2b-sum { grid-template-columns:repeat(2,1fr) !important; }
+    .b2b-sum-val { font-size:15px !important; }
 
     /* 접힌 팝업 행 */
     .pop-row { padding:12px 13px !important; gap:6px !important; }
@@ -6043,7 +6065,7 @@ function buildB2BDeliveryHTML(month){
       return `<tr>
         <td class="lft b2b-dim">${i===0 ? r.date.slice(5) : ''}</td>
         <td class="lft">${i===0 ? (r.clientName||r.reason||'-') : ''}</td>
-        <td class="lft">${CH_SKU_NAMES[k]||k}<span class="b2b-qty">${r[k].toLocaleString()}개 · @${r['price_'+k].toLocaleString()}</span></td>
+        <td class="lft">${CH_SKU_NAMES[k]||k}<span class="b2b-qty">${r[k].toLocaleString()}개 · @${r['price_'+k].toLocaleString()}</span><span class="b2b-client b2b-qty">${(r.clientName||r.reason||'')}</span></td>
         <td>${rev.toLocaleString()}</td>
         <td>${prf.toLocaleString()}</td>
         <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
