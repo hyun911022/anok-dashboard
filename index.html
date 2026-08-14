@@ -870,17 +870,10 @@
       <div class="kpi blue ch-b2b" style="display:flex;flex-direction:column;justify-content:center;cursor:pointer" onclick="openB2BDetail()">
         <div class="kpi-label" style="color:#60A5FA">B2B 매출</div>
         <div class="kpi-value" id="kpiB2B" style="margin:4px 0">0</div>
-        <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
-          <span style="color:var(--text3)">납품 <span id="kpiB2BOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
-          <span style="color:var(--text3)">공구 <span id="kpiGBOnly" style="color:var(--text2);font-weight:600">₩0</span></span>
-        </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1E3A5F">
           <div class="kpi-label" style="color:#60A5FA">B2B 순이익 <span style="color:var(--text3);font-weight:400">부대비용 차감</span></div>
           <div class="kpi-value" id="profitB2BVal" style="margin:4px 0">-</div>
-          <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;flex-wrap:wrap">
-            <span style="color:var(--text3)">납품 <span id="profitB2BOnly" style="color:var(--text2);font-weight:600">-</span></span>
-            <span style="color:var(--text3)">공구 <span id="profitGBOnly" style="color:var(--text2);font-weight:600">-</span></span>
-          </div>
+          <div class="kpi-sub" id="profitB2BRate" style="margin-top:4px">순이익률 -</div>
         </div>
       </div>
 
@@ -1959,21 +1952,15 @@ function render(){
   const _combPrf = totB2BPrf + _gbM.prf;
   const b2bEl=document.getElementById('kpiB2B');
   const b2bPrfEl=document.getElementById('profitB2BVal');
-  const b2bOnlyEl=document.getElementById('kpiB2BOnly');
-  const gbOnlyEl=document.getElementById('kpiGBOnly');
-  const b2bPrfOnlyEl=document.getElementById('profitB2BOnly');
-  const gbPrfOnlyEl=document.getElementById('profitGBOnly');
   if(b2bEl) b2bEl.textContent='₩'+fmt(Math.round(_combRev));
-  if(b2bOnlyEl) b2bOnlyEl.textContent='₩'+fmt(Math.round(totB2BRev));
-  if(gbOnlyEl) gbOnlyEl.textContent='₩'+fmt(Math.round(_gbM.rev));
-  if(b2bPrfOnlyEl) b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
-  if(gbPrfOnlyEl) gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbM.prf));
   // B2B 순이익 = 상품이익 − B2B 부대비용
   const _b2bExpM = (typeof expenses!=='undefined' ? expenses : [])
     .filter(x=>x.date && x.date.startsWith(selectedMonth) && x.category==='b2b')
     .reduce((s,x)=>s+(x.amount||0),0);
   const _combNet = _combPrf - _b2bExpM;
   if(b2bPrfEl){ b2bPrfEl.textContent=(_combNet>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combNet))); b2bPrfEl.style.color=_combNet>=0?'var(--text)':'#E24B4A'; }
+  const _rtEl=document.getElementById('profitB2BRate');
+  if(_rtEl) _rtEl.textContent = _combRev>0 ? `순이익률 ${(_combNet/_combRev*100).toFixed(1)}%` : '순이익률 -';
   const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
   const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
@@ -3076,17 +3063,11 @@ function renderInsight(){
   const _combPrfI = totB2BPrf + _gbMI.prf;
   const _b2bEl=document.getElementById('kpiB2B');
   const _b2bPrfEl=document.getElementById('profitB2BVal');
-  const _b2bOnlyEl=document.getElementById('kpiB2BOnly');
-  const _gbOnlyEl=document.getElementById('kpiGBOnly');
-  const _b2bPrfOnlyEl=document.getElementById('profitB2BOnly');
-  const _gbPrfOnlyEl=document.getElementById('profitGBOnly');
   if(_b2bEl) _b2bEl.textContent='₩'+fmt(Math.round(_combRevI));
-  if(_b2bOnlyEl) _b2bOnlyEl.textContent='₩'+fmt(Math.round(totB2BRev));
-  if(_gbOnlyEl) _gbOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.rev));
-  if(_b2bPrfOnlyEl) _b2bPrfOnlyEl.textContent='₩'+fmt(Math.round(totB2BPrf));
-  if(_gbPrfOnlyEl) _gbPrfOnlyEl.textContent='₩'+fmt(Math.round(_gbMI.prf));
   const _combNetI = _combPrfI - _b2bExpI;
   if(_b2bPrfEl){ _b2bPrfEl.textContent=(_combNetI>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combNetI))); _b2bPrfEl.style.color=_combNetI>=0?'var(--text)':'#E24B4A'; }
+  const _rtElI=document.getElementById('profitB2BRate');
+  if(_rtElI) _rtElI.textContent = _combRevI>0 ? `순이익률 ${(_combNetI/_combRevI*100).toFixed(1)}%` : '순이익률 -';
   // 채널 총매출/수익도 grandTot으로
   const _totEl=document.getElementById('kpiTotal');
   const _totPrfEl=document.getElementById('kpiTotalProfit');
