@@ -180,7 +180,6 @@
   .b2b-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
   .b2b-sum-val{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.5px;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .b2b-sum-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:4px;min-height:12px}
-  .b2b-sum-item:last-child .b2b-sum-val{color:#fff}
   .b2b-sec{margin-bottom:20px}
   .b2b-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .b2b-sec-title{font-size:12.5px;font-weight:700;color:#9B6DFF;letter-spacing:-0.2px}
@@ -6176,9 +6175,9 @@ function openB2BDetail(){
   const net = b2b.prf + gb.prf - exp.sum;
   const rev = b2b.rev + gb.rev;
 
-  const card = (label, val, sub, neg) => `<div class="b2b-sum-item">
+  const card = (label, val, sub, neg, color) => `<div class="b2b-sum-item">
       <div class="b2b-sum-lbl">${label}</div>
-      <div class="b2b-sum-val">${neg&&val>0?'−':''}₩${_chFmt(Math.abs(val))}</div>
+      <div class="b2b-sum-val"${color?` style="color:${color}"`:''}>${neg&&val>0?'−':''}₩${_chFmt(Math.abs(val))}</div>
       <div class="b2b-sum-sub">${sub||''}</div>
     </div>`;
 
@@ -6194,7 +6193,7 @@ function openB2BDetail(){
       ${card('매출', rev, `납품 ${b2b.count}건 · 공구 ${gb.count}건`)}
       ${card('상품이익', b2b.prf + gb.prf, rev>0?`마진 ${Math.round((b2b.prf+gb.prf)/rev*100)}%`:'')}
       ${card('부대비용', exp.sum, `${exp.count}건`, true)}
-      ${card('순이익', net, rev>0?`마진 ${Math.round(net/rev*100)}%`:'')}
+      ${card('순이익', net, rev>0?`마진 ${Math.round(net/rev*100)}%`:'', false, net>=0?'#F87171':'#60A5FA')}
     </div>
     ${sec('B2B 납품', b2b.html)}
     ${sec('공구 실적', gb.html, '<button class="ch-btn" onclick="openGroupBuyModal()">+ 공구 추가</button>')}
