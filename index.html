@@ -3423,12 +3423,14 @@ function calcB2BAll(){
 function calcB2BByMonth(month){
   let rev=0, prf=0;
   manualOuts.filter(r=>r.date.startsWith(month)).forEach(r=>{
-    const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0);
+    const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0) || (r.extraAmount||0)>0;
     if(!isB2B) return;
     STOCK_SKUS.forEach(k=>{
       const qty=r[k]||0, price=r['price_'+k]||0;
       if(qty>0&&price>0){ rev+=qty*price; prf+=qty*(price-(UNIT_COSTS[k]||0)); }
     });
+    // SKU 외 정산 항목 (GWP 등) — 재고와 무관
+    if((r.extraAmount||0)>0){ rev += r.extraAmount; prf += r.extraAmount - (r.extraCost||0); }
   });
   return {rev, prf};
 }
@@ -3520,7 +3522,8 @@ function calcCumulativeSold(uptoDate){
     sold.bodylotion+=(c.bodylotion||0)+(c.bodyset||0)+(n.bodylotion||0)+(n.bodyset||0)+(o.bodylotion||0)+(m.bodylotion||0)+(m.bodyset||0);
     sold.wego120   +=(c.wego120||0)+(n.wego120||0)+(o.wego120||0)+(m.wego120||0);
   });
-  manualOuts.filter(r=>r.date<=uptoDate).forEach(r=>{
+  // noStock: 정산 전용 레코드 (이미 위탁출고 시 재고 차감됨) → 이중 차감 방지
+  manualOuts.filter(r=>r.date<=uptoDate && !r.noStock).forEach(r=>{
     STOCK_SKUS.forEach(k=>sold[k]+=(r[k]||0));
   });
   // 공구: 종료일이 이미 지난 공구만 단품 차감 (전체 단품 일괄 차감)
@@ -3538,6 +3541,7 @@ function calcFIFOBatchState(){
   const totalSold = calcCumulativeSold(today);
   // 미래 날짜로 등록된 수기출고도 현재 재고에 즉시 반영 (등록 = 출고 확정으로 간주)
   (manualOuts||[]).forEach(r=>{
+    if(r.noStock) return;
     if(r.date && r.date > today){
       STOCK_SKUS.forEach(k=>{ totalSold[k] = (totalSold[k]||0) + (r[k]||0); });
     }
@@ -3574,6 +3578,7 @@ function calcFIFOBatchState(){
     // 배치 지정 출고: pinExp가 달린 수기출고는 해당 유통기한 배치에서 직접 차감 (예외 지시용, 평상시엔 FIFO)
     const pinned = {};
     (manualOuts||[]).forEach(r=>{
+      if(r.noStock) return;
       if(r.pinExp && (r[k]||0)>0){ pinned[r.pinExp]=(pinned[r.pinExp]||0)+(r[k]||0); }
     });
     const pinnedTotal = Object.values(pinned).reduce((s,v)=>s+v,0);
@@ -4458,6 +4463,7 @@ function _settlementRows(){
       const q = r[k]||0, p = r['price_'+k]||0;
       if(q>0 && p>0) supply += q*p;
     });
+    supply += (r.extraAmount||0);   // GWP 등 SKU 외 정산 항목
     if(supply <= 0) return; // 무상/샘플 제외
     rows.push({
       src: 'b2b',
@@ -6279,6 +6285,7 @@ function calcPopupConsigned(p){
     if(!r.date) return;
     if(p.clientId && r.clientId !== p.clientId) return;
     if(r.date < p.consignFrom || r.date > (p.consignTo || p.toDate)) return;
+    if(r.noStock) return;
     STOCK_SKUS.forEach(k=>{ if((r[k]||0)>0 && !(r['price_'+k]>0)) out[k] += r[k]; });
   });
   return out;
