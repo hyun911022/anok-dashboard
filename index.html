@@ -171,12 +171,14 @@
   .pop-target-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
   .pop-avg-line span{position:absolute;right:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
-  .b2b-sum{display:grid;grid-template-columns:repeat(4,1fr);background:#12151F;border:1px solid var(--border);
+  .b2b-sum{display:grid;grid-template-columns:repeat(2,1fr);background:#12151F;border:1px solid var(--border);
     border-radius:12px;overflow:hidden;margin-bottom:18px}
-  .b2b-sum-item{padding:13px 14px;border-left:1px solid var(--border)}
+  .b2b-sum-item{padding:13px 15px;border-left:1px solid var(--border);min-width:0}
   .b2b-sum-item:first-child{border-left:none}
+  .b2b-sum-item:nth-child(3){border-left:none}
+  .b2b-sum-item:nth-child(n+3){border-top:1px solid var(--border)}
   .b2b-sum-lbl{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
-  .b2b-sum-val{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.4px;font-variant-numeric:tabular-nums;line-height:1.2}
+  .b2b-sum-val{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.5px;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .b2b-sum-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:4px;min-height:12px}
   .b2b-sum-item:last-child .b2b-sum-val{color:#fff}
   .b2b-sec{margin-bottom:20px}
@@ -185,6 +187,7 @@
   .pop-tbl.b2b-tbl{table-layout:fixed;width:100%}
   .pop-tbl.b2b-tbl th{padding:6px 6px}
   .pop-tbl.b2b-tbl td{padding:7px 6px;white-space:normal;word-break:keep-all;line-height:1.45}
+  .pop-tbl.b2b-tbl td:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pop-tbl.b2b-tbl th:nth-child(1){width:44px}
   .pop-tbl.b2b-tbl td:nth-last-child(-n+3){white-space:nowrap}
   .pop-tbl.b2b-tbl td:nth-child(1){white-space:nowrap}
@@ -6065,11 +6068,24 @@ const CH_SKU_NAMES = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'�
 const _chFmt = v => Math.round(v).toLocaleString();
 
 function buildB2BDeliveryHTML(month){
-  const recs = manualOuts.filter(r => r.date.startsWith(month) && STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0))
+  const recs = manualOuts.filter(r => r.date.startsWith(month) &&
+                    (STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0) || (r.extraAmount||0)>0))
                          .sort((a,b) => b.date.localeCompare(a.date));
   let totRev=0, totPrf=0;
   const rows = recs.map(r => {
     const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0);
+    const extraRow = (r.extraAmount||0)>0 ? (()=>{
+      const rev = r.extraAmount, prf = rev - (r.extraCost||0);
+      totRev += rev; totPrf += prf;
+      return `<tr>
+        <td class="lft b2b-dim">${items.length ? '' : r.date.slice(5)}</td>
+        <td class="lft">${items.length ? '' : (r.clientName||r.reason||'-')}</td>
+        <td class="lft">${r.extraNote||'기타 정산'}<span class="b2b-client b2b-qty">${(r.clientName||'')}</span></td>
+        <td>${rev.toLocaleString()}</td>
+        <td>${prf.toLocaleString()}</td>
+        <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
+      </tr>`;
+    })() : '';
     return items.map((k,i) => {
       const rev = r[k]*r['price_'+k];
       const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
@@ -6082,7 +6098,7 @@ function buildB2BDeliveryHTML(month){
         <td>${prf.toLocaleString()}</td>
         <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
       </tr>`;
-    }).join('');
+    }).join('') + extraRow;
   }).join('');
 
   const html = recs.length===0
