@@ -155,6 +155,28 @@
   .alert-txt{font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.35}
   .alert-sub{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .alert-empty{text-align:center;color:var(--text3);font-size:12px;padding:8px 0}
+
+  /* ── 입출고 매트릭스 ── */
+  .io-sec{margin-bottom:20px}
+  .io-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .io-sec-title{font-size:12.5px;font-weight:700;color:#9B6DFF;letter-spacing:-0.2px}
+  .io-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;background:#12151F}
+  .io-tbl{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%;width:auto}
+  .io-tbl th,.io-tbl td{padding:8px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border);min-width:82px}
+  .io-tbl thead th{background:#161A28;font-weight:600;vertical-align:bottom;border-bottom:1px solid #2E3350}
+  .io-date{font-size:11.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px;text-align:right}
+  .io-lbl{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:2px;max-width:96px;overflow:hidden;text-overflow:ellipsis;text-align:right;margin-left:auto}
+  .io-sticky{position:sticky;left:0;z-index:2;background:#161A28;text-align:left !important;min-width:88px;width:88px}
+  .io-tbl th:last-child,.io-tbl td:last-child{border-left:1px solid #2E3350}
+  .io-tbl tbody .io-sticky{background:#12151F}
+  .io-head{font-size:10px;color:var(--text3);font-weight:600}
+  .io-sku{color:var(--text2);font-weight:600}
+  .io-has{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  .io-zero{color:#2E3350}
+  .io-total-col{background:#161A28;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+  .io-total-row td{background:#161A28;font-weight:700;color:var(--text);border-bottom:none;font-variant-numeric:tabular-nums}
+  .io-tbl tbody tr:last-child td{border-bottom:none}
+  .io-empty{text-align:center;color:var(--text3);font-size:12px;padding:22px;background:#12151F;border:1px solid var(--border);border-radius:10px}
   .ch-clickable{cursor:pointer;transition:border-color .15s,background .15s;position:relative}
   .ch-clickable:hover{border-color:#3A3F63;background:#161A28}
   .ch-clickable::after{content:'›';position:absolute;top:9px;right:11px;font-size:13px;color:var(--text3);opacity:.5}
@@ -458,6 +480,13 @@
     .b2b-sum-item:nth-child(3){ border-left:none !important; }
     .b2b-sum-item:nth-child(n+3){ border-top:1px solid var(--border) !important; }
     .b2b-sum-val { font-size:15px !important; }
+
+    /* 입출고 매트릭스 */
+    .io-tbl{font-size:11px}
+    .io-tbl th,.io-tbl td{padding:7px 8px}
+    .io-sticky{min-width:70px}
+    .io-lbl{max-width:80px;font-size:9px}
+    .io-date{font-size:11px}
 
     /* 접힌 팝업 행 */
     .pop-row { padding:12px 13px !important; gap:6px !important; }
@@ -1028,11 +1057,13 @@
           <button class="chsub active" data-sub="popup" onclick="switchChannelSub('popup')">팝업</button>
           <button class="chsub" data-sub="groupbuy" onclick="switchChannelSub('groupbuy')">공구</button>
           <button class="chsub" data-sub="b2b" onclick="switchChannelSub('b2b')">B2B 납품</button>
+          <button class="chsub" data-sub="inout" onclick="switchChannelSub('inout')">입출고</button>
         </div>
       </div>
       <div id="chPanePopup"></div>
       <div id="chPaneGroupbuy" style="display:none"></div>
       <div id="chPaneB2b" style="display:none"></div>
+      <div id="chPaneInout" style="display:none"></div>
     </div>
   </div>
 
@@ -2724,7 +2755,8 @@ function restoreTab(){
 const CH_SUBS = [
   {key:'popup',    pane:'chPanePopup',    render:'renderChannelPopup'},
   {key:'groupbuy', pane:'chPaneGroupbuy', render:'renderChannelGroupbuy'},
-  {key:'b2b',      pane:'chPaneB2b',      render:'renderChannelB2b'}
+  {key:'b2b',      pane:'chPaneB2b',      render:'renderChannelB2b'},
+  {key:'inout',    pane:'chPaneInout',   render:'renderChannelInout'}
 ];
 let channelSub = 'popup';
 
@@ -4201,69 +4233,16 @@ function renderStock(){
   if(outEl) outEl.innerHTML=outTbody;
 
   // ── 4. 입고 내역 ──
-  // 배치는 유통기한(로트) 단위로 합쳐 두고, 입고 이력은 inbounds에 건별로 보관한다.
-  // 목록은 '입고 건' 단위로 펼쳐서 실제 입고일 기준으로 보여준다.
-  const inEvents=[];
-  stockBatches.forEach((batch,gi)=>{
-    if(batch.isInitial) return;
-    const expMap={}; (batch.items||[]).forEach(it=>{ expMap[it.sku]={expiry:it.expiry, mfgDate:it.mfgDate}; });
-    if(Array.isArray(batch.inbounds) && batch.inbounds.length){
-      batch.inbounds.forEach(ib=>inEvents.push({date:ib.date, reason:ib.reason||batch.reason, items:ib.items||[], expMap, gi, merged:true}));
-    } else {
-      inEvents.push({date:batch.date, reason:batch.reason, items:(batch.items||[]).map(it=>({sku:it.sku, qty:it.qty})), expMap, gi, merged:false});
-    }
-  });
-  const inList=inEvents.filter(e=>e.date && e.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
   const inEl=document.getElementById('stockInList');
-  if(inEl){
-    inEl.innerHTML=inList.length===0
-      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이번 달 입고 내역이 없습니다.</div>'
-      : inList.map(e=>{
-          const items=e.items.map(it=>{
-            const meta=e.expMap[it.sku]||{};
-            return `${STOCK_SKU_NAMES[it.sku]} <b style="color:var(--text2)">${it.qty.toLocaleString()}개</b>${meta.expiry?` <span style="color:var(--text3)">유통 ${fmtDate(meta.expiry)}</span>`:''}`;
-          }).join(' · ');
-          return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <div style="min-width:0">
-              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">${e.date} <span style="color:var(--text3);font-weight:400">${e.reason||'정기 입고'}</span></div>
-              <div style="font-size:11px;color:var(--text3);line-height:1.6">${items}</div>
-            </div>
-            ${e.merged?'':`<button onclick="deleteBatch(${e.gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;flex-shrink:0">×</button>`}
-          </div>`;
-        }).join('');
-  }
+  if(inEl) inEl.innerHTML = buildIOMatrix(collectInbounds(selectedMonth), {emptyText:'이번 달 입고 내역이 없습니다.'});
 
   // ── 5. 수기 출고 내역 ──
   // ── 유통기한 소진 가능성 카드 ──
   renderExpiryRisk(batchState, avgSales);
 
-  const moSorted=[...manualOuts].filter(r=>r.date && r.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
   const moEl=document.getElementById('manualOutList');
-  if(moEl){
-    moEl.innerHTML=moSorted.length===0
-      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">수기 출고 내역이 없습니다.</div>'
-      : moSorted.map(r=>{
-          const gi=manualOuts.indexOf(r);
-          const isB2B = r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0);
-          const typeColor = isB2B ? '#60A5FA' : '#6B7280';
-          const typeLabel = isB2B ? 'B2B 유상' : '무상';
-          const b2bRev = isB2B ? STOCK_SKUS.reduce((s,k)=>s+(r[k]||0)*(r['price_'+k]||0),0) : 0;
-          const b2bPrf = isB2B ? STOCK_SKUS.reduce((s,k)=>s+(r[k]||0)*((r['price_'+k]||0)-(UNIT_COSTS[k]||0)),0) : 0;
-          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-                <span style="font-size:12px;font-weight:600;color:var(--text)">${r.date}</span>
-                <span style="font-size:9px;font-weight:700;color:${typeColor};background:${typeColor}18;padding:1px 6px;border-radius:3px">${typeLabel}</span>
-                ${r.clientName?`<span style="font-size:11px;font-weight:600;color:var(--text2)">${r.clientName}</span>`:''}
-                <span style="font-size:11px;color:var(--text3)">${r.reason||'기타'}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text3)">${STOCK_SKUS.filter(k=>r[k]>0).map(k=>`${STOCK_SKU_NAMES[k]} ${r[k]}개${isB2B&&r['price_'+k]>0?' @'+r['price_'+k].toLocaleString()+'원':''}`).join(' · ')||'수량 없음'}</div>
-              ${isB2B?`<div style="font-size:10px;color:#60A5FA;margin-top:2px">매출 ₩${b2bRev.toLocaleString()} · 이익 ₩${b2bPrf.toLocaleString()}</div>`:''}
-            </div>
-            <button onclick="deleteManualOut(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px">×</button>
-          </div>`;
-        }).join('');
-  }
+  if(moEl) moEl.innerHTML = buildIOMatrix(collectManualOuts(selectedMonth), {emptyText:'이번 달 수기 출고 내역이 없습니다.'});
+
 }
 
 // ── 유통기한 소진 가능성 카드 ──────────────────────────────────────
@@ -7063,6 +7042,103 @@ function renderAlerts(){
         </div>
       </div>`).join('')}
     </div>`;
+}
+
+// ══════════════════════════════════════════
+//  입출고 매트릭스 (가로: 날짜 / 세로: SKU)
+// ══════════════════════════════════════════
+
+// 입고 이벤트 평탄화 — 배치는 로트 단위, 이력은 inbounds 기준
+function collectInbounds(month){
+  const ev=[];
+  (stockBatches||[]).forEach((b,gi)=>{
+    if(b.isInitial) return;
+    if(Array.isArray(b.inbounds) && b.inbounds.length){
+      b.inbounds.forEach(ib=>ev.push({date:ib.date, label:ib.reason||b.reason, items:ib.items||[], gi, merged:true}));
+    } else {
+      ev.push({date:b.date, label:b.reason, items:(b.items||[]).map(it=>({sku:it.sku, qty:it.qty})), gi, merged:false});
+    }
+  });
+  return ev.filter(e=>e.date && e.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function collectManualOuts(month){
+  return (manualOuts||[]).filter(r=>r.date && r.date.startsWith(month) && STOCK_SKUS.some(k=>(r[k]||0)>0))
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(r=>({
+      date:r.date,
+      label:r.clientName || r.reason || '수기 출고',
+      paid:!!r.paid,
+      isB2B: r.isB2B || STOCK_SKUS.some(k=>r[k]>0 && r['price_'+k]>0),
+      noStock: !!r.noStock,
+      items: STOCK_SKUS.filter(k=>(r[k]||0)>0).map(k=>({sku:k, qty:r[k]})),
+      gi: manualOuts.indexOf(r)
+    }));
+}
+
+// 공용 렌더러
+function buildIOMatrix(events, opts){
+  const o = opts||{};
+  if(!events.length){
+    return `<div class="io-empty">${o.emptyText||'내역이 없습니다.'}</div>`;
+  }
+  // 열: 날짜(같은 날 여러 건이면 건별 열)
+  const cols = events;
+  const rows = STOCK_SKUS.filter(k=>cols.some(c=>c.items.some(i=>i.sku===k)));
+  const cellQty = (c,k)=>{ const it=c.items.find(i=>i.sku===k); return it?it.qty:0; };
+  const colTot = c => c.items.reduce((s,i)=>s+i.qty,0);
+  const rowTot = k => cols.reduce((s,c)=>s+cellQty(c,k),0);
+  const grand = cols.reduce((s,c)=>s+colTot(c),0);
+
+  return `<div class="io-scroll"><table class="io-tbl">
+    <thead>
+      <tr>
+        <th class="io-sticky io-head">SKU</th>
+        ${cols.map(c=>`<th><div class="io-date">${c.date.slice(5).replace('-','/')}</div>
+          <div class="io-lbl" title="${(c.label||'').replace(/"/g,'')}">${c.label||''}</div></th>`).join('')}
+        <th class="io-total-col">합계</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(k=>`<tr>
+        <td class="io-sticky io-sku">${STOCK_SKU_NAMES[k]||k}</td>
+        ${cols.map(c=>{const q=cellQty(c,k); return `<td class="${q?'io-has':'io-zero'}">${q?q.toLocaleString():'·'}</td>`;}).join('')}
+        <td class="io-total-col">${rowTot(k).toLocaleString()}</td>
+      </tr>`).join('')}
+      <tr class="io-total-row">
+        <td class="io-sticky">합계</td>
+        ${cols.map(c=>`<td>${colTot(c).toLocaleString()}</td>`).join('')}
+        <td class="io-total-col">${grand.toLocaleString()}</td>
+      </tr>
+    </tbody>
+  </table></div>`;
+}
+
+function renderIOSection(month){
+  const ins = collectInbounds(month);
+  const outs = collectManualOuts(month);
+  return `
+    <div class="io-sec">
+      <div class="io-sec-head">
+        <span class="io-sec-title">입고 내역</span>
+        <button class="ch-btn" onclick="openStockInitModal()">+ 입고 등록</button>
+      </div>
+      ${buildIOMatrix(ins, {emptyText:'이번 달 입고 내역이 없습니다.'})}
+    </div>
+    <div class="io-sec">
+      <div class="io-sec-head">
+        <span class="io-sec-title">수기 출고 내역</span>
+        <button class="ch-btn" onclick="openManualOutModal()">+ 수기 출고</button>
+      </div>
+      ${buildIOMatrix(outs, {emptyText:'이번 달 수기 출고 내역이 없습니다.'})}
+    </div>`;
+}
+
+// 채널 탭 · 입출고
+function renderChannelInout(){
+  const el = document.getElementById('chPaneInout');
+  if(!el) return;
+  el.innerHTML = renderIOSection(selectedMonth);
 }
 
 // 저장/삭제 후 채널 탭이 열려 있으면 갱신
