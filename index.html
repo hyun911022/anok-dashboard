@@ -487,6 +487,10 @@
     .b2b-sum-item:nth-child(n+3){ border-top:1px solid var(--border) !important; }
     .b2b-sum-val { font-size:15px !important; }
 
+    /* 차트 헤더 누적 */
+    #trendCumTotal{font-size:13px !important}
+    #trendCumDays{display:block;margin-top:1px}
+
     /* 입출고 매트릭스 */
     .io-tbl{font-size:12px}
     .io-tbl th,.io-tbl td{padding:8px 10px}
@@ -921,7 +925,10 @@
 
     <div class="chart-grid">
       <div class="card">
-        <div class="card-title">이커머스 일 매출 추이</div>
+        <div class="card-title" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <span>이커머스 일 매출 추이</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3)">누적 <b id="trendCumTotal" style="font-size:14px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-0.3px">-</b> <span id="trendCumDays" style="font-weight:600"></span></span>
+        </div>
         <div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div>
       </div>
       <div class="card">
@@ -2084,6 +2091,7 @@ function updateTrendChart(mRecs){
     const dow=new Date(sy, sm-1, i+1).getDay();
     return dow===0 ? '#F87171' : (dow===6 ? '#60A5FA' : '#8898AA');
   });
+  let cumTotal=0, cumDays=0;
   mRecs.forEach(r=>{
     const day=parseInt(r.date.slice(8,10))-1;
     if(day>=0&&day<daysInMonth){
@@ -2092,8 +2100,15 @@ function updateTrendChart(mRecs){
       if(d.nRev>0) nData[day]=d.nRev;
       if(d.oRev>0) oData[day]=d.oRev;
       if((d.mRev||0)>0) mData[day]=d.mRev;
+      const dayTot=(d.cRev||0)+(d.nRev||0)+(d.oRev||0)+(d.mRev||0);
+      if(dayTot>0){ cumTotal+=dayTot; cumDays++; }
     }
   });
+  // 차트 헤더 누적 매출
+  const _cumEl=document.getElementById('trendCumTotal');
+  if(_cumEl) _cumEl.textContent='₩'+Math.round(cumTotal).toLocaleString();
+  const _cumDayEl=document.getElementById('trendCumDays');
+  if(_cumDayEl) _cumDayEl.textContent = cumDays>0 ? `· ${cumDays}일 · 일평균 ₩${Math.round(cumTotal/cumDays).toLocaleString()}` : '';
   trendChart.data.labels=labels;
   trendChart.data.datasets[0].data=cData;
   trendChart.data.datasets[1].data=nData;
