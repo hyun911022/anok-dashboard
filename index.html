@@ -4201,20 +4201,34 @@ function renderStock(){
   if(outEl) outEl.innerHTML=outTbody;
 
   // ── 4. 입고 내역 ──
-  const inBatches=[...stockBatches].filter(b=>!b.isInitial && b.date && b.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
+  // 배치는 유통기한(로트) 단위로 합쳐 두고, 입고 이력은 inbounds에 건별로 보관한다.
+  // 목록은 '입고 건' 단위로 펼쳐서 실제 입고일 기준으로 보여준다.
+  const inEvents=[];
+  stockBatches.forEach((batch,gi)=>{
+    if(batch.isInitial) return;
+    const expMap={}; (batch.items||[]).forEach(it=>{ expMap[it.sku]={expiry:it.expiry, mfgDate:it.mfgDate}; });
+    if(Array.isArray(batch.inbounds) && batch.inbounds.length){
+      batch.inbounds.forEach(ib=>inEvents.push({date:ib.date, reason:ib.reason||batch.reason, items:ib.items||[], expMap, gi, merged:true}));
+    } else {
+      inEvents.push({date:batch.date, reason:batch.reason, items:(batch.items||[]).map(it=>({sku:it.sku, qty:it.qty})), expMap, gi, merged:false});
+    }
+  });
+  const inList=inEvents.filter(e=>e.date && e.date.startsWith(selectedMonth)).sort((a,b)=>b.date.localeCompare(a.date));
   const inEl=document.getElementById('stockInList');
   if(inEl){
-    inEl.innerHTML=inBatches.length===0
+    inEl.innerHTML=inList.length===0
       ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">이번 달 입고 내역이 없습니다.</div>'
-      : inBatches.map(batch=>{
-          const gi=stockBatches.indexOf(batch);
-          const items=batch.items.map(it=>`${STOCK_SKU_NAMES[it.sku]} ${it.qty}개${it.expiry?' (유통 '+fmtDate(it.expiry)+')':''}`).join(' · ');
+      : inList.map(e=>{
+          const items=e.items.map(it=>{
+            const meta=e.expMap[it.sku]||{};
+            return `${STOCK_SKU_NAMES[it.sku]} <b style="color:var(--text2)">${it.qty.toLocaleString()}개</b>${meta.expiry?` <span style="color:var(--text3)">유통 ${fmtDate(meta.expiry)}</span>`:''}`;
+          }).join(' · ');
           return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${batch.date} · <span style="color:var(--text3)">${batch.reason||'정기 입고'}</span></div>
-              <div style="font-size:11px;color:var(--text3)">${items}</div>
+            <div style="min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">${e.date} <span style="color:var(--text3);font-weight:400">${e.reason||'정기 입고'}</span></div>
+              <div style="font-size:11px;color:var(--text3);line-height:1.6">${items}</div>
             </div>
-            <button onclick="deleteBatch(${gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;flex-shrink:0">×</button>
+            ${e.merged?'':`<button onclick="deleteBatch(${e.gi})" style="background:none;border:none;color:#4A5568;cursor:pointer;font-size:16px;padding:4px 8px;flex-shrink:0">×</button>`}
           </div>`;
         }).join('');
   }
@@ -4704,6 +4718,32 @@ function renderSettlement(){
   }
 
   el.innerHTML = out || '<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">B2B 납품 내역이 없습니다.</div>';
+}
+
+// 입고 등록 헬퍼 — 같은 유통기한 로트가 있으면 합치고, 입고 이력만 추가한다
+function addInbound(date, reason, items){
+  (items||[]).forEach(it=>{
+    let target=null;
+    for(const b of stockBatches){
+      if((b.items||[]).some(x=>x.sku===it.sku && x.expiry===it.expiry)){ target=b; break; }
+    }
+    if(target){
+      const line=target.items.find(x=>x.sku===it.sku && x.expiry===it.expiry);
+      line.qty += it.qty;
+      if(!Array.isArray(target.inbounds)){
+        // 기존 배치를 최초 입고 건으로 승격
+        target.inbounds=[{date:target.date, reason:target.reason, items:target.items.map(x=>({sku:x.sku, qty:x.qty - (x.sku===it.sku && x.expiry===it.expiry ? it.qty : 0)}))}];
+      }
+      target.inbounds.push({date, reason, items:[{sku:it.sku, qty:it.qty}]});
+    } else {
+      stockBatches.push({
+        id:'batch_'+Date.now()+'_'+it.sku,
+        date, reason,
+        items:[{sku:it.sku, qty:it.qty, expiry:it.expiry, mfgDate:it.mfgDate||''}]
+      });
+    }
+  });
+  return saveStockData();
 }
 
 function deleteBatch(idx){
