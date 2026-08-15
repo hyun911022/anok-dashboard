@@ -177,6 +177,8 @@
   .io2-tot td{border-bottom:none;border-top:1px solid var(--border);font-weight:700;padding-top:10px}
   .io2-tot.io2-dim td:first-child{color:#9B6DFF}
   .io2-etc{color:var(--text3);font-size:10.5px;margin-left:4px}
+  .io2-stl{color:var(--text3) !important}
+  .io2-tag.io2-stl{color:#9B6DFF;background:rgba(155,109,255,0.12)}
   .io2-tot td:first-child{color:var(--text2)}
 
   .io2-list{border-top:1px solid var(--border)}
@@ -196,6 +198,9 @@
   .io2-more:empty{display:none}
   .io2-more-in{font-size:11px;color:var(--text3);font-weight:600;padding:0 0 11px 88px;line-height:1.6}
   .io2-empty{text-align:center;color:var(--text3);font-size:12px;padding:24px 0}
+  .io2-hint{margin-top:14px;text-align:center;font-size:11.5px;font-weight:600;color:var(--text3);
+    padding:9px 0;border:1px dashed var(--border);border-radius:8px;cursor:pointer;transition:.15s}
+  .io2-hint:hover{color:var(--text2);border-color:#3A3F63;background:rgba(255,255,255,0.02)}
   .ch-clickable{cursor:pointer;transition:border-color .15s,background .15s;position:relative}
   .ch-clickable:hover{border-color:#3A3F63;background:#161A28}
   .ch-clickable::after{content:'›';position:absolute;top:9px;right:11px;font-size:13px;color:var(--text3);opacity:.5}
@@ -4273,7 +4278,7 @@ function renderStock(){
 
   // ── 4. 입고 내역 ──
   const inEl=document.getElementById('stockInList');
-  if(inEl) inEl.innerHTML = buildIOView(collectInbounds(selectedMonth), collectManualOuts(selectedMonth), 'st');
+  if(inEl) inEl.innerHTML = buildIOView(collectInbounds(selectedMonth), collectManualOuts(selectedMonth), 'st', null, collectManualOuts(selectedMonth,{settlementOnly:true}));
 
   // ── 5. 수기 출고 내역 ──
   // ── 유통기한 소진 가능성 카드 ──
@@ -7102,8 +7107,10 @@ function collectInbounds(month){
   return ev.filter(e=>e.date && e.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
 }
 
-function collectManualOuts(month){
+function collectManualOuts(month, opts){
+  const o = opts||{};
   return (manualOuts||[]).filter(r=>r.date && r.date.startsWith(month) && STOCK_SKUS.some(k=>(r[k]||0)>0))
+    .filter(r=> o.settlementOnly ? !!r.noStock : !r.noStock)
     .sort((a,b)=>a.date.localeCompare(b.date))
     .map(r=>({
       date:r.date,
@@ -7122,10 +7129,11 @@ function collectManualOuts(month){
 // ── 입출고 뷰: SKU 요약(클릭 시 필터) + 건별 내역 ──
 window.__ioStore__ = window.__ioStore__ || {};
 
-function buildIOView(ins, outs, key, filterSku){
-  const st = window.__ioStore__[key] = {ins, outs, filter: filterSku||null};
+function buildIOView(ins, outs, key, filterSku, stls){
+  const settle = stls || [];
+  const st = window.__ioStore__[key] = {ins, outs, settle, filter: filterSku||null};
   const sum = (evs,k)=>evs.reduce((s,e)=>s+(e.items.find(i=>i.sku===k)?.qty||0),0);
-  const rows = STOCK_SKUS.filter(k=>sum(ins,k)>0 || sum(outs,k)>0);
+  const rows = STOCK_SKUS.filter(k=>sum(ins,k)>0 || sum(outs,k)>0 || sum(settle,k)>0);
   const tI = rows.reduce((s,k)=>s+sum(ins,k),0);
   const tO = rows.reduce((s,k)=>s+sum(outs,k),0);
   const netC = n => n>0?'#4ADE80':(n<0?'#F87171':'var(--text3)');
@@ -7133,7 +7141,7 @@ function buildIOView(ins, outs, key, filterSku){
 
   const summary = rows.length===0 ? '<div class="io2-empty">이번 달 입출고 내역이 없습니다.</div>' : `
     <table class="io2-sum">
-      <thead><tr><th>SKU</th><th>입고</th><th>출고</th><th>순증감</th></tr></thead>
+      <thead><tr><th>SKU</th><th>입고</th><th>출고</th><th>순증감</th>${settle.length?'<th>정산</th>':''}</tr></thead>
       <tbody>
         ${rows.map(k=>{const i=sum(ins,k), o=sum(outs,k), n=i-o;
           return `<tr class="io2-srow${f===k?' on':''}" onclick="filterIO('${key}','${k}')" title="클릭하면 이 SKU 내역만">
@@ -7141,40 +7149,46 @@ function buildIOView(ins, outs, key, filterSku){
             <td>${i?i.toLocaleString():'–'}</td>
             <td>${o?o.toLocaleString():'–'}</td>
             <td class="io2-net" style="color:${netC(n)}">${n>0?'+':''}${n.toLocaleString()}</td>
+            ${settle.length?`<td class="io2-stl">${sum(settle,k)?sum(settle,k).toLocaleString():'–'}</td>`:''}
           </tr>`;}).join('')}
-        <tr class="io2-tot${f===null?'':' io2-dim'}" onclick="filterIO('${key}',null)">
-          <td>${f?'전체 보기':'합계'}</td><td>${tI.toLocaleString()}</td><td>${tO.toLocaleString()}</td>
+        <tr class="io2-tot${f===null?'':' io2-dim'}"${f?` onclick="filterIO('${key}',null)"`:''}>
+          <td>${f?'닫기':'합계'}</td><td>${tI.toLocaleString()}</td><td>${tO.toLocaleString()}</td>
           <td class="io2-net" style="color:${netC(tI-tO)}">${tI-tO>0?'+':''}${(tI-tO).toLocaleString()}</td>
+          ${settle.length?`<td class="io2-stl">${rows.reduce((s,k)=>s+sum(settle,k),0).toLocaleString()}</td>`:''}
         </tr>
       </tbody>
     </table>`;
 
-  let all = [...ins.map(e=>({...e,type:'in'})), ...outs.map(e=>({...e,type:'out'}))]
+  let all = [...ins.map(e=>({...e,type:'in'})), ...outs.map(e=>({...e,type:'out'})),
+             ...settle.map(e=>({...e,type:'stl'}))]
     .sort((a,b)=>b.date.localeCompare(a.date));
-  if(f) all = all.filter(e=>e.items.some(i=>i.sku===f));
+  if(f && f!=='__all__') all = all.filter(e=>e.items.some(i=>i.sku===f));
   st.all = all;
 
   const line = (e,i)=>{
-    const shown = f ? e.items.filter(x=>x.sku===f) : e.items;
+    const shown = (f && f!=='__all__') ? e.items.filter(x=>x.sku===f) : e.items;
     const tot = shown.reduce((s,x)=>s+x.qty,0);
     const items = shown.map(x=>`${STOCK_SKU_NAMES[x.sku]||x.sku} <b>${x.qty.toLocaleString()}</b>`).join('<i>·</i>')
-      + (f && e.items.length>1 ? ` <span class="io2-etc">외 ${e.items.length-1}종</span>` : '');
+      + ((f && f!=='__all__' && e.items.length>1) ? ` <span class="io2-etc">외 ${e.items.length-1}종</span>` : '');
     return `<div class="io2-row" onclick="toggleIORow('${key}',${i},this)">
       <div class="io2-d">${e.date.slice(5).replace('-','/')}</div>
-      <div class="io2-tag io2-${e.type}">${e.type==='in'?'입고':'출고'}</div>
+      <div class="io2-tag io2-${e.type}">${e.type==='in'?'입고':(e.type==='stl'?'정산':'출고')}</div>
       <div class="io2-who">${e.label||'-'}</div>
       <div class="io2-it">${items}</div>
-      <div class="io2-q" style="color:${e.type==='in'?'#4ADE80':'#F87171'}">${e.type==='in'?'+':'−'}${tot.toLocaleString()}</div>
+      <div class="io2-q" style="color:${e.type==='in'?'#4ADE80':(e.type==='stl'?'var(--text3)':'#F87171')}">${e.type==='in'?'+':(e.type==='stl'?'':'−')}${tot.toLocaleString()}</div>
     </div>
     <div class="io2-more" id="iom_${key}_${i}"></div>`;
   };
 
   return `<div class="io2" id="iowrap_${key}">
-    <div class="io2-lbl">SKU별 요약 <span class="io2-cnt">행을 누르면 해당 SKU만</span></div>
+    <div class="io2-lbl">SKU별 요약 <span class="io2-cnt">행을 누르면 해당 SKU 내역</span></div>
     ${summary}
-    ${all.length ? `<div class="io2-lbl" style="margin-top:22px">건별 내역
-      <span class="io2-cnt">${f?`${STOCK_SKU_NAMES[f]} · `:''}${all.length}건</span></div>
-    <div class="io2-list">${all.map(line).join('')}</div>` : (rows.length?`<div class="io2-empty">해당 SKU 내역이 없습니다.</div>`:'')}
+    ${!all.length ? (rows.length?`<div class="io2-empty">해당 SKU 내역이 없습니다.</div>`:'')
+      : (!f
+        ? `<div class="io2-hint" onclick="filterIO('${key}','__all__')">건별 내역 ${all.length}건 보기</div>`
+        : `<div class="io2-lbl" style="margin-top:22px">건별 내역
+             <span class="io2-cnt">${f==='__all__'?'전체':STOCK_SKU_NAMES[f]} · ${all.length}건</span></div>
+           <div class="io2-list">${all.map(line).join('')}</div>`)}
   </div>`;
 }
 
@@ -7183,7 +7197,7 @@ function filterIO(key, sku){
   if(!st) return;
   const next = (st.filter===sku) ? null : sku;
   const wrap = document.getElementById('iowrap_'+key);
-  if(wrap) wrap.outerHTML = buildIOView(st.ins, st.outs, key, next);
+  if(wrap) wrap.outerHTML = buildIOView(st.ins, st.outs, key, next, st.settle);
 }
 
 function toggleIORow(key, idx, el){
@@ -7201,13 +7215,14 @@ function toggleIORow(key, idx, el){
 function renderIOSectionV2(month, key){
   const k = key || 'ch';
   const ins = collectInbounds(month), outs = collectManualOuts(month);
+  const stls = collectManualOuts(month, {settlementOnly:true});
   return `<div class="io2-head">
       <span class="io2-title">입출고</span>
       <span style="display:flex;gap:6px">
         <button class="ch-btn" onclick="event.stopPropagation();openStockInitModal()">+ 입고 등록</button>
         <button class="ch-btn" onclick="event.stopPropagation();openManualOutModal()">+ 수기 출고</button>
       </span>
-    </div>` + buildIOView(ins, outs, k);
+    </div>` + buildIOView(ins, outs, k, null, stls);
 }
 
 function renderChannelInout(){
