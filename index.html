@@ -156,33 +156,39 @@
   .alert-sub{font-size:10.5px;color:var(--text3);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .alert-empty{text-align:center;color:var(--text3);font-size:12px;padding:8px 0}
 
-  /* ── 입출고 매트릭스 ── */
-  .io-sec{margin-bottom:22px}
-  .io-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .io-sec-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
-  .io-box{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--card)}
-  .io-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .io-tbl{border-collapse:collapse;font-size:13px;min-width:100%;font-variant-numeric:tabular-nums}
-  .io-tbl th,.io-tbl td{padding:9px 14px;text-align:right;white-space:nowrap}
-  .io-tbl thead th{font-size:11.5px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);padding-top:11px;padding-bottom:11px}
-  .io-tbl th.io-dt{cursor:pointer;user-select:none}
-  .io-tbl th.io-dt:hover{color:var(--text);background:rgba(255,255,255,0.035)}
-  .io-tbl th.io-dt.on{color:#9B6DFF;box-shadow:inset 0 -2px 0 #9B6DFF}
-  .io-tbl tbody td{color:var(--text);border-bottom:1px solid rgba(255,255,255,0.045)}
-  .io-tbl tbody tr:last-child td{border-bottom:none}
-  .io-c1{position:sticky;left:0;z-index:2;background:var(--card);text-align:left !important;
-    color:var(--text2) !important;font-weight:600;min-width:92px}
-  .io-tbl thead .io-c1{color:var(--text3) !important;font-size:11px}
-  .io-sum{color:var(--text) !important;font-weight:700;background:rgba(255,255,255,0.028)}
-  .io-foot td{font-weight:700;color:var(--text) !important;border-top:1px solid var(--border);border-bottom:none !important}
-  .io-detail{border-top:1px solid var(--border)}
-  .io-detail:empty{border-top:none}
-  .iod-in{padding:11px 14px;background:rgba(155,109,255,0.06)}
-  .iod-t{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px}
-  .iod-items{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--text2)}
-  .iod-items b{color:var(--text);font-weight:700;margin-left:2px}
-  .iod-note{font-size:10.5px;color:var(--text3);margin-top:5px;font-weight:600}
-  .io-empty{text-align:center;color:var(--text3);font-size:12px;padding:24px;border:1px solid var(--border);border-radius:10px;background:var(--card)}
+  /* ── 입출고 뷰 ── */
+  .io2-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+  .io2-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+  .io2-lbl{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.4px;margin-bottom:8px}
+  .io2-cnt{font-weight:600;color:var(--text3);letter-spacing:0}
+
+  .io2-sum{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  .io2-sum th{font-size:10.5px;font-weight:600;color:var(--text3);text-align:right;padding:0 0 7px;border-bottom:1px solid var(--border)}
+  .io2-sum th:first-child{text-align:left}
+  .io2-sum td{padding:9px 0;text-align:right;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.04)}
+  .io2-sum td:first-child{text-align:left}
+  .io2-sku{color:var(--text2) !important;font-weight:600}
+  .io2-net{font-weight:700}
+  .io2-tot td{border-bottom:none;border-top:1px solid var(--border);font-weight:700;padding-top:10px}
+  .io2-tot td:first-child{color:var(--text2)}
+
+  .io2-list{border-top:1px solid var(--border)}
+  .io2-row{display:grid;grid-template-columns:44px 34px minmax(96px,1.1fr) minmax(0,2.4fr) 68px;
+    align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer}
+  .io2-row:hover{background:rgba(255,255,255,0.022)}
+  .io2-row.on{background:rgba(155,109,255,0.05)}
+  .io2-d{font-size:11.5px;color:var(--text3);font-weight:600;font-variant-numeric:tabular-nums}
+  .io2-tag{font-size:9.5px;font-weight:700;text-align:center;padding:2px 0;border-radius:4px}
+  .io2-in{color:#4ADE80;background:rgba(74,222,128,0.10)}
+  .io2-out{color:#F87171;background:rgba(248,113,113,0.10)}
+  .io2-who{font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .io2-it{font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .io2-it b{color:var(--text2);font-weight:700}
+  .io2-it i{color:#2E3350;font-style:normal;margin:0 5px}
+  .io2-q{font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .io2-more:empty{display:none}
+  .io2-more-in{font-size:11px;color:var(--text3);font-weight:600;padding:0 0 11px 88px;line-height:1.6}
+  .io2-empty{text-align:center;color:var(--text3);font-size:12px;padding:24px 0}
   .ch-clickable{cursor:pointer;transition:border-color .15s,background .15s;position:relative}
   .ch-clickable:hover{border-color:#3A3F63;background:#161A28}
   .ch-clickable::after{content:'›';position:absolute;top:9px;right:11px;font-size:13px;color:var(--text3);opacity:.5}
@@ -491,12 +497,14 @@
     #trendCumTotal{font-size:13px !important}
     #trendCumDays{display:block;margin-top:1px}
 
-    /* 입출고 매트릭스 */
-    .io-tbl{font-size:12px}
-    .io-tbl th,.io-tbl td{padding:8px 10px}
-    .io-tbl thead th{font-size:11px}
-    .io-c1{min-width:76px}
-    .io-sec-title{font-size:12.5px}
+    /* 입출고 뷰 */
+    .io2-row{grid-template-columns:38px 30px 1fr auto;gap:8px;padding:11px 0;align-items:start}
+    .io2-d{padding-top:2px}
+    .io2-who{font-size:12.5px;grid-column:3;white-space:normal;line-height:1.35}
+    .io2-it{grid-column:3;grid-row:2;font-size:11px;white-space:normal;line-height:1.5;margin-top:3px}
+    .io2-q{grid-column:4;grid-row:1;font-size:13px;padding-top:1px}
+    .io2-sum{font-size:12.5px}
+    .io2-more-in{padding-left:76px}
 
     /* 접힌 팝업 행 */
     .pop-row { padding:12px 13px !important; gap:6px !important; }
@@ -4255,14 +4263,14 @@ function renderStock(){
 
   // ── 4. 입고 내역 ──
   const inEl=document.getElementById('stockInList');
-  if(inEl) inEl.innerHTML = buildIOMatrix(collectInbounds(selectedMonth), {key:'sin', emptyText:'이번 달 입고 내역이 없습니다.'});
+  if(inEl) inEl.innerHTML = buildIOView(collectInbounds(selectedMonth), collectManualOuts(selectedMonth), 'st');
 
   // ── 5. 수기 출고 내역 ──
   // ── 유통기한 소진 가능성 카드 ──
   renderExpiryRisk(batchState, avgSales);
 
   const moEl=document.getElementById('manualOutList');
-  if(moEl) moEl.innerHTML = buildIOMatrix(collectManualOuts(selectedMonth), {key:'sout', emptyText:'이번 달 수기 출고 내역이 없습니다.'});
+  if(moEl) moEl.innerHTML = '';
 
 }
 
@@ -7102,67 +7110,84 @@ function collectManualOuts(month){
     }));
 }
 
-// 공용 렌더러 — 헤더는 날짜만, 클릭하면 상세
+// ── 입출고 뷰: 위=SKU 요약, 아래=건별 타임라인 ──
 window.__ioStore__ = window.__ioStore__ || {};
-function buildIOMatrix(events, opts){
-  const o = opts||{};
-  const key = o.key || ('io'+Math.random().toString(36).slice(2,7));
-  window.__ioStore__[key] = events;
-  if(!events.length) return `<div class="io-empty">${o.emptyText||'내역이 없습니다.'}</div>`;
 
-  const cols = events;
-  const rows = STOCK_SKUS.filter(k=>cols.some(c=>c.items.some(i=>i.sku===k)));
-  const q = (c,k)=>{ const it=c.items.find(i=>i.sku===k); return it?it.qty:0; };
-  const colTot = c => c.items.reduce((s,i)=>s+i.qty,0);
-  const rowTot = k => cols.reduce((s,c)=>s+q(c,k),0);
-  const grand = cols.reduce((s,c)=>s+colTot(c),0);
-  const num = v => v ? v.toLocaleString() : '';
+function buildIOView(ins, outs, key){
+  window.__ioStore__[key] = {ins, outs};
+  const sum = (evs,k)=>evs.reduce((s,e)=>s+(e.items.find(i=>i.sku===k)?.qty||0),0);
+  const rows = STOCK_SKUS.filter(k=>sum(ins,k)>0 || sum(outs,k)>0);
+  const tI = rows.reduce((s,k)=>s+sum(ins,k),0);
+  const tO = rows.reduce((s,k)=>s+sum(outs,k),0);
 
-  return `<div class="io-box">
-    <div class="io-scroll"><table class="io-tbl">
-      <thead><tr>
-        <th class="io-c1">SKU</th>
-        ${cols.map((c,i)=>`<th class="io-dt" onclick="showIODetail('${key}',${i},this)" title="클릭하면 상세">${c.date.slice(5).replace('-','/')}</th>`).join('')}
-        <th class="io-sum">합계</th>
-      </tr></thead>
+  const summary = rows.length===0 ? '' : `
+    <table class="io2-sum">
+      <thead><tr><th>SKU</th><th>입고</th><th>출고</th><th>순증감</th></tr></thead>
       <tbody>
-        ${rows.map(k=>`<tr>
-          <td class="io-c1">${STOCK_SKU_NAMES[k]||k}</td>
-          ${cols.map(c=>`<td>${num(q(c,k))}</td>`).join('')}
-          <td class="io-sum">${rowTot(k).toLocaleString()}</td>
-        </tr>`).join('')}
-        <tr class="io-foot">
-          <td class="io-c1">합계</td>
-          ${cols.map(c=>`<td>${colTot(c).toLocaleString()}</td>`).join('')}
-          <td class="io-sum">${grand.toLocaleString()}</td>
+        ${rows.map(k=>{const i=sum(ins,k), o=sum(outs,k), n=i-o;
+          return `<tr>
+            <td class="io2-sku">${STOCK_SKU_NAMES[k]||k}</td>
+            <td>${i?i.toLocaleString():'–'}</td>
+            <td>${o?o.toLocaleString():'–'}</td>
+            <td class="io2-net" style="color:${n>0?'#4ADE80':(n<0?'#F87171':'var(--text3)')}">${n>0?'+':''}${n.toLocaleString()}</td>
+          </tr>`;}).join('')}
+        <tr class="io2-tot">
+          <td>합계</td><td>${tI.toLocaleString()}</td><td>${tO.toLocaleString()}</td>
+          <td class="io2-net" style="color:${tI-tO>0?'#4ADE80':(tI-tO<0?'#F87171':'var(--text3)')}">${tI-tO>0?'+':''}${(tI-tO).toLocaleString()}</td>
         </tr>
       </tbody>
-    </table></div>
-    <div class="io-detail" id="iod_${key}"></div>
+    </table>`;
+
+  const all = [...ins.map(e=>({...e,type:'in'})), ...outs.map(e=>({...e,type:'out'}))]
+    .sort((a,b)=>b.date.localeCompare(a.date));
+  const line = (e,i)=>{
+    const tot = e.items.reduce((s,x)=>s+x.qty,0);
+    const items = e.items.map(x=>`${STOCK_SKU_NAMES[x.sku]||x.sku} <b>${x.qty.toLocaleString()}</b>`).join('<i>·</i>');
+    return `<div class="io2-row" onclick="toggleIORow('${key}',${i},this)">
+      <div class="io2-d">${e.date.slice(5).replace('-','/')}</div>
+      <div class="io2-tag io2-${e.type}">${e.type==='in'?'입고':'출고'}</div>
+      <div class="io2-who">${e.label||'-'}</div>
+      <div class="io2-it">${items}</div>
+      <div class="io2-q" style="color:${e.type==='in'?'#4ADE80':'#F87171'}">${e.type==='in'?'+':'−'}${tot.toLocaleString()}</div>
+    </div>
+    <div class="io2-more" id="iom_${key}_${i}"></div>`;
+  };
+  window.__ioStore__[key].all = all;
+
+  return `<div class="io2">
+    <div class="io2-lbl">SKU별 요약</div>
+    ${summary || '<div class="io2-empty">이번 달 입출고 내역이 없습니다.</div>'}
+    ${all.length ? `<div class="io2-lbl" style="margin-top:22px">건별 내역 <span class="io2-cnt">${all.length}건</span></div>
+    <div class="io2-list">${all.map(line).join('')}</div>` : ''}
   </div>`;
 }
 
-function showIODetail(key, idx, el){
-  const list = (window.__ioStore__||{})[key]||[];
-  const c = list[idx];
-  const box = document.getElementById('iod_'+key);
-  if(!c || !box) return;
-  const th = el && el.closest('table');
-  if(th) th.querySelectorAll('th.io-dt').forEach(x=>x.classList.remove('on'));
-  if(el) el.classList.add('on');
-  if(box.dataset.idx === String(idx)){ box.innerHTML=''; box.dataset.idx=''; if(el) el.classList.remove('on'); return; }
-  box.dataset.idx = String(idx);
-  box.innerHTML = `<div class="iod-in">
-    <div class="iod-t">${c.date} · ${c.label||'-'}</div>
-    <div class="iod-items">${c.items.map(i=>`<span>${STOCK_SKU_NAMES[i.sku]||i.sku} <b>${i.qty.toLocaleString()}</b></span>`).join('')}</div>
-    ${c.note?`<div class="iod-note">${c.note}</div>`:''}
-  </div>`;
+function toggleIORow(key, idx, el){
+  const st = (window.__ioStore__||{})[key];
+  if(!st) return;
+  const e = st.all[idx];
+  const box = document.getElementById(`iom_${key}_${idx}`);
+  if(!e || !box) return;
+  if(box.innerHTML){ box.innerHTML=''; el.classList.remove('on'); return; }
+  el.classList.add('on');
+  box.innerHTML = `<div class="io2-more-in">${e.note || '추가 정보 없음'}</div>`;
+}
+
+function renderIOSectionV2(month){
+  const ins = collectInbounds(month), outs = collectManualOuts(month);
+  return `<div class="io2-head">
+      <span class="io2-title">입출고</span>
+      <span style="display:flex;gap:6px">
+        <button class="ch-btn" onclick="event.stopPropagation();openStockInitModal()">+ 입고 등록</button>
+        <button class="ch-btn" onclick="event.stopPropagation();openManualOutModal()">+ 수기 출고</button>
+      </span>
+    </div>` + buildIOView(ins, outs, 'ch');
 }
 
 function renderChannelInout(){
   const el = document.getElementById('chPaneInout');
   if(!el) return;
-  el.innerHTML = renderIOSection(selectedMonth);
+  el.innerHTML = renderIOSectionV2(selectedMonth);
 }
 
 // 저장/삭제 후 채널 탭이 열려 있으면 갱신
