@@ -385,7 +385,8 @@
 
     /* ── 차트·그리드 1열 ── */
     .chart-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
-    .bottom-grid { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 10px; }
+    .bottom-grid { grid-template-columns: minmax(0,1fr) !important; gap: 10px; margin-bottom: 10px; }
+    .bottom-grid > * { min-width: 0; }
 
     /* ── 인라인 그리드 오버라이드 (채널 카드 제외) ── */
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
@@ -1081,7 +1082,7 @@
 
   <!-- 재고현황 탭 -->
   <div id="tabChannel" style="display:none">
-    <div style="padding:20px">
+    <div>
       <!-- 헤더 -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
         <div>
@@ -1167,7 +1168,7 @@
     
     </div>
 
-  </div>
+  
 
   <!-- 상품관리 탭 -->
   <div id="tabProducts" style="display:none">
@@ -1209,7 +1210,7 @@
 
   <!-- 판매가 관리 탭 -->
   <div id="tabPricing" style="display:none">
-    <div style="padding:20px">
+    <div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
         <div style="width:3px;height:16px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
         <span style="font-size:16px;font-weight:700;color:var(--text)">판매가 관리</span>
@@ -1221,7 +1222,7 @@
 
   <!-- 비용관리 탭 -->
   <div id="tabExpenses" style="display:none">
-    <div style="padding:20px">
+    <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:3px;height:16px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
@@ -1237,7 +1238,7 @@
 
   <!-- 수익 시뮬레이션 탭 -->
   <div id="tabSimulator" style="display:none">
-    <div style="padding:20px">
+    <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:3px;height:16px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
@@ -1263,7 +1264,7 @@
 
   <!-- 정산일정 탭 -->
   <div id="tabSettlement" style="display:none">
-    <div style="padding:20px">
+    <div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
         <div style="width:3px;height:16px;background:linear-gradient(#3B82F6,#60A5FA);border-radius:2px"></div>
         <span style="font-size:16px;font-weight:700;color:var(--text)">정산일정</span>
@@ -1284,6 +1285,8 @@
       <div id="payableSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px"></div>
       <div id="payableBody"></div>
     </div>
+  </div>
+
   </div>
 
   <!-- SKU 추가 모달 -->
