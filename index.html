@@ -6379,7 +6379,8 @@ function calcPopupStats(p){
   // 총 영업일 (기간 내 휴무 제외)
   const totalDays = countOpenDays(p.fromDate, p.toDate, p.closedDates||[]);
   const hasTarget = (p.dailyTarget||0) > 0;
-  const target = (p.dailyTarget||0) * totalDays;
+  const target = (p.dailyTarget||0) * totalDays;          // 기간 전체 목표
+  const targetToDate = (p.dailyTarget||0) * open.length;  // 경과일 기준 목표
   const elapsed = open.length;
   const avg = elapsed>0 ? rev/elapsed : 0;
   const forecast = avg * totalDays;
@@ -6442,7 +6443,9 @@ function calcPopupStats(p){
   return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
           avg, forecast, consigned, remain, billQty, testerQty, usedQty, hasFinal, settleAmt, cogs, prf,
           gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf, hasTarget,
-          rate: target>0 ? rev/target*100 : 0};
+          targetToDate,
+          rate: targetToDate>0 ? rev/targetToDate*100 : 0,      // 경과일 기준 달성률
+          rateFull: target>0 ? rev/target*100 : 0};             // 기간 전체 기준
 }
 
 function countOpenDays(from, to, closedDates){
@@ -6480,14 +6483,15 @@ function renderChannelPopup(){
   });
 
   // 전체 요약
-  let sumRev=0, sumTarget=0, sumPrf=0, sumSettle=0, sumForecast=0;
-  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.target; sumPrf+=s.netPrf; sumSettle+=s.totalSettle; sumForecast+=s.forecast; });
+  let sumRev=0, sumTarget=0, sumTargetFull=0, sumPrf=0, sumSettle=0, sumForecast=0;
+  list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.targetToDate; sumTargetFull+=s.target;
+                    sumPrf+=s.netPrf; sumSettle+=s.totalSettle; sumForecast+=s.forecast; });
 
   el.innerHTML = `
     <div class="ch-summary">
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('sellout')"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
-      <div class="ch-sum-item ch-clickable" onclick="openChDrill('target')"><div class="ch-sum-lbl">목표 대비</div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
-        <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTarget>0?Math.round(sumForecast/sumTarget*100):0}%)</span></div></div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('target')"><div class="ch-sum-lbl">목표 대비 <span style="font-weight:400;color:var(--text3)">경과일</span></div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
+        <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTargetFull>0?Math.round(sumForecast/sumTargetFull*100):0}%)</span></div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('settle')"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
@@ -6620,7 +6624,7 @@ function renderPopupCard(p){
       </div>
       <div class="pop-head-num">
         <div class="pop-head-rev">₩${_chFmt(s.rev)}</div>
-        <div class="pop-head-sub">${s.hasTarget?`목표 ₩${_chFmt(s.target)} · `:'목표 미설정 · '}일평균 ₩${_chFmt(s.avg)}</div>
+        <div class="pop-head-sub">${s.hasTarget?`경과 목표 ₩${_chFmt(s.targetToDate)} · `:'목표 미설정 · '}일평균 ₩${_chFmt(s.avg)}</div>
       </div>
     </div>
 
@@ -6761,8 +6765,10 @@ function drillTarget(list){
       <tr><td class="lft">일 목표</td><td>₩${_chFmt(p.dailyTarget||0)}</td></tr>
       <tr><td class="lft">총 영업일 / 경과</td><td>${s.totalDays}일 / ${s.elapsed}일 (잔여 ${left}일)</td></tr>
       <tr><td class="lft">기간 목표</td><td>₩${_chFmt(s.target)}</td></tr>
+      <tr><td class="lft">경과일 목표 <span style="color:var(--text3)">${s.elapsed}일분</span></td><td>₩${_chFmt(s.targetToDate)}</td></tr>
       <tr><td class="lft">현재 실적</td><td>₩${_chFmt(s.rev)}</td></tr>
-      <tr><td class="lft">달성률</td><td style="${sigStyle(sigRate(s.rate))}">${s.rate.toFixed(1)}%</td></tr>
+      <tr class="drill-mid"><td class="lft">달성률 <span style="font-weight:400;color:var(--text3)">경과일 기준</span></td><td style="${sigStyle(sigRate(s.rate))}">${s.rate.toFixed(1)}%</td></tr>
+      <tr><td class="lft">기간 전체 대비</td><td>${s.rateFull.toFixed(1)}%</td></tr>
       <tr><td class="lft">일평균</td><td>₩${_chFmt(s.avg)} <span style="color:var(--text3)">(목표의 ${p.dailyTarget?Math.round(s.avg/p.dailyTarget*100):0}%)</span></td></tr>
       <tr><td class="lft">잔여기간 필요 일매출</td><td>${left>0?(need>0?'₩'+_chFmt(needDaily):'목표 달성'):'종료'}</td></tr>
       <tr><td class="lft">최종 예상</td><td>₩${_chFmt(s.forecast)} <span style="color:var(--text3)">(목표의 ${s.target>0?Math.round(s.forecast/s.target*100):0}%)</span></td></tr>
