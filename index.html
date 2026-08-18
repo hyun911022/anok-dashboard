@@ -224,9 +224,10 @@
   .pop-chart-legend .lg{display:inline-flex;align-items:center;white-space:nowrap}
   .pop-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px}
   .pop-chart-legend .lg-line{color:var(--text2)}
-  .pop-chart-legend b{display:inline-block;width:15px;height:0;margin-right:5px}
-  .pop-chart-legend .ln-dash{border-top:1px dashed rgba(148,163,184,0.8)}
-  .pop-chart-legend .ln-dot{border-top:1px dotted rgba(148,163,184,0.9)}
+  .pop-chart-legend b{display:inline-block;width:17px;margin-right:5px}
+  .pop-chart-legend .ln-dash{height:2px;background-image:repeating-linear-gradient(90deg,#D4B896 0 6px,transparent 6px 10px)}
+  .pop-chart-legend .ln-dot{height:1px;background-image:repeating-linear-gradient(90deg,rgba(148,163,184,0.8) 0 2px,transparent 2px 5px)}
+  .pop-chart-legend .lg-target{color:#D4B896}
   .pop-bars{position:relative;height:170px;display:flex;align-items:flex-end;justify-content:center;gap:7px;margin-bottom:32px}
   .pop-bar-wrap{position:relative;flex:1;max-width:46px;height:100%;display:flex;align-items:flex-end;justify-content:center}
   .pop-bar{width:100%;border-radius:4px 4px 0 0;transition:height .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset}
@@ -234,8 +235,10 @@
   .pop-bar-closed{position:absolute;bottom:0;left:0;right:0;height:4px;border-radius:2px;background:repeating-linear-gradient(45deg,#252A3D,#252A3D 3px,#1A1E2E 3px,#1A1E2E 6px);font-size:0}
   .pop-bar-lbl{position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10px;line-height:1.25;padding-top:7px;font-weight:600}
   .pop-bar-lbl span{display:block;font-size:8px;font-weight:400;opacity:.7}
-  .pop-target-line{position:absolute;left:-4px;right:-4px;border-top:1px dashed rgba(148,163,184,0.4);pointer-events:none;z-index:3}
-  .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
+  .pop-target-line{position:absolute;left:-4px;right:-4px;height:2px;pointer-events:none;z-index:4;
+    background-image:repeating-linear-gradient(90deg,#D4B896 0 10px,transparent 10px 17px)}
+  .pop-avg-line{position:absolute;left:-4px;right:-4px;height:1px;pointer-events:none;z-index:3;
+    background-image:repeating-linear-gradient(90deg,rgba(148,163,184,0.8) 0 2px,transparent 2px 5px)}
   .b2b-sum{display:grid;grid-template-columns:repeat(2,1fr);background:#12151F;border:1px solid var(--border);
     border-radius:12px;overflow:hidden;margin-bottom:18px}
   .b2b-sum-item{padding:13px 15px;border-left:1px solid var(--border);min-width:0}
@@ -6644,7 +6647,7 @@ function renderPopupCard(p){
           <span class="lg"><i style="background:#D4B896"></i>최고</span>
           <span class="lg"><i style="background:#6366F1"></i>목표달성</span>
           <span class="lg"><i style="background:#E2645F"></i>목표미달</span>
-          ${targetPct!==null?`<span class="lg lg-line"><b class="ln-dash"></b>일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span>`:''}
+          ${targetPct!==null?`<span class="lg lg-line lg-target"><b class="ln-dash"></b>일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span>`:''}
           ${avgPct!==null?`<span class="lg lg-line"><b class="ln-dot"></b>일평균 ${Math.round(s.avg/10000)}만</span>`:''}
         </span>
       </div>
