@@ -220,8 +220,13 @@
   .pop-chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
   .pop-chart-title{font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
   .pop-chart-base{font-size:9px;color:var(--text3)}
-  .pop-chart-legend{font-size:10px;color:var(--text3);font-weight:600;display:flex;align-items:center}
-  .pop-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
+  .pop-chart-legend{font-size:9.5px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .pop-chart-legend .lg{display:inline-flex;align-items:center;white-space:nowrap}
+  .pop-chart-legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px}
+  .pop-chart-legend .lg-line{color:var(--text2)}
+  .pop-chart-legend b{display:inline-block;width:15px;height:0;margin-right:5px}
+  .pop-chart-legend .ln-dash{border-top:1px dashed rgba(148,163,184,0.8)}
+  .pop-chart-legend .ln-dot{border-top:1px dotted rgba(148,163,184,0.9)}
   .pop-bars{position:relative;height:170px;display:flex;align-items:flex-end;justify-content:center;gap:7px;margin-bottom:32px}
   .pop-bar-wrap{position:relative;flex:1;max-width:46px;height:100%;display:flex;align-items:flex-end;justify-content:center}
   .pop-bar{width:100%;border-radius:4px 4px 0 0;transition:height .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset}
@@ -230,11 +235,7 @@
   .pop-bar-lbl{position:absolute;top:100%;left:0;right:0;text-align:center;font-size:10px;line-height:1.25;padding-top:7px;font-weight:600}
   .pop-bar-lbl span{display:block;font-size:8px;font-weight:400;opacity:.7}
   .pop-target-line{position:absolute;left:-4px;right:-4px;border-top:1px dashed rgba(148,163,184,0.4);pointer-events:none;z-index:3}
-  .pop-target-line span{position:absolute;left:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .pop-avg-line{position:absolute;left:-4px;right:-4px;border-top:1px dotted rgba(148,163,184,0.5);pointer-events:none;z-index:3}
-  .pop-target-line span.below,.pop-avg-line span.below{top:3px}
-  .pop-avg-line span.shift{left:auto;right:0}
-  .pop-avg-line span{position:absolute;left:0;top:-15px;font-size:9px;color:var(--text2);font-weight:700;background:#12151F;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid #262B3D;letter-spacing:-0.1px}
   .b2b-sum{display:grid;grid-template-columns:repeat(2,1fr);background:#12151F;border:1px solid var(--border);
     border-radius:12px;overflow:hidden;margin-bottom:18px}
   .b2b-sum-item{padding:13px 15px;border-left:1px solid var(--border);min-width:0}
@@ -560,12 +561,10 @@
     .pop-chart-title { font-size:12px !important; }
     /* 범례: 헤더 아래 줄바꿈 (가로로 붙으면 잘림) */
     .pop-chart-head { flex-direction:column !important; align-items:flex-start !important; gap:5px !important; }
-    .pop-chart-legend { font-size:8px !important; }
+    .pop-chart-legend { font-size:9px !important; gap:7px !important; }
     .pop-chart-legend i { width:6px !important; height:6px !important; }
     /* 기준선 라벨: 좌우로 분리해 막대 가림 최소화 */
-    .pop-target-line span, .pop-avg-line span { font-size:7.5px !important; padding:1px 4px !important; top:-12px !important; }
-    .pop-avg-line span { right:auto !important; left:0 !important; }
-
+  
     /* 하단 요약: 2열 */
     .pop-foot { grid-template-columns: repeat(2,1fr) !important; gap:10px !important; }
     .pop-foot-val { font-size:12.5px !important; }
@@ -6599,10 +6598,7 @@ function renderPopupCard(p){
   }).join('');
   const targetPct = (p.dailyTarget||0) > 0 ? Math.min(100, p.dailyTarget/span*100) : null;
   const avgPct = s.avg > 0 ? Math.min(100, s.avg/span*100) : null;
-  // 라벨 배치: 선이 상단(범례 영역)에 붙으면 선 아래로 내리고,
-  // 두 선이 가까우면 평균 라벨을 반대편으로 보낸다
-  const lblBelow = v => v!==null && v > 82;
-  const clash = (targetPct!==null && avgPct!==null) && Math.abs(targetPct-avgPct) < 12;
+
 
   // SKU 구성 + 위탁 잔량
   const skuRows = STOCK_SKUS.map(k=>{
@@ -6644,12 +6640,18 @@ function renderPopupCard(p){
     <div class="pop-chart">
       <div class="pop-chart-head">
         <span class="pop-chart-title">일별 셀아웃 <span style="color:var(--text3);font-weight:400">(만원)</span></span>
-        <span class="pop-chart-legend"><i style="background:#D4B896"></i>최고<i style="background:#6366F1;margin-left:8px"></i>목표달성<i style="background:#E2645F;margin-left:8px"></i>목표미달</span>
+        <span class="pop-chart-legend">
+          <span class="lg"><i style="background:#D4B896"></i>최고</span>
+          <span class="lg"><i style="background:#6366F1"></i>목표달성</span>
+          <span class="lg"><i style="background:#E2645F"></i>목표미달</span>
+          ${targetPct!==null?`<span class="lg lg-line"><b class="ln-dash"></b>일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span>`:''}
+          ${avgPct!==null?`<span class="lg lg-line"><b class="ln-dot"></b>일평균 ${Math.round(s.avg/10000)}만</span>`:''}
+        </span>
       </div>
       <div class="pop-bars">
         ${bars}
-        ${targetPct!==null?`<div class="pop-target-line" style="bottom:${targetPct.toFixed(1)}%"><span class="${lblBelow(targetPct)?'below':''}">일 목표 ${Math.round((p.dailyTarget||0)/10000)}만</span></div>`:''}
-        ${avgPct!==null?`<div class="pop-avg-line" style="bottom:${avgPct.toFixed(1)}%"><span class="${lblBelow(avgPct)?'below':''}${clash&&!lblBelow(avgPct)?' shift':''}">일평균 ${Math.round(s.avg/10000)}만</span></div>`:''}
+        ${targetPct!==null?`<div class="pop-target-line" style="bottom:${targetPct.toFixed(1)}%"></div>`:''}
+        ${avgPct!==null?`<div class="pop-avg-line" style="bottom:${avgPct.toFixed(1)}%"></div>`:''}
       </div>
     </div>
 
