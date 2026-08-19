@@ -582,7 +582,9 @@
     #chDrillBody { padding:14px !important; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
     /* 미지급금 */
-    #payableSummary { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
+    #payableSummary, #settlementSummary { grid-template-columns: repeat(2,1fr) !important; gap:8px !important; }
+    #settlementSummary > div { padding:11px 12px !important; }
+    #settlementSummary > div > div:nth-child(2) { font-size:16px !important; }
     #payableSummary > div { padding:11px 12px !important; }
     #payableSummary > div > div:nth-child(2) { font-size:16px !important; }
     #payableBody { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -4683,6 +4685,12 @@ function renderSettlement(){
   const nextMonth = _stlNextMonth(today);
   const nextMonthRows = upcoming.filter(r=>r.payDate.startsWith(nextMonth));
   const nextMonthDue = sum(nextMonthRows);
+  const nextMonth2 = _stlNextMonth(nextMonth + '-01');
+  const nextMonth2Rows = upcoming.filter(r=>r.payDate.startsWith(nextMonth2));
+  const nextMonth2Due = sum(nextMonth2Rows);
+  // 익익월 이후 잔여
+  const laterRows = upcoming.filter(r=>r.payDate.slice(0,7) > nextMonth2);
+  const laterDue = sum(laterRows);
   const totalDone = sum(done);
 
   if(sumEl){
@@ -4695,7 +4703,9 @@ function renderSettlement(){
       card('미수금 총액', totalUnpaid, '#60A5FA', `${unpaid.length}건 미입금`) +
       card('연체', totalOverdue, totalOverdue>0?'#F43F5E':'var(--text3)', `${overdue.length}건 기한 경과`) +
       card('이번 달 입금 예정', thisMonthDue, '#FBBF24', `${upcoming.filter(r=>r.payDate.startsWith(thisMonth)).length}건`) +
-      card(`익월 정산 (${nextMonth})`, nextMonthDue, '#22C55E', `${nextMonthRows.length}건 예정`);
+      card(`익월 정산 (${nextMonth.slice(5)}월)`, nextMonthDue, '#22C55E', `${nextMonthRows.length}건 예정`) +
+      card(`익익월 정산 (${nextMonth2.slice(5)}월)`, nextMonth2Due, nextMonth2Due>0?'#34D399':'var(--text3)',
+           laterDue>0 ? `${nextMonth2Rows.length}건 · 이후 ₩${laterDue.toLocaleString()}` : `${nextMonth2Rows.length}건 예정`);
   }
 
   const section = (title, arr, mode, color, desc) => {
