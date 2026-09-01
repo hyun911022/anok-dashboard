@@ -2556,6 +2556,14 @@ function toggleOlder(id){
   }
 }
 
+
+// 목표 산정(전월 마진율·채널비중)에서 제외할 비정상 판매 — 레코드에 excludeTarget:['cafe'] 형태로 표시
+function recForTarget(r){
+  if(!r.excludeTarget || !r.excludeTarget.length) return r;
+  const c = {...r};
+  r.excludeTarget.forEach(ch=>{ c[ch] = {}; });
+  return c;
+}
 function calcPrevMonthMargin(){
   const [sy,sm] = selectedMonth ? selectedMonth.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth()+1];
   const prevYear = sm===1 ? sy-1 : sy;
@@ -2564,7 +2572,7 @@ function calcPrevMonthMargin(){
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
   if(prevRecs.length > 0){
     let totRev=0, totPrf=0;
-    prevRecs.forEach(r=>{ const d=calcDay(r); totRev+=d.total; totPrf+=d.profit; });
+    prevRecs.forEach(r=>{ const d=calcDay(recForTarget(r)); totRev+=d.total; totPrf+=d.profit; });
     return totRev>0 ? totPrf/totRev : 0.47;
   }
   return 0.47;
@@ -2577,7 +2585,7 @@ function calcTargetTotal(){
   const monthlyFixed = viewMonth < '2026-05'
     ? META_AD_DAILY*19 + NAVER_AD_DAILY*13 + Math.round(AGENCY_FEE/30*20)
     : 0;
-  return Math.round((monthlyFixed + 1000000) / margin);
+  return Math.round((monthlyFixed + TARGET_PROFIT) / margin);
 }
 
 // 특정 월 기준 목표 계산 (selectedMonth 임시 변경 → 원복)
@@ -2605,7 +2613,7 @@ function calcChannelShares(){
   const prevRecs = records.filter(r=>r.date.startsWith(prevKey));
   if(prevRecs.length > 0){
     let totC=0,totN=0,totO=0,totM=0;
-    prevRecs.forEach(r=>{ const d=calcDay(r); totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totM+=(d.mRev||0); });
+    prevRecs.forEach(r=>{ const d=calcDay(recForTarget(r)); totC+=d.cRev; totN+=d.nRev; totO+=d.oRev; totM+=(d.mRev||0); });
     const tot=totC+totN+totO+totM;
     if(tot>0) return {c:totC/tot, n:totN/tot, o:totO/tot, m:totM/tot};
   }
@@ -2614,7 +2622,8 @@ function calcChannelShares(){
 
 // TARGET_TOTAL: selectedMonth 기준으로 자동 계산
 // 초기값은 임시 — refreshTargets()에서 selectedMonth 확정 후 재계산됨
-let TARGET_TOTAL = Math.round((META_AD_DAILY*19 + NAVER_AD_DAILY*13 + Math.round(AGENCY_FEE/30*20) + 1000000) / 0.47); // 4월 기본값
+const TARGET_PROFIT = 2500000; // 이커머스 월 순이익 목표 (2026-09부터 250만)
+let TARGET_TOTAL = Math.round((META_AD_DAILY*19 + NAVER_AD_DAILY*13 + Math.round(AGENCY_FEE/30*20) + TARGET_PROFIT) / 0.47);
 let TARGETS={cafe:Math.round(TARGET_TOTAL*0.071),naver:Math.round(TARGET_TOTAL*0.566),coupang:Math.round(TARGET_TOTAL*0.304),musinsa:Math.round(TARGET_TOTAL*0.059)};
 
 function refreshTargets(){
