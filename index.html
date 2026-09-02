@@ -6389,8 +6389,8 @@ function renderPopupCard(p){
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
       <td style="color:var(--text3)">${s.hasFinal ? other.toLocaleString() : '–'}</td>
       <td style="color:var(--text)">${used.toLocaleString()}</td>
-      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>
       <td style="font-weight:700;color:var(--text)">${used.toLocaleString()}</td>
+      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -6439,7 +6439,7 @@ function renderPopupCard(p){
     ${p.carryInEstimated?`<div class="pop-note pop-note-warn">이월 물량은 이전 팝업의 <b>추정 잔량</b>입니다. 초인 실물 확인 후 확정됩니다.</div>`:''}
     <div class="pop-sec-lbl">SKU별 판매 · 정산수량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
     <table class="pop-tbl">
-      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>기타</th><th>소진</th><th>잔량</th><th>정산수량</th></tr></thead>
+      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>기타</th><th>소진</th><th>정산수량</th><th>잔량</th></tr></thead>
       <tbody>${skuRows}</tbody>
     </table>
     ${s.hasFinal
