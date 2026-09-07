@@ -96,7 +96,7 @@
   .ad-grid-pc { display: grid; }
 
   /* 광고효율 통합 레이아웃 */
-  .adg-wrap { display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:16px; align-items:start; width:100%; }
+  .adg-wrap { display:grid; grid-template-columns:1fr 1.2fr 1.2fr; gap:16px; align-items:start; width:100%; }
   .adg-title { font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border); }
   .adg-label { font-size:10px;color:var(--text3); }
   .adg-sub { font-size:10px;color:var(--text3);margin-top:2px; }
@@ -106,7 +106,6 @@
   .adg-rows { display:flex;flex-direction:column;gap:8px; }
   .adg-row { display:flex;justify-content:space-between;align-items:center; }
   .adg-row-top { border-top:1px solid var(--border);padding-top:8px; }
-  .adg-roas-inner { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
   .adg-profit { margin:0;border-radius:12px;height:100%;cursor:pointer; }
   .adg-profit-hint { font-size:10px;color:#6EAB84;text-align:right; }
   .profit-banner{background:linear-gradient(135deg,#1C3A2A,#0D4A2E);border:1px solid #2E5A3A;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
@@ -395,16 +394,15 @@
     /* ── 인라인 그리드 오버라이드 (채널 카드 제외) ── */
     div[style*="grid-template-columns"]:not(.channel-grid) { grid-template-columns: 1fr !important; }
 
-    /* 광고효율 모바일: ROAS/퍼포/쿠팡 가로 한 줄 + 손익 풀너비 */
-    .adg-wrap { grid-template-columns: auto auto auto !important; grid-template-rows: auto auto !important; gap:16px !important; }
-    .adg-profit { grid-column: span 2 !important; border-radius:8px !important; height:auto !important; }
+    /* 손익 모바일: 쿠팡 비용 + 손익 배너 세로 스택 */
+    .adg-wrap { grid-template-columns: 1fr !important; gap:12px !important; }
+    .adg-profit { grid-column: auto !important; border-radius:8px !important; height:auto !important; }
     .adg-profit-hint { display:block !important; }
     .adg-num-lg { font-size:16px !important; }
     .adg-num { font-size:10px !important; }
     .adg-rows { gap:3px !important; }
     .adg-row { gap:4px !important; justify-content:space-between !important; }
     .adg-row-top { padding-top:3px !important; }
-    .adg-roas-inner { grid-template-columns:1fr !important; gap:5px !important; }
     .adg-title { font-size:8px !important; margin-bottom:5px !important; padding-bottom:4px !important; }
     .adg-label { font-size:8px !important; }
     .adg-sub { display:none !important; }
@@ -999,34 +997,9 @@
     <div style="background:#141720;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
         <div style="width:3px;height:14px;background:linear-gradient(#6366F1,#8B5CF6);border-radius:2px"></div>
-        <span style="font-size:14px;font-weight:700;color:var(--text)">광고 효율 &amp; 손익</span>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">손익</span>
       </div>
       <div class="adg-wrap">
-        <!-- ROAS -->
-        <div class="adg-roas">
-          <div class="adg-title">ROAS</div>
-          <div class="adg-roas-inner">
-            <div>
-              <div class="adg-label">자사몰</div>
-              <div class="adg-num-lg" id="raosC">-</div>
-              <div class="adg-sub">÷ 메타(4/19까지)</div>
-            </div>
-            <div>
-              <div class="adg-label">네이버</div>
-              <div class="adg-num-lg" id="raosN">-</div>
-              <div class="adg-sub">÷ 네이버(4/13까지)</div>
-            </div>
-          </div>
-        </div>
-        <!-- 퍼포 광고비 -->
-        <div class="adg-perf">
-          <div class="adg-title">퍼포 광고비</div>
-          <div class="adg-rows">
-            <div class="adg-row"><span class="adg-label">메타 <span class="adg-sub2">4/19까지</span></span><span class="adg-num" id="adMeta">0</span></div>
-            <div class="adg-row"><span class="adg-label">네이버 <span class="adg-sub2">4/13까지</span></span><span class="adg-num" id="adNaver">0</span></div>
-            <div class="adg-row adg-row-top"><span class="adg-label">대행료 <span class="adg-sub2">4/20까지</span></span><span class="adg-num" id="adAgency">0</span></div>
-          </div>
-        </div>
         <!-- 쿠팡 비용 -->
         <div class="adg-coup">
           <div class="adg-title">쿠팡 비용</div>
@@ -1067,8 +1040,8 @@
         <div style="width:3px;height:14px;background:linear-gradient(#16A34A,#0EA5E9);border-radius:2px"></div>
         <span style="font-size:14px;font-weight:700;color:var(--text)">전략 지표</span>
       </div>
-      <!-- 전략 지표 3개 -->
-      <div id="insightChannelRow" class="strat3-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+      <!-- 전략 지표 2개 -->
+      <div id="insightChannelRow" class="strat3-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px"></div>
     </div>
 
     <!-- ── 이커머스 SKU별 수익성 분석 ── -->
@@ -2039,8 +2012,6 @@ function render(){
   if(b2bPrfEl){ b2bPrfEl.textContent=(_combNet>=0?'':'−')+'₩'+fmt(Math.abs(Math.round(_combNet))); b2bPrfEl.style.color=_combNet>=0?'var(--text)':'#E24B4A'; }
   const _rtEl=document.getElementById('profitB2BRate');
   if(_rtEl) _rtEl.textContent = _combRev>0 ? `순이익률 ${(_combNet/_combRev*100).toFixed(1)}%` : '순이익률 -';
-  const roasC = metaAd>0?(totC/metaAd).toFixed(2):'-';
-  const roasN = naverAdTotal>0?(totN/naverAdTotal).toFixed(2):'-';
   // 이커머스 손익
   const profitStr = (profit>=0?'':'−')+'₩'+fmt(Math.abs(profit));
   // B2B 손익 = 납품 이익 + 공구 순수익 − B2B 부대비용 (위에서 정의된 _b2bExpI 사용)
@@ -2049,12 +2020,6 @@ function render(){
   // 합산 손익
   const totalNetProfit = profit + b2bNetProfit;
   const totalNetStr = (totalNetProfit>=0?'':'−')+'₩'+fmt(Math.abs(totalNetProfit));
-
-  document.getElementById('raosC').textContent=roasC;
-  document.getElementById('raosN').textContent=roasN;
-  document.getElementById('adMeta').textContent='₩'+fmt(metaAd);
-  document.getElementById('adNaver').textContent='₩'+fmt(naverAdTotal);
-  document.getElementById('adAgency').textContent='₩'+fmt(agencyFee);
 
   // 이커머스 손익
   const _pv = document.getElementById('profitVal');
@@ -3104,10 +3069,6 @@ function renderInsight(){
   const totalQty=setQty+singleQty;
   const setRatio=totalQty>0?Math.round(setQty/totalQty*100):0;
 
-  const totalAdSpend=metaAd+naverAdTotal;
-  const roas=totalAdSpend>0?(totRev/totalAdSpend).toFixed(1):'-';
-  const roasGood=parseFloat(roas)>=3;
-
   const prevMarginPct=Math.round(calcPrevMonthMargin()*100);
   const currentMarginPct=totRev>0?Math.round(totPrf/totRev*100):0;
   const marginDiff=currentMarginPct-prevMarginPct;
@@ -3118,12 +3079,6 @@ function renderInsight(){
       val:setRatio+'%',
       sub:`세트 ${setQty}개 · 단품 ${singleQty}개 · 세트매출 ₩${fmt(setRev)}`,
       positive:setRatio>=30
-    },
-    {
-      icon:'📡', label:'광고 ROAS',
-      val:roas+'x',
-      sub:`광고비 ₩${fmt(totalAdSpend)} → 전체 매출 ₩${fmt(totRev)} · ${roasGood?'효율 양호':'효율 점검 필요'}`,
-      positive:roasGood
     },
     {
       icon:'📐', label:'마진율 추이',
