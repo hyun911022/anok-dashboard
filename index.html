@@ -6166,6 +6166,48 @@ function calcPopupConsigned(p){
   return out;
 }
 
+// ── 공동 재고 풀: 같은 poolId를 가진 팝업들은 초인 보유 물량을 하나로 공유한다.
+//    위탁출고 = 기준 팝업(가장 이른 시작)의 이월 + 풀 기간 전체의 위탁 출고
+//    소진     = 풀 내 모든 팝업의 판매 합
+//    잔량     = 위탁출고 − 소진 (풀 마지막 팝업 마감 시 finalStock으로 확정)
+function calcPoolStats(poolId){
+  const ps = (popups||[]).filter(q=>q.poolId===poolId).sort((a,b)=>(a.fromDate||'').localeCompare(b.fromDate||''));
+  if(!ps.length) return null;
+  const primary = ps[0];
+  let from = primary.consignFrom || primary.fromDate, to = primary.consignTo || primary.toDate;
+  ps.forEach(q=>{ const f=q.consignFrom||q.fromDate, t=q.consignTo||q.toDate; if(f<from) from=f; if(t>to) to=t; });
+  const consigned = {}; STOCK_SKUS.forEach(k=>consigned[k]=((primary.carryIn||{})[k]||0));
+  (manualOuts||[]).forEach(r=>{
+    if(!r.date || r.noStock) return;
+    if(primary.clientId && r.clientId !== primary.clientId) return;
+    if(r.date < from || r.date > to) return;
+    STOCK_SKUS.forEach(k=>{ if((r[k]||0)>0 && !(r['price_'+k]>0)) consigned[k] += r[k]; });
+  });
+  const sold = {}; STOCK_SKUS.forEach(k=>sold[k]=0);
+  const gwpSold = {ball:0, tag:0};
+  const byPopup = ps.map(q=>{
+    const closed = new Set(q.closedDates||[]);
+    const days = (q.days||[]).filter(d=>!closed.has(d.date));
+    const s = {}; STOCK_SKUS.forEach(k=>{ s[k]=days.reduce((a,d)=>a+(d[k]||0),0); sold[k]+=s[k]; });
+    const g = {ball:days.reduce((a,d)=>a+(d.gwpBall||0),0), tag:days.reduce((a,d)=>a+(d.gwpTag||0),0)};
+    gwpSold.ball+=g.ball; gwpSold.tag+=g.tag;
+    return {id:q.id, name:q.name, sold:s, gwp:g, status:popupStatus(q)};
+  });
+  // 실물 확정은 풀에서 가장 늦게 끝나는 팝업의 finalStock만 인정
+  const last = ps.slice().sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''))[0];
+  const finalStock = (last && last.finalStock) ? last.finalStock : null;
+  const remain = {}; STOCK_SKUS.forEach(k=>remain[k]= finalStock ? (finalStock[k]||0) : (consigned[k]-sold[k]));
+  const gwpOut = {
+    ball: ((primary.gwpCarryIn||{}).ball||0) + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).ball||0),0),
+    tag:  ((primary.gwpCarryIn||{}).tag||0)  + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).tag||0),0)
+  };
+  const gwpFinal = (last && last.gwpFinalStock) ? last.gwpFinalStock : null;
+  const gwpRemain = gwpFinal ? {ball:(gwpFinal.ball||0), tag:(gwpFinal.tag||0)}
+                             : {ball:gwpOut.ball-gwpSold.ball, tag:gwpOut.tag-gwpSold.tag};
+  return {poolId, popups:ps, primary, last, from, to, consigned, sold, remain, byPopup, gwpOut, gwpSold, gwpRemain,
+          hasFinal:!!finalStock, finalStockDate: finalStock ? (last.finalStockDate||'') : ''};
+}
+
 function calcPopupStats(p){
   const days = (p.days||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const closed = new Set(p.closedDates||[]);
@@ -6187,14 +6229,23 @@ function calcPopupStats(p){
   // 위탁 잔량 = 출고 − 셀아웃 (추정치)
   // finalStock(초인 실물 잔량)이 입력되면 그것이 확정값이 되고,
   // 정산수량 = 출고 − 실물잔량 → 셀아웃과의 차이는 테스터·파손분
-  const consigned = calcPopupConsigned(p);
-  const hasFinal = !!p.finalStock;
-  const remain = {}; STOCK_SKUS.forEach(k=>{
-    remain[k] = hasFinal ? (p.finalStock[k]||0) : ((consigned[k]||0) - (sold[k]||0));
-  });
-  const billQty = {}; STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0));
-  const testerQty = {}; STOCK_SKUS.forEach(k=>testerQty[k] = (billQty[k]||0) - (sold[k]||0));
-  const usedQty = billQty;   // 소진 = 정산수량 (위탁출고 − 실물잔량)
+  const pool = p.poolId ? calcPoolStats(p.poolId) : null;
+  const pooled = !!pool;
+  let consigned, hasFinal, remain = {}, billQty = {}, testerQty = {};
+  if(pooled){
+    // 공동 풀: 위탁출고·잔량은 풀 기준, 정산수량은 이 팝업의 판매수량 (실물 확정은 풀 단위)
+    consigned = pool.consigned; hasFinal = false; remain = pool.remain;
+    STOCK_SKUS.forEach(k=>{ billQty[k] = sold[k]||0; testerQty[k] = 0; });
+  } else {
+    consigned = calcPopupConsigned(p);
+    hasFinal = !!p.finalStock;
+    STOCK_SKUS.forEach(k=>{
+      remain[k] = hasFinal ? (p.finalStock[k]||0) : ((consigned[k]||0) - (sold[k]||0));
+    });
+    STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0));
+    STOCK_SKUS.forEach(k=>testerQty[k] = (billQty[k]||0) - (sold[k]||0));
+  }
+  const usedQty = billQty;   // 소진 = 정산수량 (위탁출고 − 실물잔량 / 풀 모드에선 판매수량)
 
   // 정산 예정액 (공급가 기준)
   const preset = p.supplyPreset||{};
@@ -6207,9 +6258,9 @@ function calcPopupStats(p){
   // GWP (대시보드 재고 미등록 품목 — 팝업 내에서만 관리)
   const gwpOut = {};
   ['ball','tag'].forEach(k=>{ gwpOut[k] = ((p.gwpConsigned||{})[k]||0) + ((p.gwpCarryIn||{})[k]||0); });
-  const gwpRemain = p.gwpFinalStock
+  const gwpRemain = pooled ? pool.gwpRemain : (p.gwpFinalStock
     ? {ball:(p.gwpFinalStock.ball||0), tag:(p.gwpFinalStock.tag||0)}
-    : {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag};
+    : {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag});
 
   // GWP는 '매출 없이 비용만 나가는 상품'으로 취급.
   // 개당 순부담 = 원가 − (명세단가 × 분담률). 소진된 수량만 손익에 반영하고
@@ -6219,7 +6270,7 @@ function calcPopupStats(p){
   const share = (p.gwpShareRate !== undefined) ? p.gwpShareRate : 1;
   let gwpBilled = 0, gwpCogs = 0, gwpBurden = 0, gwpDeferred = 0;
   const gwpDetail = [];
-  const gwpFinal = p.gwpFinalStock || null;
+  const gwpFinal = pooled ? null : (p.gwpFinalStock || null);
   ['ball','tag'].forEach(k=>{
     const out = gwpOut[k]||0;
     const sold = gwp[k]||0;                                   // 셀아웃(판매)
@@ -6239,7 +6290,7 @@ function calcPopupStats(p){
   const totalSettle = settleAmt + gwpBilled;
   const netPrf = prf - gwpBurden;
 
-  return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed,
+  return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed, pooled, pool,
           avg, forecast, consigned, remain, billQty, testerQty, usedQty, hasFinal, settleAmt, cogs, prf,
           gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf, hasTarget,
           targetToDate,
@@ -6277,8 +6328,13 @@ function calcChoinStock(){
   const up   = ps.filter(p=>popupStatus(p)==='upcoming');
   try{
     if(live.length || up.length){
-      live.forEach(p=>{ const s=calcPopupStats(p); STOCK_SKUS.forEach(k=>out[k]+=(s.remain[k]||0)); });
-      up.forEach(p=>{ const s=calcPopupStats(p); STOCK_SKUS.forEach(k=>{
+      const seenPools = new Set();
+      live.forEach(p=>{
+        if(p.poolId){ if(seenPools.has(p.poolId)) return; seenPools.add(p.poolId); }
+        const s=calcPopupStats(p); STOCK_SKUS.forEach(k=>out[k]+=(s.remain[k]||0)); });
+      up.forEach(p=>{
+        if(p.poolId){ if(seenPools.has(p.poolId)) return; seenPools.add(p.poolId); const s=calcPopupStats(p); STOCK_SKUS.forEach(k=>out[k]+=(s.remain[k]||0)); return; }
+        const s=calcPopupStats(p); STOCK_SKUS.forEach(k=>{
         const rem = s.remain[k]||0, ci = (p.carryIn||{})[k]||0;
         out[k] += live.length ? Math.max(0, rem - ci) : rem;
       }); });
@@ -6319,12 +6375,58 @@ function renderChannelPopup(){
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
     </div>
+    ${renderPoolCards(list)}
     ${list.map(p=>{
       const st = popupStatus(p);
       const open = (window.__popExpand__ && window.__popExpand__[p.id] !== undefined)
                    ? window.__popExpand__[p.id] : (st === 'live');
       return open ? renderPopupCard(p) : renderPopupRow(p, st);
     }).join('')}`;
+}
+
+// ── 공동 재고 풀 카드: 초인 보유 잔량 (풀 내 팝업이 하나라도 진행/예정이면 표시) ──
+function renderPoolCards(list){
+  const ids = [...new Set(list.filter(p=>p.poolId && popupStatus(p)!=='done').map(p=>p.poolId))];
+  if(!ids.length) return '';
+  const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
+  return ids.map(id=>{
+    const pool = calcPoolStats(id); if(!pool) return '';
+    const names = pool.popups.map(q=>q.name);
+    const totCon = STOCK_SKUS.reduce((a,k)=>a+(pool.consigned[k]||0),0);
+    const totSold = STOCK_SKUS.reduce((a,k)=>a+(pool.sold[k]||0),0);
+    const totRem = STOCK_SKUS.reduce((a,k)=>a+(pool.remain[k]||0),0);
+    const rows = STOCK_SKUS.map(k=>`<tr>
+        <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
+        <td>${(pool.consigned[k]||0).toLocaleString()}</td>
+        ${pool.byPopup.map(b=>`<td style="color:var(--text)">${(b.sold[k]||0).toLocaleString()}</td>`).join('')}
+        <td style="color:var(--text)">${(pool.sold[k]||0).toLocaleString()}</td>
+        <td style="font-weight:700;color:var(--text);${sigStyle(sigRemain(pool.remain[k]||0))}">${(pool.remain[k]||0).toLocaleString()}</td>
+      </tr>`).join('');
+    const gwpRows = ['ball','tag'].map(k=>{
+      const lb = {ball:'샤워볼', tag:'프래그런스 태그'}[k];
+      if(!(pool.gwpOut[k]||0) && !(pool.gwpSold[k]||0)) return '';
+      return `<tr>
+        <td style="text-align:left;color:var(--text3);font-weight:600">${lb}</td>
+        <td style="color:var(--text3)">${(pool.gwpOut[k]||0).toLocaleString()}</td>
+        ${pool.byPopup.map(b=>`<td style="color:var(--text3)">${(b.gwp[k]||0).toLocaleString()}</td>`).join('')}
+        <td style="color:var(--text3)">${(pool.gwpSold[k]||0).toLocaleString()}</td>
+        <td style="font-weight:700;color:var(--text2)">${(pool.gwpRemain[k]||0).toLocaleString()}</td>
+      </tr>`; }).join('');
+    return `<div class="ch-card" style="padding:16px 18px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <div>
+          <span style="font-size:14px;font-weight:700;color:var(--text)">초인 보유 잔량</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:8px">공동 재고 풀 · ${names.join(' + ')}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">위탁 ${totCon.toLocaleString()} − 소진 ${totSold.toLocaleString()} = <b style="color:var(--text)">잔량 ${totRem.toLocaleString()}개</b>${pool.hasFinal?` · 실물 확정 ${pool.finalStockDate}`:''}</div>
+      </div>
+      <table class="pop-tbl" style="margin-bottom:0">
+        <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th>${pool.byPopup.map(b=>`<th>${b.name} 소진</th>`).join('')}<th>총 소진</th><th>잔량</th></tr></thead>
+        <tbody>${rows}${gwpRows}</tbody>
+      </table>
+      ${pool.hasFinal ? '' : `<div class="pop-note" style="margin-top:8px">판매수량 기준 추정 잔량입니다. 풀의 마지막 팝업 마감 시 초인 실물 잔량으로 확정됩니다.</div>`}
+    </div>`;
+  }).join('');
 }
 
 // ── 접힌 한 줄 요약 ──
@@ -6425,12 +6527,12 @@ function renderPopupCard(p){
     const used = s.usedQty[k]||0, other = s.testerQty[k]||0;
     return `<tr>
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
-      <td>${con.toLocaleString()}</td>
+      ${s.pooled ? '' : `<td>${con.toLocaleString()}</td>`}
       <td style="color:var(--text)">${sold.toLocaleString()}</td>
       <td style="color:var(--text3)">${s.hasFinal ? other.toLocaleString() : '–'}</td>
       <td style="color:var(--text)">${used.toLocaleString()}</td>
       <td style="font-weight:700;color:var(--text)">${used.toLocaleString()}</td>
-      <td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>
+      ${s.pooled ? '' : `<td style="color:var(--text2);font-weight:600;${sigStyle(sigRemain(rem))}">${rem.toLocaleString()}${s.hasFinal?'':'<span style="color:var(--text3);font-size:9px">?</span>'}</td>`}
     </tr>`;
   }).join('');
 
@@ -6479,10 +6581,12 @@ function renderPopupCard(p){
     ${p.carryInEstimated?`<div class="pop-note pop-note-warn">이월 물량은 이전 팝업의 <b>추정 잔량</b>입니다. 초인 실물 확인 후 확정됩니다.</div>`:''}
     <div class="pop-sec-lbl">SKU별 판매 · 정산수량 <span style="font-weight:400;color:var(--text3)">(세트 해체 기준)</span></div>
     <table class="pop-tbl">
-      <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th><th>판매</th><th>기타</th><th>소진</th><th>정산수량</th><th>잔량</th></tr></thead>
+      <thead><tr><th style="text-align:left">SKU</th>${s.pooled?'':'<th>위탁출고</th>'}<th>판매</th><th>기타</th><th>소진</th><th>정산수량</th>${s.pooled?'':'<th>잔량</th>'}</tr></thead>
       <tbody>${skuRows}</tbody>
     </table>
-    ${s.hasFinal
+    ${s.pooled
+      ? `<div class="pop-note">공동 재고 풀 (${s.pool.popups.map(q=>q.name).join(' + ')}) — 잔량은 상단 <b>초인 보유 잔량</b> 카드에서 풀 단위로 관리됩니다. 정산수량은 이 매장 판매수량 기준입니다.</div>`
+      : s.hasFinal
       ? `<div class="pop-note">초인 실물 잔량 확정 (${p.finalStockDate||'-'}) · 정산수량 = 위탁출고 − 실물잔량</div>`
       : `<div class="pop-note pop-note-warn">잔량은 <b>판매수량 기준 추정치</b>입니다. 테스터·파손분이 빠져 있어 실제보다 많습니다. 초인에서 실물 잔량을 받으면 정산수량이 확정됩니다.</div>`}
 
@@ -6492,14 +6596,14 @@ function renderPopupCard(p){
       const label = {ball:'샤워볼', tag:'프래그런스 샤쉐'};
       return `<div class="pop-sec-lbl" style="margin-top:2px">GWP 소진 <span style="font-weight:400;color:var(--text3)">(재고 미등록 · 팝업 내 관리)</span></div>
       <table class="pop-tbl">
-        <thead><tr><th style="text-align:left">품목</th><th>출고</th><th>판매</th><th>기타</th><th>소진</th><th>잔량</th><th>개당부담</th><th>비용</th></tr></thead>
+        <thead><tr><th style="text-align:left">품목</th>${s.pooled?'':'<th>출고</th>'}<th>판매</th><th>기타</th><th>소진</th>${s.pooled?'':'<th>잔량</th>'}<th>개당부담</th><th>비용</th></tr></thead>
         <tbody>${det.map(d=>`<tr>
           <td style="text-align:left;color:var(--text2);font-weight:600">${label[d.key]||d.key}</td>
-          <td>${d.out.toLocaleString()}</td>
+          ${s.pooled?'':`<td>${d.out.toLocaleString()}</td>`}
           <td style="color:var(--text)">${d.sold.toLocaleString()}</td>
           <td style="color:var(--text3)">${s.hasFinal||p.gwpFinalStock ? d.other.toLocaleString() : '–'}</td>
           <td style="color:var(--text)">${d.used.toLocaleString()}</td>
-          <td style="color:var(--text2);font-weight:600">${d.rest.toLocaleString()}</td>
+          ${s.pooled?'':`<td style="color:var(--text2);font-weight:600">${d.rest.toLocaleString()}</td>`}
           <td style="color:var(--text3)">₩${_chFmt(d.unitNet)}</td>
           <td style="color:var(--text2)">₩${_chFmt(d.burden)}</td>
         </tr>`).join('')}</tbody>
