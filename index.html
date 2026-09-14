@@ -5836,9 +5836,9 @@ function openProfitDetail(){
     </div>
 
     <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin:14px 0 4px">차감 비용</div>
-    ${row('메타 광고비', metaAd, '#EF4444', false, `₩86,404/일 × 4/19까지`)}
-    ${row('네이버 광고비', naverAd, '#EF4444', false, `₩9,058/일 × 4/13까지`)}
-    ${row('대행료', agencyDaily, '#EF4444', false, `₩700,000 × 4/20까지 일할`)}
+    ${metaAd>0?row('메타 광고비', metaAd, '#EF4444', false, `₩86,404/일 × 4/19까지`):''}
+    ${naverAd>0?row('네이버 광고비', naverAd, '#EF4444', false, `₩9,058/일 × 4/13까지`):''}
+    ${agencyDaily>0?row('대행료', agencyDaily, '#EF4444', false, `₩700,000 × 4/20까지 일할`):''}
     ${(()=>{
       const monthExp = (typeof expenses!=='undefined' ? expenses : []).filter(x=>x.date && x.date.startsWith(month) && x.category==='ecommerce').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
       if(monthExp.length===0) return '';
