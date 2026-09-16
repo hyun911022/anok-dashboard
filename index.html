@@ -1098,7 +1098,7 @@
     <div id="stockInsightCard" style="display:none;margin-bottom:20px"></div>
 
     <div id="stockLocationCard" style="margin-bottom:20px"></div>
-    <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:9px">대화물류 창고 재고 <span style="font-weight:400;color:var(--text3);font-size:11px">· 쿠팡 FC 제외</span></div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:9px">창고 재고 <span style="font-weight:400;color:var(--text3);font-size:11px">· 쿠팡 FC 제외</span></div>
     <div id="stockCards" style="margin-bottom:20px"></div>
 
     <!-- 과재고율 + 유통기한 소진 가능성 카드 2열 -->
@@ -1615,6 +1615,13 @@
         <label>입고 날짜</label>
         <input type="date" id="si_date">
       </div>
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>입고 창고</label>
+        <select id="si_loc" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          <option value="icheon">이천창고 (그레이스 이천물류)</option>
+          <option value="daehwa">대화창고 (대화물류)</option>
+        </select>
+      </div>
       <div class="modal-date" style="margin-bottom:16px">
         <label>입고 사유</label>
         <input type="text" id="si_reason" placeholder="예: 정기 입고, 추가 발주 등" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
@@ -1703,6 +1710,17 @@
         <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">거래처명 <span style="color:#EF4444">*</span></label>
         <input type="text" id="mo_clientName" placeholder="예: 노태그"
           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#12151F;box-sizing:border-box">
+      </div>
+
+      <!-- 출고 창고 / 창고 이동 -->
+      <div class="modal-date" style="margin-bottom:12px">
+        <label>출고 창고</label>
+        <select id="mo_loc" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
+          <option value="daehwa">대화창고에서 출고</option>
+          <option value="icheon">이천창고에서 출고</option>
+          <option value="transfer_d2i">창고 이동: 대화 → 이천 (재고 총량 불변)</option>
+          <option value="transfer_i2d">창고 이동: 이천 → 대화 (재고 총량 불변)</option>
+        </select>
       </div>
 
       <!-- 출고 사유 -->
@@ -3560,6 +3578,40 @@ function calcCoupangDailyRate(days){
   return rate;
 }
 
+// ── 보관처(창고) 구분: 대화물류 / 그레이스 이천물류 ──
+//    이천 재고는 명시적으로 집계(입고 loc·출고 loc·창고 이동·FC 입고 loc·이커머스 출고 전환일)하고,
+//    대화 재고 = (총재고 − 쿠팡 FC) − 이천 재고 (잔차)로 두어 합계가 항상 맞도록 한다.
+const STOCK_LOCS = { daehwa:'대화창고', icheon:'이천창고' };
+let ECOM_ICHEON_FROM = null;   // 'YYYY-MM-DD' — 이 날짜부터 이커머스(자사몰·네이버·무신사) 출고를 이천에서 차감. 이전 전까지는 null
+function calcIcheonStock(){
+  const out = {}; STOCK_SKUS.forEach(k=>out[k]=0);
+  (stockBatches||[]).forEach(b=>{
+    if(Array.isArray(b.inbounds)){
+      b.inbounds.forEach(ib=>{ if(ib.loc==='icheon') (ib.items||[]).forEach(it=>{ if(out[it.sku]!==undefined) out[it.sku]+=(it.qty||0); }); });
+    } else if(b.loc==='icheon'){
+      (b.items||[]).forEach(it=>{ if(out[it.sku]!==undefined) out[it.sku]+=(it.qty||0); });
+    }
+  });
+  (manualOuts||[]).forEach(o=>{
+    if(o.transfer){ STOCK_SKUS.forEach(k=>{ const q=o[k]||0; if(!q) return; if(o.toLoc==='icheon') out[k]+=q; if(o.fromLoc==='icheon') out[k]-=q; }); return; }
+    if(o.noStock) return;
+    if(o.loc==='icheon') STOCK_SKUS.forEach(k=>{ out[k]-=(o[k]||0); });
+  });
+  (fcInbounds||[]).forEach(f=>{ if(f.loc==='icheon') STOCK_SKUS.forEach(k=>{ out[k]-=(f[k]||0); }); });
+  if(ECOM_ICHEON_FROM){
+    (records||[]).filter(r=>r.date>=ECOM_ICHEON_FROM).forEach(r=>{
+      ['cafe','naver','musinsa'].forEach(ch=>{ const c=r[ch]||{};
+        out.shampoo   -= (c.shampoo||0)+(c.hairset||0)+(c.washset||0);
+        out.treatment -= (c.treatment||0)+(c.hairset||0);
+        out.bodywash  -= (c.bodywash||0)+(c.bodyset||0)+(c.washset||0);
+        out.bodylotion-= (c.bodylotion||0)+(c.bodyset||0);
+        out.wego120   -= (c.wego120||0);
+      });
+    });
+  }
+  return out;
+}
+
 // 쿠팡 FC 현재고 = 대화창고→FC 입고 누계 − 쿠팡 판매 누계
 function calcCoupangFCStock(uptoDate){
   const d = uptoDate || getTodayKST();
@@ -3934,21 +3986,24 @@ function renderStock(){
     cardsEl.innerHTML = skuHtml;
   }
 
-  // ── 보관처별 재고 (대화창고 / 초인 위탁 / 쿠팡 FC) ──
+  // ── 보관처별 재고 (대화창고 / 이천창고 / 초인 위탁 / 쿠팡 FC) ──
   const locEl = document.getElementById('stockLocationCard');
   if(locEl){
     const fc = calcCoupangFCStock(today);
     const choin = (typeof calcChoinStock==='function') ? calcChoinStock() : {};
+    const icheon = (typeof calcIcheonStock==='function') ? calcIcheonStock() : {};
     const rows = STOCK_SKUS.map(k=>{
       const total = currentStock[k]||0;   // 총재고 (위탁출고분 제외)
       const fcQty = fc[k]||0;             // 쿠팡 FC
-      const dh = total - fcQty;           // 대화창고
+      const ic = icheon[k]||0;            // 이천창고 (명시 집계)
+      const dh = total - fcQty - ic;      // 대화창고 (잔차)
       const ch = choin[k]||0;             // 초인 위탁 잔량
-      const grand = total + ch;           // 합계 = 대화창고 + 초인 + FC
+      const grand = total + ch;           // 합계 = 대화 + 이천 + 초인 + FC
       const costVal = grand * (UNIT_COSTS[k]||0);   // 원가가치
       return `<tr>
         <td style="text-align:left;color:var(--text2);font-weight:600">${CH_SKU_NAMES[k]}</td>
         <td>${dh.toLocaleString()}</td>
+        <td>${ic.toLocaleString()}</td>
         <td>${ch.toLocaleString()}</td>
         <td>${fcQty.toLocaleString()}</td>
         <td style="font-weight:700;color:var(--text)">${grand.toLocaleString()}</td>
@@ -3957,16 +4012,18 @@ function renderStock(){
     }).join('');
     const fcTot = STOCK_SKUS.reduce((s,k)=>s+(fc[k]||0),0);
     const chTot = STOCK_SKUS.reduce((s,k)=>s+(choin[k]||0),0);
+    const icTot = STOCK_SKUS.reduce((s,k)=>s+(icheon[k]||0),0);
+    const dhTot = STOCK_SKUS.reduce((s,k)=>s+(currentStock[k]||0),0) - fcTot - icTot;
     const allTot = STOCK_SKUS.reduce((s,k)=>s+(currentStock[k]||0),0) + chTot;
     const costTot = STOCK_SKUS.reduce((s,k)=>s+((currentStock[k]||0)+(choin[k]||0))*(UNIT_COSTS[k]||0),0);
     locEl.innerHTML = `
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
           <div style="font-size:13px;font-weight:700;color:var(--text)">보관처별 재고</div>
-          <div style="font-size:10px;color:var(--text3)">초인 ${chTot.toLocaleString()}개 · 쿠팡 FC ${fcTot.toLocaleString()}개 · 전체 ${allTot.toLocaleString()}개 · 원가가치 ${Math.round(costTot/10000).toLocaleString()}만원</div>
+          <div style="font-size:10px;color:var(--text3)">대화 ${dhTot.toLocaleString()} · 이천 ${icTot.toLocaleString()} · 초인 ${chTot.toLocaleString()} · 쿠팡 FC ${fcTot.toLocaleString()} · 전체 ${allTot.toLocaleString()}개 · 원가가치 ${Math.round(costTot/10000).toLocaleString()}만원</div>
         </div>
         <table class="pop-tbl" style="margin-bottom:0">
-          <thead><tr><th style="text-align:left">SKU</th><th>대화창고</th><th>초인 위탁</th><th>쿠팡 FC</th><th>합계</th><th>원가가치 (만원)</th></tr></thead>
+          <thead><tr><th style="text-align:left">SKU</th><th>대화창고</th><th>이천창고</th><th>초인 위탁</th><th>쿠팡 FC</th><th>합계</th><th>원가가치 (만원)</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -4130,6 +4187,7 @@ function openStockInitModal(){
   const [y,m] = selectedMonth.split('-');
   document.getElementById('si_date').value=`${y}-${m}-01`;
   document.getElementById('si_reason').value='';
+  const locEl=document.getElementById('si_loc'); if(locEl) locEl.value='icheon';
   STOCK_SKUS.forEach(k=>{
     const qEl=document.getElementById('si_'+k); if(qEl) qEl.value=0;
     const mEl=document.getElementById('si_'+k+'_mfg'); if(mEl) mEl.value='';
@@ -4160,7 +4218,8 @@ function saveStockInit(){
     }
   });
   if(items.length===0){ showToast('입고 수량을 입력해주세요'); return; }
-  const batch={id:'batch_'+Date.now(), date, reason:reason||'정기 입고', items};
+  const loc = document.getElementById('si_loc')?.value || 'daehwa';
+  const batch={id:'batch_'+Date.now(), date, reason:reason||'정기 입고', loc, items};
   stockBatches.push(batch);
   saveStockData();
   closeStockInitModal();
@@ -4171,6 +4230,7 @@ function saveStockInit(){
 function openManualOutModal(){
   document.getElementById('mo_date').value=getTodayKST();
   document.getElementById('mo_reason').value='';
+  const moLoc=document.getElementById('mo_loc'); if(moLoc) moLoc.value='daehwa';
   if(typeof onMoDateChange==='function') onMoDateChange();
   // 거래처 초기화
   const sel=document.getElementById('mo_client'); if(sel) sel.value='';
@@ -4206,6 +4266,23 @@ function saveManualOut(){
   });
   if(!STOCK_SKUS.some(k=>entry[k]>0)){ showToast('출고 수량을 입력해주세요'); return; }
   entry.isB2B = STOCK_SKUS.some(k=>entry[k]>0 && entry['price_'+k]>0);
+
+  // 출고 창고 / 창고 이동
+  const locSel = document.getElementById('mo_loc')?.value || 'daehwa';
+  if(locSel==='transfer_d2i' || locSel==='transfer_i2d'){
+    entry.transfer = true; entry.noStock = true; entry.isB2B = false;
+    entry.fromLoc = locSel==='transfer_d2i' ? 'daehwa' : 'icheon';
+    entry.toLoc   = locSel==='transfer_d2i' ? 'icheon' : 'daehwa';
+    STOCK_SKUS.forEach(k=>{ entry['price_'+k]=0; });
+    if(!entry.reason) entry.reason = `창고 이동 (${STOCK_LOCS[entry.fromLoc]} → ${STOCK_LOCS[entry.toLoc]})`;
+    manualOuts.push(entry);
+    saveStockData();
+    closeManualOutModal();
+    renderStock();
+    showToast(`${date} 창고 이동이 저장되었습니다`);
+    return;
+  }
+  entry.loc = locSel;
 
   // 거래처 정보 저장
   if(isNewClient && newClientName){
@@ -4503,7 +4580,7 @@ function renderSettlement(){
 }
 
 // 입고 등록 헬퍼 — 같은 유통기한 로트가 있으면 합치고, 입고 이력만 추가한다
-function addInbound(date, reason, items){
+function addInbound(date, reason, items, loc){
   (items||[]).forEach(it=>{
     let target=null;
     for(const b of stockBatches){
@@ -4516,11 +4593,11 @@ function addInbound(date, reason, items){
         // 기존 배치를 최초 입고 건으로 승격
         target.inbounds=[{date:target.date, reason:target.reason, items:target.items.map(x=>({sku:x.sku, qty:x.qty - (x.sku===it.sku && x.expiry===it.expiry ? it.qty : 0)}))}];
       }
-      target.inbounds.push({date, reason, items:[{sku:it.sku, qty:it.qty}]});
+      target.inbounds.push({date, reason, loc: loc||'daehwa', items:[{sku:it.sku, qty:it.qty}]});
     } else {
       stockBatches.push({
         id:'batch_'+Date.now()+'_'+it.sku,
-        date, reason,
+        date, reason, loc: loc||'daehwa',
         items:[{sku:it.sku, qty:it.qty, expiry:it.expiry, mfgDate:it.mfgDate||''}]
       });
     }
