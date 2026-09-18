@@ -6494,14 +6494,15 @@ function renderPoolCards(list){
   const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
   return ids.map(id=>{
     const pool = calcPoolStats(id); if(!pool) return '';
-    const names = pool.popups.map(q=>q.name);
+    const shown = pool.byPopup.filter(b=>b.status!=='done');          // 진행·예정만 컬럼 표시
+    const names = shown.map(b=>b.name);
     const totCon = STOCK_SKUS.reduce((a,k)=>a+(pool.consigned[k]||0),0);
     const totSold = STOCK_SKUS.reduce((a,k)=>a+(pool.sold[k]||0),0);
     const totRem = STOCK_SKUS.reduce((a,k)=>a+(pool.remain[k]||0),0);
     const rows = STOCK_SKUS.map(k=>`<tr>
         <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
         <td>${(pool.consigned[k]||0).toLocaleString()}</td>
-        ${pool.byPopup.map(b=>`<td style="color:var(--text)">${(b.sold[k]||0).toLocaleString()}</td>`).join('')}
+        ${shown.map(b=>`<td style="color:var(--text)">${(b.sold[k]||0).toLocaleString()}</td>`).join('')}
         <td style="color:var(--text)">${(pool.sold[k]||0).toLocaleString()}</td>
         <td style="font-weight:700;color:var(--text);${sigStyle(sigRemain(pool.remain[k]||0))}">${(pool.remain[k]||0).toLocaleString()}</td>
       </tr>`).join('');
@@ -6511,7 +6512,7 @@ function renderPoolCards(list){
       return `<tr>
         <td style="text-align:left;color:var(--text3);font-weight:600">${lb}</td>
         <td style="color:var(--text3)">${(pool.gwpOut[k]||0).toLocaleString()}</td>
-        ${pool.byPopup.map(b=>`<td style="color:var(--text3)">${(b.gwp[k]||0).toLocaleString()}</td>`).join('')}
+        ${shown.map(b=>`<td style="color:var(--text3)">${(b.gwp[k]||0).toLocaleString()}</td>`).join('')}
         <td style="color:var(--text3)">${(pool.gwpSold[k]||0).toLocaleString()}</td>
         <td style="font-weight:700;color:var(--text2)">${(pool.gwpRemain[k]||0).toLocaleString()}</td>
       </tr>`; }).join('');
@@ -6524,7 +6525,7 @@ function renderPoolCards(list){
         <div style="font-size:11px;color:var(--text3)">위탁 ${totCon.toLocaleString()} − 소진 ${totSold.toLocaleString()} = <b style="color:var(--text)">잔량 ${totRem.toLocaleString()}개</b>${pool.hasFinal?` · 실물 확정 ${pool.finalStockDate}`:''}</div>
       </div>
       <table class="pop-tbl" style="margin-bottom:0">
-        <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th>${pool.byPopup.map(b=>`<th>${b.name} 소진</th>`).join('')}<th>총 소진</th><th>잔량</th></tr></thead>
+        <thead><tr><th style="text-align:left">SKU</th><th>위탁출고</th>${shown.map(b=>`<th>${b.name} 소진</th>`).join('')}<th>총 소진</th><th>잔량</th></tr></thead>
         <tbody>${rows}${gwpRows}</tbody>
       </table>
       ${pool.hasFinal ? '' : `<div class="pop-note" style="margin-top:8px">판매수량 기준 추정 잔량입니다. 풀의 마지막 팝업 마감 시 초인 실물 잔량으로 확정됩니다.</div>`}
