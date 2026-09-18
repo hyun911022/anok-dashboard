@@ -6494,7 +6494,7 @@ function renderPoolCards(list){
   const skuNames = {shampoo:'샴푸', treatment:'트리트먼트', bodywash:'바디워시', bodylotion:'바디로션', wego120:'위고슬림핏'};
   return ids.map(id=>{
     const pool = calcPoolStats(id); if(!pool) return '';
-    const shown = pool.byPopup.filter(b=>b.status!=='done');          // 진행·예정만 컬럼 표시
+    const shown = pool.byPopup.filter(b=>b.status==='live');          // 진행중 팝업만 컬럼 표시 (예정·종료는 총 소진에만 포함)
     const names = shown.map(b=>b.name);
     const totCon = STOCK_SKUS.reduce((a,k)=>a+(pool.consigned[k]||0),0);
     const totSold = STOCK_SKUS.reduce((a,k)=>a+(pool.sold[k]||0),0);
