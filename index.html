@@ -6451,6 +6451,28 @@ function calcChoinStock(){
 }
 
 // ── 렌더 ──
+// 선택 월 기준 팝업 정산매출·순이익 (일별 판매 × 공급가 − 원가, GWP 명세가 50% − GWP 원가)
+function calcPopupMonthPL(month){
+  let settle=0, prf=0, rev=0;
+  (popups||[]).forEach(p=>{
+    const sp = p.supplyPreset || {};
+    const share = (p.gwpShareRate!==undefined) ? p.gwpShareRate : 0.5;
+    const gl = p.gwpListPrice || {ball:1600, tag:3500};
+    const gc = p.gwpCost || {ball:1500, tag:2500};
+    const closed = new Set(p.closedDates||[]);
+    (p.days||[]).forEach(d=>{
+      if(!d.date || !d.date.startsWith(month) || closed.has(d.date)) return;
+      rev += d.rev||0;
+      STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; settle += q*price; prf += q*(price-(UNIT_COSTS[k]||0)); });
+      const gb=d.gwpBall||0, gt=d.gwpTag||0;
+      const gBilled = gb*(gl.ball||0)*share + gt*(gl.tag||0)*share;
+      const gCost   = gb*(gc.ball||0) + gt*(gc.tag||0);
+      settle += gBilled; prf += gBilled - gCost;
+    });
+  });
+  return {settle:Math.round(settle), prf:Math.round(prf), rev};
+}
+
 function renderChannelPopup(){
   const el = document.getElementById('chPanePopup');
   if(!el) return;
@@ -6468,6 +6490,10 @@ function renderChannelPopup(){
   let sumRev=0, sumTarget=0, sumTargetFull=0, sumPrf=0, sumSettle=0, sumForecast=0;
   list.forEach(p=>{ const s=calcPopupStats(p); sumRev+=s.rev; sumTarget+=s.targetToDate; sumTargetFull+=s.target;
                     sumPrf+=s.netPrf; sumSettle+=s.totalSettle; sumForecast+=s.forecast; });
+  // 당월(선택 월) 정산매출·순이익
+  const mKey = selectedMonth || getTodayKST().slice(0,7);
+  const mPL = calcPopupMonthPL(mKey);
+  const mLabel = `${parseInt(mKey.slice(5),10)}월`;
 
   el.innerHTML = `
     <div class="ch-summary">
@@ -6477,6 +6503,10 @@ function renderChannelPopup(){
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('settle')"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">${mLabel} 정산매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(mPL.settle)}</div>
+        <div class="ch-sum-sub">셀아웃 ₩${_chFmt(mPL.rev)}</div></div>
+      <div class="ch-sum-item"><div class="ch-sum-lbl">${mLabel} 순이익</div><div class="ch-sum-val">₩${_chFmt(mPL.prf)}</div>
+        <div class="ch-sum-sub">셀아웃 ${mPL.rev>0?(mPL.prf/mPL.rev*100).toFixed(1):0}% · 납품가 ${mPL.settle>0?(mPL.prf/mPL.settle*100).toFixed(1):0}%</div></div>
     </div>
     ${renderPoolCards(list)}
     ${list.map(p=>{
