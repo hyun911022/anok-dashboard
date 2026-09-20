@@ -6453,24 +6453,29 @@ function calcChoinStock(){
 // ── 렌더 ──
 // 선택 월 기준 팝업 정산매출·순이익 (일별 판매 × 공급가 − 원가, GWP 명세가 50% − GWP 원가)
 function calcPopupMonthPL(month){
-  let settle=0, prf=0, rev=0;
+  let settle=0, prf=0, rev=0; const byPopup=[];
   (popups||[]).forEach(p=>{
     const sp = p.supplyPreset || {};
     const share = (p.gwpShareRate!==undefined) ? p.gwpShareRate : 0.5;
     const gl = p.gwpListPrice || {ball:1600, tag:3500};
     const gc = p.gwpCost || {ball:1500, tag:2500};
     const closed = new Set(p.closedDates||[]);
+    let pS=0, pP=0, pR=0, pDays=0, pMain=0, pGwpB=0, pGwpC=0, pCogs=0, pUnits=0;
     (p.days||[]).forEach(d=>{
       if(!d.date || !d.date.startsWith(month) || closed.has(d.date)) return;
-      rev += d.rev||0;
-      STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; settle += q*price; prf += q*(price-(UNIT_COSTS[k]||0)); });
+      pDays++; pR += d.rev||0;
+      STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; pMain += q*price; pCogs += q*(UNIT_COSTS[k]||0); pUnits+=q; });
       const gb=d.gwpBall||0, gt=d.gwpTag||0;
-      const gBilled = gb*(gl.ball||0)*share + gt*(gl.tag||0)*share;
-      const gCost   = gb*(gc.ball||0) + gt*(gc.tag||0);
-      settle += gBilled; prf += gBilled - gCost;
+      pGwpB += gb*(gl.ball||0)*share + gt*(gl.tag||0)*share;
+      pGwpC += gb*(gc.ball||0) + gt*(gc.tag||0);
     });
+    if(!pDays) return;
+    pS = pMain + pGwpB; pP = pMain - pCogs + (pGwpB - pGwpC);
+    settle += pS; prf += pP; rev += pR;
+    byPopup.push({id:p.id, name:p.name, days:pDays, rev:pR, units:pUnits, main:Math.round(pMain), gwpBilled:Math.round(pGwpB), settle:Math.round(pS), cogs:Math.round(pCogs), gwpBurden:Math.round(pGwpC-pGwpB), prf:Math.round(pP)});
   });
-  return {settle:Math.round(settle), prf:Math.round(prf), rev};
+  byPopup.sort((a,b)=>b.settle-a.settle);
+  return {settle:Math.round(settle), prf:Math.round(prf), rev, byPopup};
 }
 
 function renderChannelPopup(){
@@ -6503,9 +6508,9 @@ function renderChannelPopup(){
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('settle')"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">${mLabel} 정산매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(mPL.settle)}</div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('monthSettle')"><div class="ch-sum-lbl">${mLabel} 정산매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(mPL.settle)}</div>
         <div class="ch-sum-sub">셀아웃 ₩${_chFmt(mPL.rev)}</div></div>
-      <div class="ch-sum-item"><div class="ch-sum-lbl">${mLabel} 순이익</div><div class="ch-sum-val">₩${_chFmt(mPL.prf)}</div>
+      <div class="ch-sum-item ch-clickable" onclick="openChDrill('monthProfit')"><div class="ch-sum-lbl">${mLabel} 순이익</div><div class="ch-sum-val">₩${_chFmt(mPL.prf)}</div>
         <div class="ch-sum-sub">셀아웃 ${mPL.rev>0?(mPL.prf/mPL.rev*100).toFixed(1):0}% · 납품가 ${mPL.settle>0?(mPL.prf/mPL.settle*100).toFixed(1):0}%</div></div>
     </div>
     ${renderPoolCards(list)}
@@ -6776,13 +6781,51 @@ function openChDrill(kind){
   const bg = document.getElementById('chDrillBg');
   if(!bg) return;
   const list = popups.slice();
-  const titles = {sellout:'셀아웃 상세', target:'목표 대비 상세', settle:'정산 매출 상세', profit:'팝업 순이익 상세'};
+  const mKey = selectedMonth || getTodayKST().slice(0,7);
+  const mLabel = `${parseInt(mKey.slice(5),10)}월`;
+  const titles = {sellout:'셀아웃 상세', target:'목표 대비 상세', settle:'정산 매출 상세', profit:'팝업 순이익 상세',
+                  monthSettle:`${mLabel} 팝업별 정산매출`, monthProfit:`${mLabel} 팝업별 순이익`};
   document.getElementById('chDrillTitle').textContent = titles[kind] || '상세';
-  const fns = {sellout:drillSellout, target:drillTarget, settle:drillSettle, profit:drillProfit};
+  const fns = {sellout:drillSellout, target:drillTarget, settle:drillSettle, profit:drillProfit,
+               monthSettle:()=>drillMonthPL(mKey,'settle'), monthProfit:()=>drillMonthPL(mKey,'profit')};
   document.getElementById('chDrillBody').innerHTML = (fns[kind] || (()=>''))(list);
   bg.classList.add('open');
 }
 function closeChDrill(){ document.getElementById('chDrillBg').classList.remove('open'); }
+
+// ── 당월 팝업별 정산매출 / 순이익 ──
+function drillMonthPL(month, mode){
+  const m = calcPopupMonthPL(month);
+  if(!m.byPopup.length) return `<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px 0">해당 월 팝업 실적이 없습니다</div>`;
+  const rows = m.byPopup.map(b=> mode==='settle' ? `<tr>
+      <td class="lft" style="font-weight:600;color:var(--text)">${b.name}</td>
+      <td>${b.days}일</td>
+      <td>₩${_chFmt(b.rev)}</td>
+      <td>${b.units}</td>
+      <td>₩${_chFmt(b.main)}</td>
+      <td style="color:var(--text3)">₩${_chFmt(b.gwpBilled)}</td>
+      <td style="font-weight:700;color:var(--text)">₩${_chFmt(b.settle)}</td>
+      <td style="color:var(--text3)">${b.rev>0?(b.settle/b.rev*100).toFixed(1):0}%</td>
+    </tr>` : `<tr>
+      <td class="lft" style="font-weight:600;color:var(--text)">${b.name}</td>
+      <td>${b.days}일</td>
+      <td>₩${_chFmt(b.settle)}</td>
+      <td style="color:var(--text3)">−₩${_chFmt(b.cogs)}</td>
+      <td style="color:var(--text3)">−₩${_chFmt(b.gwpBurden)}</td>
+      <td style="font-weight:700;color:var(--text)">₩${_chFmt(b.prf)}</td>
+      <td style="color:var(--text3)">${b.rev>0?(b.prf/b.rev*100).toFixed(1):0}%</td>
+      <td style="color:var(--text3)">${b.settle>0?(b.prf/b.settle*100).toFixed(1):0}%</td>
+    </tr>`).join('');
+  const tCogs=m.byPopup.reduce((a,b)=>a+b.cogs,0), tBurden=m.byPopup.reduce((a,b)=>a+b.gwpBurden,0), tMain=m.byPopup.reduce((a,b)=>a+b.main,0), tGwp=m.byPopup.reduce((a,b)=>a+b.gwpBilled,0), tUnits=m.byPopup.reduce((a,b)=>a+b.units,0), tDays=m.byPopup.reduce((a,b)=>a+b.days,0);
+  const head = mode==='settle'
+    ? `<tr><th class="lft">팝업</th><th>영업일</th><th>셀아웃</th><th>판매수량</th><th>본품 정산</th><th>GWP 정산</th><th>정산매출</th><th>셀아웃 대비</th></tr>`
+    : `<tr><th class="lft">팝업</th><th>영업일</th><th>정산매출</th><th>본품 원가</th><th>GWP 순부담</th><th>순이익</th><th>셀아웃 대비</th><th>정산 대비</th></tr>`;
+  const foot = mode==='settle'
+    ? `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.rev)}</td><td>${tUnits}</td><td>₩${_chFmt(tMain)}</td><td>₩${_chFmt(tGwp)}</td><td>₩${_chFmt(m.settle)}</td><td>${m.rev>0?(m.settle/m.rev*100).toFixed(1):0}%</td></tr>`
+    : `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.settle)}</td><td>−₩${_chFmt(tCogs)}</td><td>−₩${_chFmt(tBurden)}</td><td>₩${_chFmt(m.prf)}</td><td>${m.rev>0?(m.prf/m.rev*100).toFixed(1):0}%</td><td>${m.settle>0?(m.prf/m.settle*100).toFixed(1):0}%</td></tr>`;
+  return `<table class="pop-tbl drill-tbl"><thead>${head}</thead><tbody>${rows}</tbody><tfoot>${foot}</tfoot></table>
+    <div class="pop-note" style="margin-top:8px">해당 월에 실적이 등록된 날짜만 집계 · 정산매출 = 판매수량 × 공급가 + GWP 명세가 50% · 순이익 = 정산매출 − 본품 원가 − GWP 순부담</div>`;
+}
 
 // ── 1. 셀아웃: 일별 내역 ──
 function drillSellout(list){
