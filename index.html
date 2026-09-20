@@ -138,6 +138,9 @@
   .chsub.active{background:#252840;color:#9B6DFF;border-color:#3A3F63}
 
   .ch-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+.ch-sum-month{border-color:rgba(34,197,94,0.45)!important;background:rgba(34,197,94,0.08)!important}
+.ch-sum-month .ch-sum-lbl{color:#22C55E!important}
+.ch-sum-month .ch-sum-val{color:#4ADE80!important}
   .ch-sum-item{background:#12151F;border:1px solid var(--border);border-radius:10px;padding:11px 13px}
   .ch-sum-lbl{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
   .ch-sum-val{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.4px}
@@ -6502,16 +6505,16 @@ function renderChannelPopup(){
 
   el.innerHTML = `
     <div class="ch-summary">
+      <div class="ch-sum-item ch-clickable ch-sum-month" onclick="openChDrill('monthSettle')"><div class="ch-sum-lbl">${mLabel} 정산매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(mPL.settle)}</div>
+        <div class="ch-sum-sub">셀아웃 ₩${_chFmt(mPL.rev)}</div></div>
+      <div class="ch-sum-item ch-clickable ch-sum-month" onclick="openChDrill('monthProfit')"><div class="ch-sum-lbl">${mLabel} 순이익</div><div class="ch-sum-val">₩${_chFmt(mPL.prf)}</div>
+        <div class="ch-sum-sub">셀아웃 ${mPL.rev>0?(mPL.prf/mPL.rev*100).toFixed(1):0}% · 납품가 ${mPL.settle>0?(mPL.prf/mPL.settle*100).toFixed(1):0}%</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('sellout')"><div class="ch-sum-lbl">셀아웃 누계</div><div class="ch-sum-val">₩${_chFmt(sumRev)}</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('target')"><div class="ch-sum-lbl">목표 대비 <span style="font-weight:400;color:var(--text3)">경과일</span></div><div class="ch-sum-val" style="${sigStyle(sigRate(sumTarget>0?sumRev/sumTarget*100:0))}">${sumTarget>0?(sumRev/sumTarget*100).toFixed(1):0}%</div>
         <div class="ch-sum-sub">최종 예상 ₩${_chFmt(sumForecast)} <span>(${sumTargetFull>0?Math.round(sumForecast/sumTargetFull*100):0}%)</span></div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('settle')"><div class="ch-sum-lbl">정산 매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(sumSettle)}</div></div>
       <div class="ch-sum-item ch-clickable" onclick="openChDrill('profit')"><div class="ch-sum-lbl">팝업 순이익</div><div class="ch-sum-val">₩${_chFmt(sumPrf)}</div>
         <div class="ch-sum-sub">셀아웃 ${sumRev>0?(sumPrf/sumRev*100).toFixed(1):0}% · 납품가 ${sumSettle>0?(sumPrf/sumSettle*100).toFixed(1):0}%</div></div>
-      <div class="ch-sum-item ch-clickable" onclick="openChDrill('monthSettle')"><div class="ch-sum-lbl">${mLabel} 정산매출 <span style="font-weight:400">(GWP 포함)</span></div><div class="ch-sum-val">₩${_chFmt(mPL.settle)}</div>
-        <div class="ch-sum-sub">셀아웃 ₩${_chFmt(mPL.rev)}</div></div>
-      <div class="ch-sum-item ch-clickable" onclick="openChDrill('monthProfit')"><div class="ch-sum-lbl">${mLabel} 순이익</div><div class="ch-sum-val">₩${_chFmt(mPL.prf)}</div>
-        <div class="ch-sum-sub">셀아웃 ${mPL.rev>0?(mPL.prf/mPL.rev*100).toFixed(1):0}% · 납품가 ${mPL.settle>0?(mPL.prf/mPL.settle*100).toFixed(1):0}%</div></div>
     </div>
     ${renderPoolCards(list)}
     ${list.map(p=>{
@@ -6801,30 +6804,24 @@ function drillMonthPL(month, mode){
       <td class="lft" style="font-weight:600;color:var(--text)">${b.name}</td>
       <td>${b.days}일</td>
       <td>₩${_chFmt(b.rev)}</td>
-      <td>${b.units}</td>
-      <td>₩${_chFmt(b.main)}</td>
-      <td style="color:var(--text3)">₩${_chFmt(b.gwpBilled)}</td>
       <td style="font-weight:700;color:var(--text)">₩${_chFmt(b.settle)}</td>
       <td style="color:var(--text3)">${b.rev>0?(b.settle/b.rev*100).toFixed(1):0}%</td>
     </tr>` : `<tr>
       <td class="lft" style="font-weight:600;color:var(--text)">${b.name}</td>
       <td>${b.days}일</td>
       <td>₩${_chFmt(b.settle)}</td>
-      <td style="color:var(--text3)">−₩${_chFmt(b.cogs)}</td>
-      <td style="color:var(--text3)">−₩${_chFmt(b.gwpBurden)}</td>
       <td style="font-weight:700;color:var(--text)">₩${_chFmt(b.prf)}</td>
-      <td style="color:var(--text3)">${b.rev>0?(b.prf/b.rev*100).toFixed(1):0}%</td>
       <td style="color:var(--text3)">${b.settle>0?(b.prf/b.settle*100).toFixed(1):0}%</td>
     </tr>`).join('');
-  const tCogs=m.byPopup.reduce((a,b)=>a+b.cogs,0), tBurden=m.byPopup.reduce((a,b)=>a+b.gwpBurden,0), tMain=m.byPopup.reduce((a,b)=>a+b.main,0), tGwp=m.byPopup.reduce((a,b)=>a+b.gwpBilled,0), tUnits=m.byPopup.reduce((a,b)=>a+b.units,0), tDays=m.byPopup.reduce((a,b)=>a+b.days,0);
+  const tDays=m.byPopup.reduce((a,b)=>a+b.days,0);
   const head = mode==='settle'
-    ? `<tr><th class="lft">팝업</th><th>영업일</th><th>셀아웃</th><th>판매수량</th><th>본품 정산</th><th>GWP 정산</th><th>정산매출</th><th>셀아웃 대비</th></tr>`
-    : `<tr><th class="lft">팝업</th><th>영업일</th><th>정산매출</th><th>본품 원가</th><th>GWP 순부담</th><th>순이익</th><th>셀아웃 대비</th><th>정산 대비</th></tr>`;
+    ? `<tr><th class="lft">팝업</th><th>영업일</th><th>셀아웃</th><th>정산매출</th><th>셀아웃 대비</th></tr>`
+    : `<tr><th class="lft">팝업</th><th>영업일</th><th>정산매출</th><th>순이익</th><th>정산 대비</th></tr>`;
   const foot = mode==='settle'
-    ? `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.rev)}</td><td>${tUnits}</td><td>₩${_chFmt(tMain)}</td><td>₩${_chFmt(tGwp)}</td><td>₩${_chFmt(m.settle)}</td><td>${m.rev>0?(m.settle/m.rev*100).toFixed(1):0}%</td></tr>`
-    : `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.settle)}</td><td>−₩${_chFmt(tCogs)}</td><td>−₩${_chFmt(tBurden)}</td><td>₩${_chFmt(m.prf)}</td><td>${m.rev>0?(m.prf/m.rev*100).toFixed(1):0}%</td><td>${m.settle>0?(m.prf/m.settle*100).toFixed(1):0}%</td></tr>`;
-  return `<table class="pop-tbl drill-tbl"><thead>${head}</thead><tbody>${rows}</tbody><tfoot>${foot}</tfoot></table>
-    <div class="pop-note" style="margin-top:8px">해당 월에 실적이 등록된 날짜만 집계 · 정산매출 = 판매수량 × 공급가 + GWP 명세가 50% · 순이익 = 정산매출 − 본품 원가 − GWP 순부담</div>`;
+    ? `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.rev)}</td><td>₩${_chFmt(m.settle)}</td><td>${m.rev>0?(m.settle/m.rev*100).toFixed(1):0}%</td></tr>`
+    : `<tr><td class="lft">합계</td><td>${tDays}일</td><td>₩${_chFmt(m.settle)}</td><td>₩${_chFmt(m.prf)}</td><td>${m.settle>0?(m.prf/m.settle*100).toFixed(1):0}%</td></tr>`;
+  return `<table class="pop-tbl drill-tbl" style="table-layout:fixed;width:100%"><thead>${head}</thead><tbody>${rows}</tbody><tfoot>${foot}</tfoot></table>
+    <div class="pop-note" style="margin-top:8px">${mode==='settle' ? '정산매출 = 본품(판매수량 × 공급가) + GWP(소진 × 명세가 50%) 합산' : '순이익 = 정산매출 − 본품 원가 − GWP 순부담'} · 해당 월에 실적이 등록된 날짜만 집계</div>`;
 }
 
 // ── 1. 셀아웃: 일별 내역 ──
