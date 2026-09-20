@@ -2684,12 +2684,8 @@ function initCharts(){
 }
 
 function fillModalByDate(date){
-  ['c_shampoo','c_treatment','c_hairset','c_bodywash','c_bodylotion','c_bodyset','c_washset',
-   'n_shampoo','n_treatment','n_hairset','n_bodywash','n_bodylotion','n_bodyset','n_washset',
-   'o_shampoo','o_treatment','o_bodywash','o_bodylotion','o_fulfil','o_coupon','o_adcost',
-   'mu_shampoo','mu_treatment','mu_hairset','mu_bodywash','mu_bodylotion','mu_bodyset'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value=0;
-  });
+  // 모달 안 모든 수량 입력을 0으로 리셋 (하드코딩 목록에서 빠진 필드가 전날 값을 물고 가는 버그 방지 — 위고 등)
+  document.querySelectorAll('#modalBg input[type="number"]').forEach(el=>{ el.value=0; });
   const existing=records.find(r=>r.date===date);
   if(existing){
     const c=existing.cafe||{}, n=existing.naver||{}, o=existing.coupang||{}, mu=existing.musinsa||{};
