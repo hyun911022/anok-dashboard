@@ -3161,10 +3161,12 @@ function renderInsight(){
   if(_totPrfEl){ _totPrfEl.textContent='₩'+fmt(Math.round(grandTotPrf)); _totPrfEl.style.color=grandTotPrf>=0?'var(--text)':'#F43F5E'; }
   if(_totPrfRateEl) _totPrfRateEl.textContent=`마진율 ${grandTotRev>0?(grandTotPrf/grandTotRev*100).toFixed(1):0}% (상품 기준)`;
   // 2줄째: 당월 팝업 정산매출·순이익 포함 (현재일 누적)
-  const _popPL = (typeof calcPopupMonthPL==='function') ? calcPopupMonthPL(month) : {settle:0, prf:0};
+  // 마감된 월(해당 월에 초인 팝업 정산 건이 B2B 매출로 등록됨)은 이미 1줄 금액에 팝업 매출이 들어가 있으므로 2줄 표시 안 함 (이중 집계 방지)
+  const _popSettled = (typeof manualOuts!=='undefined') && manualOuts.some(o => o.clientId==='client_1784508753237' && (o.date||'').slice(0,7)===month && ((o.id||'').startsWith('stl_') || (o.reason||'').includes('팝업 정산')));
+  const _popPL = (!_popSettled && typeof calcPopupMonthPL==='function') ? calcPopupMonthPL(month) : {settle:0, prf:0};
   const _wpEl = document.getElementById('kpiTotalWithPop'), _wpPrfEl = document.getElementById('kpiTotalProfitWithPop');
-  if(_wpEl) _wpEl.innerHTML = _popPL.settle>0 ? `₩${fmt(grandTotRev + _popPL.settle)}<span>팝업 정산 포함</span>` : '';
-  if(_wpPrfEl) _wpPrfEl.innerHTML = _popPL.settle>0 ? `₩${fmt(Math.round(grandTotPrf + _popPL.prf))}<span>팝업 포함</span>` : '';
+  if(_wpEl) _wpEl.innerHTML = _popPL.settle>0 ? `₩${fmt(grandTotRev + _popPL.settle)}<span>팝업 정산 포함 · 미정산</span>` : '';
+  if(_wpPrfEl) _wpPrfEl.innerHTML = _popPL.settle>0 ? `₩${fmt(Math.round(grandTotPrf + _popPL.prf))}<span>팝업 포함 · 미정산</span>` : '';
 
   // 예상 손익 카드 — 이커머스 / B2B(+공구−비용) / 합산
   const _np = netProfit;
