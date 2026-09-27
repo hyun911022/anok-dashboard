@@ -472,8 +472,14 @@
     .modal .modal-footer .btn-save, .modal .modal-footer .btn-cancel { min-height: 44px; font-size: 15px; flex: 1; }
     /* iOS 자동 확대 방지: 입력 필드 16px 이상 */
     .modal input[type="number"], .modal input[type="date"], .modal input[type="text"], .modal select { font-size: 16px !important; }
-    .sku-grid { grid-template-columns: repeat(2,1fr) !important; }
-    .coup-extra { grid-template-columns: repeat(2,1fr) !important; }
+    .sku-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+    .coup-extra { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+    /* 좌우 스크롤 방지: 숫자 입력칸의 내재 최소폭이 열을 밀어내지 않도록 */
+    .modal .modal-body { overflow-x: hidden; }
+    .modal { overflow-x: hidden; }
+    .sku-input { min-width: 0; }
+    .sku-input input, .modal-date input, .coup-extra input { min-width: 0; max-width: 100%; width: 100%; }
+    .sku-input label { white-space: normal; overflow-wrap: anywhere; }
 
     /* ── 탭·카드 ── */
     .tabs { margin-bottom: 10px; }
