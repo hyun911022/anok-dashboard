@@ -6320,7 +6320,7 @@ function calcPoolStats(poolId){
   const byPopup = ps.map(q=>{
     const closed = new Set(q.closedDates||[]);
     const days = (q.days||[]).filter(d=>!closed.has(d.date));
-    const s = {}; STOCK_SKUS.forEach(k=>{ s[k]=days.reduce((a,d)=>a+(d[k]||0),0); sold[k]+=s[k]; });
+    const s = {}; STOCK_SKUS.forEach(k=>{ s[k]=days.reduce((a,d)=>a+(d[k]||0)+(k==='wego120'?(d.wegoGift||0):0),0); sold[k]+=s[k]; });  // 위고 증정분도 재고 소진에 포함
     const g = {ball:days.reduce((a,d)=>a+(d.gwpBall||0),0), tag:days.reduce((a,d)=>a+(d.gwpTag||0),0)};
     gwpSold.ball+=g.ball; gwpSold.tag+=g.tag;
     return {id:q.id, name:q.name, sold:s, gwp:g, status:popupStatus(q)};
@@ -6348,6 +6348,9 @@ function calcPopupStats(p){
   const setRev = open.reduce((s,d)=>s+(d.setRev||0),0);
   const sold = {}; STOCK_SKUS.forEach(k=>sold[k]=open.reduce((s,d)=>s+(d[k]||0),0));
   const gwp = {tag:open.reduce((s,d)=>s+(d.gwpTag||0),0), ball:open.reduce((s,d)=>s+(d.gwpBall||0),0)};
+  // 위고 슬림핏 증정(0원 판매) — 재고는 소진되지만 초인 정산 제외, 원가 100% 퍼드 부담
+  const giftWego = open.reduce((s,d)=>s+(d.wegoGift||0),0);
+  const giftCost = giftWego * (UNIT_COSTS.wego120||0);
 
   // 총 영업일 (기간 내 휴무 제외)
   const totalDays = countOpenDays(p.fromDate, p.toDate, p.closedDates||[]);
@@ -6372,9 +6375,10 @@ function calcPopupStats(p){
     consigned = calcPopupConsigned(p);
     hasFinal = !!p.finalStock;
     STOCK_SKUS.forEach(k=>{
-      remain[k] = hasFinal ? (p.finalStock[k]||0) : ((consigned[k]||0) - (sold[k]||0));
+      const stockUsed = (sold[k]||0) + (k==='wego120' ? giftWego : 0);
+      remain[k] = hasFinal ? (p.finalStock[k]||0) : ((consigned[k]||0) - stockUsed);
     });
-    STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0));
+    STOCK_SKUS.forEach(k=>billQty[k] = (consigned[k]||0) - (remain[k]||0) - (k==='wego120' ? giftWego : 0));
     STOCK_SKUS.forEach(k=>testerQty[k] = (billQty[k]||0) - (sold[k]||0));
   }
   const usedQty = billQty;   // 소진 = 정산수량 (위탁출고 − 실물잔량 / 풀 모드에선 판매수량)
@@ -6420,9 +6424,9 @@ function calcPopupStats(p){
   });
   const prf = settleAmt - cogs;
   const totalSettle = settleAmt + gwpBilled;
-  const netPrf = prf - gwpBurden;
+  const netPrf = prf - gwpBurden - giftCost;
 
-  return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed, pooled, pool,
+  return {days, open, closed, rev, setRev, sold, gwp, gwpOut, gwpRemain, totalDays, target, elapsed, pooled, pool, giftWego, giftCost,
           avg, forecast, consigned, remain, billQty, testerQty, usedQty, hasFinal, settleAmt, cogs, prf,
           gwpBilled, gwpCogs, gwpBurden, gwpDeferred, gwpDetail, gwpShare: share, totalSettle, netPrf, hasTarget,
           targetToDate,
@@ -6495,6 +6499,7 @@ function calcPopupMonthPL(month){
       pDays++; pR += d.rev||0;
       STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; pMain += q*price; pCogs += q*(UNIT_COSTS[k]||0); pUnits+=q; });
       const gb=d.gwpBall||0, gt=d.gwpTag||0;
+      pCogs += (d.wegoGift||0)*(UNIT_COSTS.wego120||0);   // 위고 증정 원가 (퍼드 부담, 정산 제외)
       pGwpB += gb*(gl.ball||0)*share + gt*(gl.tag||0)*share;
       pGwpC += gb*(gc.ball||0) + gt*(gc.tag||0);
     });
@@ -6696,7 +6701,7 @@ function renderPopupCard(p){
     return `<tr>
       <td style="text-align:left;color:var(--text2);font-weight:600">${skuNames[k]}</td>
       ${s.pooled ? '' : `<td>${con.toLocaleString()}</td>`}
-      <td style="color:var(--text)">${sold.toLocaleString()}</td>
+      <td style="color:var(--text)">${sold.toLocaleString()}${(k==='wego120'&&s.giftWego>0)?`<span style="color:#F59E0B;font-size:9px;margin-left:3px" title="증정 ${s.giftWego}개 · 퍼드 원가 부담 · 정산 제외">+${s.giftWego}증정</span>`:''}</td>
       <td style="color:var(--text3)">${s.hasFinal ? other.toLocaleString() : '–'}</td>
       <td style="color:var(--text)">${used.toLocaleString()}</td>
       <td style="font-weight:700;color:var(--text)">${used.toLocaleString()}</td>
@@ -6797,8 +6802,8 @@ function renderPopupCard(p){
         <span class="pop-foot-sub">VAT 포함 ₩${_chFmt(s.totalSettle*1.1)}</span></div>
       <div><span class="pop-foot-lbl">순이익률</span><span class="pop-foot-val">${s.totalSettle>0?(s.netPrf/s.totalSettle*100).toFixed(1):0}%</span>
         <span class="pop-foot-sub">셀아웃 대비 ${s.rev>0?(s.netPrf/s.rev*100).toFixed(1):0}%</span></div>
-      <div><span class="pop-foot-lbl">GWP 순부담</span><span class="pop-foot-val">₩${_chFmt(s.gwpBurden)}</span>
-        <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round(s.gwpBurden/s.prf*100):0}% · 미소진 이연 ₩${_chFmt(s.gwpDeferred)}</span></div>
+      <div><span class="pop-foot-lbl">GWP 순부담</span><span class="pop-foot-val">₩${_chFmt(s.gwpBurden + (s.giftCost||0))}</span>
+        <span class="pop-foot-sub">본품이익의 ${s.prf>0?Math.round((s.gwpBurden+(s.giftCost||0))/s.prf*100):0}% · 미소진 이연 ₩${_chFmt(s.gwpDeferred)}${s.giftWego>0?` · 위고 증정 ${s.giftWego}개 원가 ₩${_chFmt(s.giftCost)}`:''}</span></div>
     </div>
   </div>`;
 }
