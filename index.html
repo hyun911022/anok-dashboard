@@ -6495,7 +6495,9 @@ function calcPopupMonthPL(month){
     const closed = new Set(p.closedDates||[]);
     let pS=0, pP=0, pR=0, pDays=0, pMain=0, pGwpB=0, pGwpC=0, pCogs=0, pUnits=0;
     (p.days||[]).forEach(d=>{
-      if(!d.date || !d.date.startsWith(month) || closed.has(d.date)) return;
+      // 정산 귀속월(settleMonth)이 지정된 날은 그 달로 집계 (예: 10/1 실적을 9월 정산에 포함)
+      const mk = d.settleMonth || (d.date||'').slice(0,7);
+      if(!d.date || mk!==month || closed.has(d.date)) return;
       pDays++; pR += d.rev||0;
       STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; pMain += q*price; pCogs += q*(UNIT_COSTS[k]||0); pUnits+=q; });
       const gb=d.gwpBall||0, gt=d.gwpTag||0;
