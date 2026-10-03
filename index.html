@@ -282,6 +282,7 @@
   .b2b-tbl td.lft,.b2b-tbl th.lft{text-align:left}
   .b2b-tbl td.b2b-dim{color:var(--text3)}
   .b2b-tbl tbody tr:hover td{background:#171B29}
+  .b2b-tbl tr.b2b-subtotal td{border-top:1px dashed rgba(147,166,198,.35);border-bottom:1px solid #2E3350;font-weight:600;color:var(--text2);background:rgba(255,255,255,.02);font-size:11px}
   .b2b-tbl tr.b2b-total td{border-top:1px solid #2E3350;border-bottom:none;font-weight:700;color:var(--text);padding-top:9px}
   .b2b-tbl tr.b2b-total:hover td{background:transparent}
   .b2b-act{white-space:nowrap;text-align:right}
@@ -6071,10 +6072,11 @@ function buildB2BDeliveryHTML(month){
         <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
       </tr>`;
     })() : '';
-    return items.map((k,i) => {
+    let recRev=0, recPrf=0, recQty=0;
+    const body = items.map((k,i) => {
       const rev = r[k]*r['price_'+k];
       const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
-      totRev += rev; totPrf += prf;
+      totRev += rev; totPrf += prf; recRev += rev; recPrf += prf; recQty += r[k];
       return `<tr>
         <td class="lft b2b-dim">${i===0 ? r.date.slice(5) : ''}</td>
         <td class="lft">${i===0 ? (r.clientName||r.reason||'-') : ''}</td>
@@ -6084,6 +6086,17 @@ function buildB2BDeliveryHTML(month){
         <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
       </tr>`;
     }).join('') + extraRow;
+    if((r.extraAmount||0)>0){ recRev += r.extraAmount; recPrf += r.extraAmount - (r.extraCost||0); }
+    // 건별 소계: 품목이 2줄 이상이거나 기타 정산이 붙은 건에만 표시
+    const lines = items.length + ((r.extraAmount||0)>0 ? 1 : 0);
+    const subRow = lines>=2 ? `<tr class="b2b-subtotal">
+        <td></td><td class="lft b2b-dim">소계</td>
+        <td class="lft b2b-dim">${recQty.toLocaleString()}개${(r.extraAmount||0)>0?' + 기타':''}</td>
+        <td>${recRev.toLocaleString()}</td>
+        <td>${recPrf.toLocaleString()}</td>
+        <td class="b2b-dim">${recRev>0?Math.round(recPrf/recRev*100):0}%</td>
+      </tr>` : '';
+    return body + subRow;
   }).join('');
 
   const html = recs.length===0
