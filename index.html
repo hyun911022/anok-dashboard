@@ -6315,6 +6315,8 @@ function calcPopupConsigned(p){
 //    위탁출고 = 기준 팝업(가장 이른 시작)의 이월 + 풀 기간 전체의 위탁 출고
 //    소진     = 풀 내 모든 팝업의 판매 합
 //    잔량     = 위탁출고 − 소진 (풀 마지막 팝업 마감 시 finalStock으로 확정)
+const TAG_PAID_PRICE = 5000;   // 태그 유상 판매 시 초인 청구 공급가 (2026-10-02~)
+const BAG_UNIT_COST = 734, BAG_PAID_PRICE = 500;   // 선물 쇼핑백 원가 / 유상 판매 시 초인 청구가
 function calcPoolStats(poolId){
   const ps = (popups||[]).filter(q=>q.poolId===poolId).sort((a,b)=>(a.fromDate||'').localeCompare(b.fromDate||''));
   if(!ps.length) return null;
@@ -6329,13 +6331,13 @@ function calcPoolStats(poolId){
     STOCK_SKUS.forEach(k=>{ if((r[k]||0)>0 && !(r['price_'+k]>0)) consigned[k] += r[k]; });
   });
   const sold = {}; STOCK_SKUS.forEach(k=>sold[k]=0);
-  const gwpSold = {ball:0, tag:0};
+  const gwpSold = {ball:0, tag:0, bag:0};
   const byPopup = ps.map(q=>{
     const closed = new Set(q.closedDates||[]);
     const days = (q.days||[]).filter(d=>!closed.has(d.date));
     const s = {}; STOCK_SKUS.forEach(k=>{ s[k]=days.reduce((a,d)=>a+(d[k]||0)+(k==='wego120'?(d.wegoGift||0):0),0); sold[k]+=s[k]; });  // 위고 증정분도 재고 소진에 포함
-    const g = {ball:days.reduce((a,d)=>a+(d.gwpBall||0),0), tag:days.reduce((a,d)=>a+(d.gwpTag||0),0)};
-    gwpSold.ball+=g.ball; gwpSold.tag+=g.tag;
+    const g = {ball:days.reduce((a,d)=>a+(d.gwpBall||0),0), tag:days.reduce((a,d)=>a+(d.gwpTag||0),0), bag:days.reduce((a,d)=>a+(d.bagPaid||0)+(d.bagFree||0),0)};
+    gwpSold.ball+=g.ball; gwpSold.tag+=g.tag; gwpSold.bag+=g.bag;
     return {id:q.id, name:q.name, sold:s, gwp:g, status:popupStatus(q)};
   });
   // 실물 확정은 풀에서 가장 늦게 끝나는 팝업의 finalStock만 인정
@@ -6344,11 +6346,12 @@ function calcPoolStats(poolId){
   const remain = {}; STOCK_SKUS.forEach(k=>remain[k]= finalStock ? (finalStock[k]||0) : (consigned[k]-sold[k]));
   const gwpOut = {
     ball: ((primary.gwpCarryIn||{}).ball||0) + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).ball||0),0),
-    tag:  ((primary.gwpCarryIn||{}).tag||0)  + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).tag||0),0)
+    tag:  ((primary.gwpCarryIn||{}).tag||0)  + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).tag||0),0),
+    bag:  ((primary.gwpCarryIn||{}).bag||0)  + ps.reduce((a,q)=>a+((q.gwpConsigned||{}).bag||0),0)
   };
   const gwpFinal = (last && last.gwpFinalStock) ? last.gwpFinalStock : null;
-  const gwpRemain = gwpFinal ? {ball:(gwpFinal.ball||0), tag:(gwpFinal.tag||0)}
-                             : {ball:gwpOut.ball-gwpSold.ball, tag:gwpOut.tag-gwpSold.tag};
+  const gwpRemain = gwpFinal ? {ball:(gwpFinal.ball||0), tag:(gwpFinal.tag||0), bag:(gwpFinal.bag||0)}
+                             : {ball:gwpOut.ball-gwpSold.ball, tag:gwpOut.tag-gwpSold.tag, bag:gwpOut.bag-gwpSold.bag};
   return {poolId, popups:ps, primary, last, from, to, consigned, sold, remain, byPopup, gwpOut, gwpSold, gwpRemain,
           hasFinal:!!finalStock, finalStockDate: finalStock ? (last.finalStockDate||'') : ''};
 }
@@ -6360,7 +6363,9 @@ function calcPopupStats(p){
   const rev = open.reduce((s,d)=>s+(d.rev||0),0);
   const setRev = open.reduce((s,d)=>s+(d.setRev||0),0);
   const sold = {}; STOCK_SKUS.forEach(k=>sold[k]=open.reduce((s,d)=>s+(d[k]||0),0));
-  const gwp = {tag:open.reduce((s,d)=>s+(d.gwpTag||0),0), ball:open.reduce((s,d)=>s+(d.gwpBall||0),0)};
+  const gwp = {tag:open.reduce((s,d)=>s+(d.gwpTag||0),0), ball:open.reduce((s,d)=>s+(d.gwpBall||0),0), bag:open.reduce((s,d)=>s+(d.bagPaid||0)+(d.bagFree||0),0)};
+  const tagPaid = open.reduce((s,d)=>s+(d.tagPaid||0),0);   // 태그 유상 판매분 (공급가 5,000 청구, 2026-10 부산본점~)
+  const bagPaid = open.reduce((s,d)=>s+(d.bagPaid||0),0);   // 선물 쇼핑백 유상 판매분 (500 청구)
   // 위고 슬림핏 증정(0원 판매) — 재고는 소진되지만 초인 정산 제외, 원가 100% 퍼드 부담
   const giftWego = open.reduce((s,d)=>s+(d.wegoGift||0),0);
   const giftCost = giftWego * (UNIT_COSTS.wego120||0);
@@ -6406,10 +6411,10 @@ function calcPopupStats(p){
 
   // GWP (대시보드 재고 미등록 품목 — 팝업 내에서만 관리)
   const gwpOut = {};
-  ['ball','tag'].forEach(k=>{ gwpOut[k] = ((p.gwpConsigned||{})[k]||0) + ((p.gwpCarryIn||{})[k]||0); });
+  ['ball','tag','bag'].forEach(k=>{ gwpOut[k] = ((p.gwpConsigned||{})[k]||0) + ((p.gwpCarryIn||{})[k]||0); });
   const gwpRemain = pooled ? pool.gwpRemain : (p.gwpFinalStock
-    ? {ball:(p.gwpFinalStock.ball||0), tag:(p.gwpFinalStock.tag||0)}
-    : {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag});
+    ? {ball:(p.gwpFinalStock.ball||0), tag:(p.gwpFinalStock.tag||0), bag:(p.gwpFinalStock.bag||0)}
+    : {ball:(gwpOut.ball||0)-gwp.ball, tag:(gwpOut.tag||0)-gwp.tag, bag:(gwpOut.bag||0)-gwp.bag});
 
   // GWP는 '매출 없이 비용만 나가는 상품'으로 취급.
   // 개당 순부담 = 원가 − (명세단가 × 분담률). 소진된 수량만 손익에 반영하고
@@ -6429,12 +6434,22 @@ function calcPopupStats(p){
     const unitCost = gwpUnitC[k]||0;
     const unitRecv = (gwpList[k]||0) * share;
     const unitNet  = unitCost - unitRecv;
-    gwpBilled   += used * unitRecv;
+    // 태그 유상 판매분은 명세가 50% 대신 공급가 5,000 청구 (TAG_PAID_PRICE)
+    const paidN = (k==='tag') ? Math.min(tagPaid, used) : 0;
+    const billed = used * unitRecv + paidN * ((TAG_PAID_PRICE||5000) - unitRecv);
+    gwpBilled   += billed;
     gwpCogs     += used * unitCost;
-    gwpBurden   += used * unitNet;
+    gwpBurden   += used * unitCost - billed;
     gwpDeferred += rest * unitNet;
-    if(out>0 || used>0) gwpDetail.push({key:k, out, sold, other, used, rest, unitCost, unitRecv, unitNet, burden:used*unitNet});
+    if(out>0 || used>0) gwpDetail.push({key:k, out, sold, other, used, rest, unitCost, unitRecv, unitNet: used>0 ? Math.round((used*unitCost-billed)/used) : unitNet, burden:used*unitCost-billed, paid:paidN});
   });
+  // 선물 쇼핑백(핸들백): 원가 734, 유상 판매분만 500 청구, 무상분은 퍼드 100% 부담. 재고는 초인 위탁분에서 차감
+  if((gwpOut.bag||0)>0 || (gwp.bag||0)>0){
+    const used = gwp.bag||0, out = gwpOut.bag||0, rest = Math.max(0,out-used);
+    const uc = BAG_UNIT_COST||734, billed = Math.min(bagPaid,used) * (BAG_PAID_PRICE||500);
+    gwpBilled += billed; gwpCogs += used*uc; gwpBurden += used*uc - billed; gwpDeferred += rest*uc;
+    gwpDetail.push({key:'bag', out, sold:used, other:0, used, rest, unitCost:uc, unitRecv: used>0 ? Math.round(billed/used) : 0, unitNet: used>0 ? Math.round((used*uc-billed)/used) : uc, burden:used*uc-billed, paid:Math.min(bagPaid,used)});
+  }
   if(giftWego>0){ // 위고 슬림핏 증정: GWP 소진으로 표시, 명세 청구 없음, 원가 100% 퍼드 부담 (재고는 본품에서 차감)
     const uc = UNIT_COSTS.wego120||0;
     gwpDetail.push({key:'wego', out:giftWego, sold:giftWego, other:0, used:giftWego, rest:0, unitCost:uc, unitRecv:0, unitNet:uc, burden:giftWego*uc, isGift:true});
@@ -6518,10 +6533,10 @@ function calcPopupMonthPL(month){
       if(!d.date || mk!==month || closed.has(d.date)) return;
       pDays++; pR += d.rev||0;
       STOCK_SKUS.forEach(k=>{ const q=d[k]||0; if(!q) return; const price=sp[k]||0; pMain += q*price; pCogs += q*(UNIT_COSTS[k]||0); pUnits+=q; });
-      const gb=d.gwpBall||0, gt=d.gwpTag||0;
+      const gb=d.gwpBall||0, gt=d.gwpTag||0, tp=Math.min(d.tagPaid||0, gt), bp=d.bagPaid||0, bf=d.bagFree||0;
       pCogs += (d.wegoGift||0)*(UNIT_COSTS.wego120||0);   // 위고 증정 원가 (퍼드 부담, 정산 제외)
-      pGwpB += gb*(gl.ball||0)*share + gt*(gl.tag||0)*share;
-      pGwpC += gb*(gc.ball||0) + gt*(gc.tag||0);
+      pGwpB += gb*(gl.ball||0)*share + (gt-tp)*(gl.tag||0)*share + tp*TAG_PAID_PRICE + bp*BAG_PAID_PRICE;
+      pGwpC += gb*(gc.ball||0) + gt*(gc.tag||0) + (bp+bf)*BAG_UNIT_COST;
     });
     if(!pDays) return;
     pS = pMain + pGwpB; pP = pMain - pCogs + (pGwpB - pGwpC);
@@ -6595,8 +6610,8 @@ function renderPoolCards(list){
         <td style="color:var(--text)">${(pool.sold[k]||0).toLocaleString()}</td>
         <td style="font-weight:700;color:var(--text);${sigStyle(sigRemain(pool.remain[k]||0))}">${(pool.remain[k]||0).toLocaleString()}</td>
       </tr>`).join('');
-    const gwpRows = ['ball','tag'].map(k=>{
-      const lb = {ball:'샤워볼', tag:'프래그런스 태그'}[k];
+    const gwpRows = ['ball','tag','bag'].map(k=>{
+      const lb = {ball:'샤워볼', tag:'프래그런스 태그', bag:'선물 쇼핑백'}[k];
       if(!(pool.gwpOut[k]||0) && !(pool.gwpSold[k]||0)) return '';
       return `<tr>
         <td style="text-align:left;color:var(--text3);font-weight:600">${lb}</td>
@@ -6786,12 +6801,12 @@ function renderPopupCard(p){
     ${(()=>{
       const det = s.gwpDetail||[];
       if(!det.length) return '';
-      const label = {ball:'샤워볼', tag:'프래그런스 샤쉐', wego:'위고 슬림핏 증정'};
+      const label = {ball:'샤워볼', tag:'프래그런스 샤쉐', wego:'위고 슬림핏 증정', bag:'선물 쇼핑백'};
       return `<div class="pop-sec-lbl" style="margin-top:2px">GWP 소진 <span style="font-weight:400;color:var(--text3)">(재고 미등록 · 팝업 내 관리)</span></div>
       <table class="pop-tbl">
         <thead><tr><th style="text-align:left">품목</th>${s.pooled?'':'<th>출고</th>'}<th>판매</th><th>기타</th><th>소진</th>${s.pooled?'':'<th>잔량</th>'}<th>개당부담</th><th>비용</th></tr></thead>
         <tbody>${det.map(d=>`<tr>
-          <td style="text-align:left;color:var(--text2);font-weight:600">${label[d.key]||d.key}</td>
+          <td style="text-align:left;color:var(--text2);font-weight:600">${label[d.key]||d.key}${(d.paid||0)>0?` <span style="color:var(--text3);font-size:10px;font-weight:400">(유상 ${d.paid})</span>`:''}</td>
           ${s.pooled?'':`<td>${d.out.toLocaleString()}</td>`}
           <td style="color:var(--text)">${d.sold.toLocaleString()}</td>
           <td style="color:var(--text3)">${s.hasFinal||p.gwpFinalStock ? d.other.toLocaleString() : '–'}</td>
@@ -6947,8 +6962,9 @@ function drillSettle(list){
       return `<tr><td class="lft">${CH_SKU_NAMES[k]}</td><td>${q}</td><td>₩${up.toLocaleString()}</td><td>₩${_chFmt(q*up)}</td></tr>`;
     }).join('');
     const gwpRows = (s.gwpDetail||[]).map(d=>{
-      const label = d.key==='ball'?'샤워볼':(d.key==='wego'?'위고 슬림핏 증정':'프래그런스 샤쉐');
-      return `<tr><td class="lft">${label}</td><td>${d.used}</td><td>₩${_chFmt(d.unitRecv)}</td><td>₩${_chFmt(d.used*d.unitRecv)}</td></tr>`;
+      const label = {ball:'샤워볼', wego:'위고 슬림핏 증정', bag:'선물 쇼핑백'}[d.key] || '프래그런스 샤쉐';
+      const billedAmt = (d.key==='bag') ? (d.paid||0)*BAG_PAID_PRICE : (d.used*d.unitRecv + (d.paid||0)*(TAG_PAID_PRICE-d.unitRecv));
+      return `<tr><td class="lft">${label}${(d.paid||0)>0?` <span style="color:var(--text3);font-size:10px">(유상 ${d.paid})</span>`:''}</td><td>${d.used}</td><td>₩${_chFmt(d.used>0?Math.round(billedAmt/d.used):0)}</td><td>₩${_chFmt(billedAmt)}</td></tr>`;
     }).join('');
     return `<div class="drill-sec">${p.name}</div>
     <table class="pop-tbl drill-tbl">
@@ -6976,8 +6992,9 @@ function drillProfit(list){
       return `<tr><td class="lft">${CH_SKU_NAMES[k]}</td><td>${q}</td><td>₩${_chFmt(rev)}</td><td>₩${_chFmt(q*c)}</td><td>₩${_chFmt(prf)}</td><td>${rev>0?Math.round(prf/rev*100):0}%</td></tr>`;
     }).join('');
     const gwpRows = (s.gwpDetail||[]).map(d=>{
-      const label = d.key==='ball'?'샤워볼':(d.key==='wego'?'위고 슬림핏 증정':'프래그런스 샤쉐');
-      return `<tr><td class="lft">${label}</td><td>${d.used}</td><td>₩${_chFmt(d.used*d.unitRecv)}</td><td>₩${_chFmt(d.used*d.unitCost)}</td><td>−₩${_chFmt(d.burden)}</td><td>–</td></tr>`;
+      const label = {ball:'샤워볼', wego:'위고 슬림핏 증정', bag:'선물 쇼핑백'}[d.key] || '프래그런스 샤쉐';
+      const billedAmt = (d.key==='bag') ? (d.paid||0)*BAG_PAID_PRICE : (d.used*d.unitRecv + (d.paid||0)*(TAG_PAID_PRICE-d.unitRecv));
+      return `<tr><td class="lft">${label}${(d.paid||0)>0?` <span style="color:var(--text3);font-size:10px">(유상 ${d.paid})</span>`:''}</td><td>${d.used}</td><td>₩${_chFmt(billedAmt)}</td><td>₩${_chFmt(d.used*d.unitCost)}</td><td>−₩${_chFmt(d.burden)}</td><td>–</td></tr>`;
     }).join('');
     return `<div class="drill-sec">${p.name}</div>
     <table class="pop-tbl drill-tbl">
