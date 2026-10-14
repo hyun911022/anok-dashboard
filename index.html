@@ -7056,8 +7056,9 @@ function renderPayables(){
   const done   = payables.filter(p=>p.paid).sort((a,b)=>(b.paidDate||'').localeCompare(a.paidDate||''));
   const sum = arr => arr.reduce((s,p)=>s+(p.amount||0),0);
 
-  const overdue  = unpaid.filter(p=>p.dueDate && p.dueDate < today);
-  const upcoming = unpaid.filter(p=>p.dueDate && p.dueDate >= today);
+  const byDue = (a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'');
+  const overdue  = unpaid.filter(p=>p.dueDate && p.dueDate < today).sort(byDue);
+  const upcoming = unpaid.filter(p=>p.dueDate && p.dueDate >= today).sort(byDue);
   const nodate   = unpaid.filter(p=>!p.dueDate);
   const thisMoSum = sum(unpaid.filter(p=>p.dueDate && p.dueDate.startsWith(thisMonth)));
 
@@ -7075,17 +7076,18 @@ function renderPayables(){
   }
 
   const table = list => `<table class="pop-tbl pay-tbl" style="margin-bottom:0">
-      <thead><tr><th class="lft">거래처</th><th class="lft">품목</th><th>공급가액</th><th>세액</th><th>합계</th></tr></thead>
+      <thead><tr><th class="lft">거래처</th><th class="lft">품목</th><th>지급기한</th><th>공급가액</th><th>세액</th><th>합계</th></tr></thead>
       <tbody>
         ${list.map(p=>`<tr onclick="togglePayablePaid(${payables.indexOf(p)})" title="클릭하면 ${p.paid?'미지급':'지급완료'}로 변경">
           <td class="lft" style="color:var(--text2)">${p.vendor||'-'}</td>
           <td class="lft" style="color:var(--text2)">${p.item||'-'}${p.issueDate?` <span style="color:var(--text3);font-size:10px">${p.issueDate.slice(5)}</span>`:''}</td>
+          <td style="color:${p.paid?'var(--text3)':(p.dueDate&&p.dueDate<today?'#F43F5E':'var(--text)')};font-weight:600">${p.paid ? (p.paidDate? '완료 '+p.paidDate.slice(5) : '완료') : (p.dueDate ? p.dueDate.slice(5).replace('-','/') : '<span style="color:var(--text3);font-weight:400">미정</span>')}</td>
           <td>${(p.supply||0).toLocaleString()}</td>
           <td>${(p.tax||0).toLocaleString()}</td>
           <td>${(p.amount||0).toLocaleString()}</td>
         </tr>`).join('')}
         <tr class="pay-total">
-          <td class="lft"></td><td class="lft"></td>
+          <td class="lft"></td><td class="lft"></td><td></td>
           <td>${list.reduce((s,p)=>s+(p.supply||0),0).toLocaleString()}</td>
           <td>${list.reduce((s,p)=>s+(p.tax||0),0).toLocaleString()}</td>
           <td>${sum(list).toLocaleString()}</td>
