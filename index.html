@@ -3726,12 +3726,22 @@ function calcFIFOBatchState(){
     });
     const pinnedTotal = Object.values(pinned).reduce((s,v)=>s+v,0);
     remaining = Math.max(0, remaining - pinnedTotal);
+    // 배치 ID 지정 출고: pinBatch가 달린 수기출고는 해당 입고 배치에서 직접 차감 (같은 유통기한 배치가 여럿일 때 사용)
+    const pinnedB = {};
+    (manualOuts||[]).forEach(r=>{
+      if(r.noStock) return;
+      if(r.pinBatch && (r[k]||0)>0){ pinnedB[r.pinBatch]=(pinnedB[r.pinBatch]||0)+(r[k]||0); }
+    });
+    const pinnedBTotal = Object.values(pinnedB).reduce((s,v)=>s+v,0);
+    remaining = Math.max(0, remaining - pinnedBTotal);
 
     // 배치별 차감 (지정 출고 선차감 후 FIFO)
     const processedBatches = skuBatches.map(b=>{
-      const pin = Math.min(pinned[b.expiry]||0, b.originalQty);
+      const pinB = Math.min(pinnedB[b.batchId]||0, b.originalQty);
+      if(pinB) pinnedB[b.batchId] -= pinB;
+      const pin = Math.min(pinned[b.expiry]||0, b.originalQty - pinB);
       if(pin) pinned[b.expiry] -= pin;
-      const avail = b.originalQty - pin;
+      const avail = b.originalQty - pin - pinB;
       const used = Math.min(avail, remaining);
       remaining = Math.max(0, remaining - avail);
       return { ...b, remaining: Math.max(0, avail - used) };
