@@ -6067,41 +6067,52 @@ function buildB2BDeliveryHTML(month){
   const recs = manualOuts.filter(r => r.date.startsWith(month) &&
                     (STOCK_SKUS.some(k => r[k]>0 && r['price_'+k]>0) || (r.extraAmount||0)>0))
                          .sort((a,b) => b.date.localeCompare(a.date));
+  // 같은 날 · 같은 거래처 레코드는 한 건(납품)으로 묶어 표시 — 출고 창고(대화/이천)나 배치 지정 때문에 레코드가 나뉜 경우
+  const groups = [];
+  recs.forEach(r => {
+    const key = r.date + '|' + (r.clientId || r.clientName || r.reason || '');
+    const g = groups.length && groups[groups.length-1].key===key ? groups[groups.length-1] : null;
+    if(g) g.recs.push(r); else groups.push({key, recs:[r]});
+  });
   let totRev=0, totPrf=0;
-  const rows = recs.map(r => {
-    const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0);
-    const extraRow = (r.extraAmount||0)>0 ? (()=>{
-      const rev = r.extraAmount, prf = rev - (r.extraCost||0);
-      totRev += rev; totPrf += prf;
-      return `<tr>
-        <td class="lft b2b-dim">${items.length ? '' : r.date.slice(5)}</td>
-        <td class="lft">${items.length ? '' : (r.clientName||r.reason||'-')}</td>
-        <td class="lft">${r.extraNote||'기타 정산'}<span class="b2b-client b2b-qty">${(r.clientName||'')}</span></td>
-        <td>${rev.toLocaleString()}</td>
-        <td>${prf.toLocaleString()}</td>
-        <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
-      </tr>`;
-    })() : '';
-    let recRev=0, recPrf=0, recQty=0;
-    const body = items.map((k,i) => {
-      const rev = r[k]*r['price_'+k];
-      const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
-      totRev += rev; totPrf += prf; recRev += rev; recPrf += prf; recQty += r[k];
-      return `<tr>
-        <td class="lft b2b-dim">${i===0 ? r.date.slice(5) : ''}</td>
-        <td class="lft">${i===0 ? (r.clientName||r.reason||'-') : ''}</td>
+  const rows = groups.map(g => {
+    const first = g.recs[0];
+    let recRev=0, recPrf=0, recQty=0, lines=0, body='';
+    g.recs.forEach(r => {
+      const items = STOCK_SKUS.filter(k=>r[k]>0 && r['price_'+k]>0);
+      items.forEach(k => {
+        const rev = r[k]*r['price_'+k];
+        const prf = r[k]*(r['price_'+k]-(UNIT_COSTS[k]||0));
+        totRev += rev; totPrf += prf; recRev += rev; recPrf += prf; recQty += r[k];
+        body += `<tr>
+        <td class="lft b2b-dim">${lines===0 ? r.date.slice(5) : ''}</td>
+        <td class="lft">${lines===0 ? (first.clientName||first.reason||'-') : ''}</td>
         <td class="lft">${CH_SKU_NAMES[k]||k}<span class="b2b-qty">${r[k].toLocaleString()}개 · @${r['price_'+k].toLocaleString()}</span><span class="b2b-client b2b-qty">${(r.clientName||r.reason||'')}</span></td>
         <td>${rev.toLocaleString()}</td>
         <td>${prf.toLocaleString()}</td>
         <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
       </tr>`;
-    }).join('') + extraRow;
-    if((r.extraAmount||0)>0){ recRev += r.extraAmount; recPrf += r.extraAmount - (r.extraCost||0); }
+        lines++;
+      });
+      if((r.extraAmount||0)>0){
+        const rev = r.extraAmount, prf = rev - (r.extraCost||0);
+        totRev += rev; totPrf += prf; recRev += rev; recPrf += prf;
+        body += `<tr>
+        <td class="lft b2b-dim">${lines===0 ? r.date.slice(5) : ''}</td>
+        <td class="lft">${lines===0 ? (first.clientName||first.reason||'-') : ''}</td>
+        <td class="lft">${r.extraNote||'기타 정산'}<span class="b2b-client b2b-qty">${(r.clientName||'')}</span></td>
+        <td>${rev.toLocaleString()}</td>
+        <td>${prf.toLocaleString()}</td>
+        <td class="b2b-dim">${rev>0?Math.round(prf/rev*100):0}%</td>
+      </tr>`;
+        lines++;
+      }
+    });
+    const hasExtra = g.recs.some(r => (r.extraAmount||0)>0);
     // 건별 소계: 품목이 2줄 이상이거나 기타 정산이 붙은 건에만 표시
-    const lines = items.length + ((r.extraAmount||0)>0 ? 1 : 0);
     const subRow = lines>=2 ? `<tr class="b2b-subtotal">
         <td></td><td class="lft b2b-dim">소계</td>
-        <td class="lft b2b-dim">${recQty.toLocaleString()}개${(r.extraAmount||0)>0?' + 기타':''}</td>
+        <td class="lft b2b-dim">${recQty.toLocaleString()}개${hasExtra?' + 기타':''}</td>
         <td>${recRev.toLocaleString()}</td>
         <td>${recPrf.toLocaleString()}</td>
         <td class="b2b-dim">${recRev>0?Math.round(recPrf/recRev*100):0}%</td>
@@ -6114,11 +6125,11 @@ function buildB2BDeliveryHTML(month){
     : `<table class="pop-tbl b2b-tbl b2b-deliv">
         <thead><tr><th class="lft">일자</th><th class="lft">거래처</th><th class="lft">품목</th><th>매출</th><th>이익</th><th>마진</th></tr></thead>
         <tbody>${rows}
-          <tr class="b2b-total"><td class="lft" colspan="3">합계 ${recs.length}건</td>
+          <tr class="b2b-total"><td class="lft" colspan="3">합계 ${groups.length}건</td>
             <td>${totRev.toLocaleString()}</td><td>${totPrf.toLocaleString()}</td>
             <td>${totRev>0?Math.round(totPrf/totRev*100):0}%</td></tr>
         </tbody></table>`;
-  return {html, rev:totRev, prf:totPrf, count:recs.length};
+  return {html, rev:totRev, prf:totPrf, count:groups.length};
 }
 
 function buildGroupBuyHTML(month){
