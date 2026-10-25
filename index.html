@@ -8208,9 +8208,10 @@ function calcAnnualSeries(year){
       const d = calcDay(r); eRev += d.cRev+d.nRev+d.oRev+(d.mRev||0); ePrf += d.profit;
       ['cafe','naver','coupang','musinsa'].forEach(ch=>{ const c=r[ch]||{}; K.forEach(k=>eUnits+=c[k]||0); SETS.forEach(k=>eUnits+=2*(c[k]||0)); });
     });
-    const eNet = ePrf - calcMetaAd(mRecs) - calcNaverAd(mRecs) - calcAgencyFee(mRecs) - calcExpensesByMonth(month,'ecommerce');
+    const ecAd = calcMetaAd(mRecs) + calcNaverAd(mRecs) + calcAgencyFee(mRecs) + calcExpensesByMonth(month,'ecommerce');
+    const eNet = ePrf - ecAd;
     // ── B2B / 팝업 정산(초인) 분리 ──
-    let bRev=0, bPrf=0, bUnits=0, pRev=0, pPrf=0, pUnits=0, choinSettled=false;
+    let bRev=0, bPrf=0, bUnits=0, pRev=0, pPrf=0, pUnits=0, choinSettled=false; const clients={};
     manualOuts.filter(r=>r.date.startsWith(month)).forEach(r=>{
       const isB2B = r.isB2B || K.some(k=>r[k]>0 && r['price_'+k]>0) || (r.extraAmount||0)>0;
       if(!isB2B) return;
@@ -8218,16 +8219,19 @@ function calcAnnualSeries(year){
       K.forEach(k=>{ const q=r[k]||0, p=r['price_'+k]||0; if(q>0&&p>0){ rv+=q*p; pf+=q*(p-(UNIT_COSTS[k]||0)); } u+=q; });
       if((r.extraAmount||0)>0){ rv+=r.extraAmount; pf+=r.extraAmount-(r.extraCost||0); }
       const isChoin = r.clientId===ANNUAL_CHOIN_ID && ((r.id||'').startsWith('stl_') || (r.reason||'').includes('팝업'));
-      if(isChoin){ pRev+=rv; pPrf+=pf; pUnits+=u; choinSettled=true; } else { bRev+=rv; bPrf+=pf; bUnits+=u; }
+      if(isChoin){ pRev+=rv; pPrf+=pf; pUnits+=u; choinSettled=true; }
+      else { bRev+=rv; bPrf+=pf; bUnits+=u; const cn=(r.clientName||'기타').replace(/\s*\(.*\)$/,'').replace(/^그레이스.*/,'그레이스'); clients[cn]=(clients[cn]||0)+rv; }
     });
-    const gb = calcGroupBuyByMonth(month); bRev += gb.rev; bPrf += gb.prf;
-    const bNet = bPrf - calcExpensesByMonth(month,'b2b');
-    let popEst = false;
-    if(!choinSettled){ const p = calcPopupMonthPL(month); if(p.settle>0){ pRev += p.settle; pPrf += p.prf; pUnits += p.byPopup.reduce((a,b)=>a+b.units,0); popEst = true; } }
+    const gb = calcGroupBuyByMonth(month); bRev += gb.rev; bPrf += gb.prf; if(gb.rev>0) clients['공구']=(clients['공구']||0)+gb.rev;
+    const b2bExp = calcExpensesByMonth(month,'b2b');
+    const bNet = bPrf - b2bExp;
+    let popEst = false; const popPL = calcPopupMonthPL(month); const popSellout = popPL.rev||0;
+    if(!choinSettled){ if(popPL.settle>0){ pRev += popPL.settle; pPrf += popPL.prf; pUnits += popPL.byPopup.reduce((a,b)=>a+b.units,0); popEst = true; } }
     const rev = eRev+bRev+pRev, prf = eNet+bNet+pPrf, units = eUnits+bUnits+pUnits;
     if(rev===0 && units===0 && prf===0) continue;
     rows.push({month, m, eRev:Math.round(eRev), bRev:Math.round(bRev), pRev:Math.round(pRev), rev:Math.round(rev),
-               eNet:Math.round(eNet), bNet:Math.round(bNet), pPrf:Math.round(pPrf), prf:Math.round(prf),
+               eNet:Math.round(eNet), bNet:Math.round(bNet), pPrf:Math.round(pPrf), prf:Math.round(prf), ePrf:Math.round(ePrf), ecAd:Math.round(ecAd), b2bExp:Math.round(b2bExp),
+               popSellout:Math.round(popSellout), clients,
                eUnits, bUnits, pUnits, units, popEst, partial: month===today.slice(0,7) ? Number(today.slice(8,10)) : null});
   }
   return rows;
@@ -8240,122 +8244,144 @@ function renderAnnual(){
   const today = getTodayKST();
   if(!rows.length){ el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:40px;font-size:12px">${year}년 데이터가 없습니다</div>`; return; }
 
-  // ── 팔레트 (다크 키노트 표준: 골드=성과, 레드=손실, 인디고=일반) ──
-  const C = {gold:'#D4B896', red:'#E2645F', indigo:'#6366F1', b2b:'#6366F1', ec:'#A78BFA', pop:'#8FA3C8', txt:'#E8EDF7', sub:'#93A6C6', mute:'#5E6E8C', line:'rgba(147,166,198,0.14)'};
+  const C = {gold:'#D4B896', red:'#E2645F', indigo:'#6366F1', b2b:'#6366F1', ec:'#A78BFA', pop:'#8FA3C8', txt:'#E8EDF7', sub:'#93A6C6', mute:'#5E6E8C', line:'rgba(147,166,198,0.14)', card:'rgba(255,255,255,0.03)', edge:'rgba(255,255,255,0.06)'};
   const man = v => Math.round(v/10000).toLocaleString();
+  const man1 = v => (Math.round(v/1000)/10).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1});
   const eok = v => (v/1e8).toFixed(2);
   const pct = (a,b)=> b>0 ? (a/b*100).toFixed(1)+'%' : '–';
+  const pct0 = (a,b)=> b>0 ? Math.round(a/b*100)+'%' : '–';
   const n = rows.length, first = rows[0], last = rows[n-1];
-  const T = rows.reduce((a,r)=>({rev:a.rev+r.rev, prf:a.prf+r.prf, units:a.units+r.units, e:a.e+r.eRev, b:a.b+r.bRev, p:a.p+r.pRev}), {rev:0,prf:0,units:0,e:0,b:0,p:0});
+  const sum = k => rows.reduce((s,r)=>s+(r[k]||0),0);
+  const T = {rev:sum('rev'), prf:sum('prf'), units:sum('units'), e:sum('eRev'), b:sum('bRev'), p:sum('pRev'), eNet:sum('eNet'), bNet:sum('bNet'), pPrf:sum('pPrf'),
+             eU:sum('eUnits'), bU:sum('bUnits'), pU:sum('pUnits'), ecAd:sum('ecAd'), ePrf:sum('ePrf'), sell:sum('popSellout')};
   const best = rows.reduce((a,r)=>r.rev>a.rev?r:a, rows[0]);
   const growthX = first.rev>0 ? (last.rev/first.rev) : null;
   const cmgr = (first.rev>0 && n>1) ? (Math.pow(last.rev/first.rev, 1/(n-1))-1)*100 : null;
-
-  // 분기 집계
   const Q = [1,2,3,4].map(q=>{ const qr = rows.filter(r=>Math.ceil(r.m/3)===q); if(!qr.length) return null;
-    return {q, months:qr.map(r=>r.m), rev:qr.reduce((s,r)=>s+r.rev,0), prf:qr.reduce((s,r)=>s+r.prf,0), units:qr.reduce((s,r)=>s+r.units,0), partial:qr.some(r=>r.partial)||qr.length<3}; }).filter(Boolean);
+    return {q, months:qr.map(r=>r.m), rev:qr.reduce((s,r)=>s+r.rev,0), prf:qr.reduce((s,r)=>s+r.prf,0), partial:qr.some(r=>r.partial)||qr.length<3}; }).filter(Boolean);
+
+  // ── 인사이트 계산 ──
+  const firstProfit = rows.find(r=>r.prf>0);
+  let cum=0, cumPos=null; rows.forEach(r=>{ cum+=r.prf; if(cumPos===null && cum>0) cumPos=r; });
+  const ecShareFirst = first.rev>0 ? first.eRev/first.rev : 0, b2bShareLast = last.rev>0 ? last.bRev/last.rev : 0;
+  const roas = T.ecAd>0 ? T.e/T.ecAd : null;
+  const adMonths = rows.filter(r=>r.ecAd>0);
+  const unitRevFirst = first.units>0 ? first.rev/first.units : 0, unitRevLast = last.units>0 ? last.rev/last.units : 0;
+  const unitPrfFirst = first.units>0 ? first.prf/first.units : 0, unitPrfLast = last.units>0 ? last.prf/last.units : 0;
+  const clientTot = {}; rows.forEach(r=>Object.entries(r.clients||{}).forEach(([k,v])=>clientTot[k]=(clientTot[k]||0)+v));
+  const clientList = Object.entries(clientTot).sort((a,b)=>b[1]-a[1]);
+  const topClient = clientList[0];
+  const chan = [
+    {k:'B2B·공구', rev:T.b, net:T.bNet, units:T.bU, color:C.b2b},
+    {k:'팝업', rev:T.p, net:T.pPrf, units:T.pU, color:C.pop},
+    {k:'이커머스', rev:T.e, net:T.eNet, units:T.eU, color:C.ec}
+  ].filter(c=>c.rev>0);
+  const ecNegMonths = rows.filter(r=>r.eRev>0 && r.eNet<0).map(r=>r.m+'월');
 
   const kpi = (lbl, big, unit, sub, color)=>`
-    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px 16px;min-width:0">
+    <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:18px 20px 16px;min-width:0">
       <div style="font-size:11px;color:${C.sub};font-weight:600;letter-spacing:0.5px">${lbl}</div>
       <div style="font-size:30px;font-weight:800;color:${color||C.txt};margin-top:6px;letter-spacing:-0.8px;line-height:1.1">${big}<span style="font-size:13px;font-weight:600;color:${C.sub};margin-left:3px">${unit}</span></div>
       <div style="font-size:11.5px;color:${C.sub};margin-top:7px">${sub}</div>
     </div>`;
-
-  const mixBar = r => { const t=r.rev||1; const seg=(v,c)=>`<div style="width:${(v/t*100).toFixed(1)}%;background:${c}"></div>`;
-    return `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05);min-width:120px">${seg(r.eRev,C.ec)}${seg(r.bRev,C.b2b)}${seg(r.pRev,C.pop)}</div>`; };
-
-  const tr = rows.map((r,i)=>{
-    const prev = i>0 ? rows[i-1] : null;
-    const mom = prev && prev.rev>0 ? Math.round((r.rev/prev.rev-1)*100) : null;
-    const momStr = mom===null ? `<span style="color:${C.mute}">–</span>` : `<span style="color:${mom>=0?C.gold:C.red};font-weight:700">${mom>=0?'+':''}${mom}%</span>`;
-    const note = r.partial ? `<span style="font-size:10px;color:${C.sub};margin-left:6px">~${r.partial}일</span>` : '';
-    return `<tr style="border-top:1px solid ${C.line}">
-      <td style="text-align:left;padding:11px 12px;font-weight:700;color:${C.txt};font-size:13px">${r.m}월${note}</td>
-      <td style="padding:11px 12px;font-weight:700;color:${C.txt};font-size:13px">${man(r.rev)}</td>
-      <td style="padding:11px 12px;font-size:12px">${momStr}</td>
-      <td style="padding:11px 12px;font-weight:700;font-size:13px;color:${r.prf>=0?C.gold:C.red}">${man(r.prf)}</td>
-      <td style="padding:11px 12px;color:${C.sub};font-size:12px">${pct(r.prf,r.rev)}</td>
-      <td style="padding:11px 12px;color:${C.sub};font-size:12px">${r.units.toLocaleString()}</td>
-      <td style="padding:11px 12px 11px 18px">${mixBar(r)}</td></tr>`;
-  }).join('');
-
+  const tile = (lbl, big, desc, color)=>`
+    <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:16px 18px;min-width:0">
+      <div style="font-size:11px;color:${C.sub};font-weight:600;letter-spacing:0.4px">${lbl}</div>
+      <div style="font-size:21px;font-weight:800;color:${color||C.txt};margin-top:6px;letter-spacing:-0.5px;line-height:1.2">${big}</div>
+      <div style="font-size:11.5px;color:${C.sub};margin-top:7px;line-height:1.55">${desc}</div>
+    </div>`;
   const qCards = Q.map((q,i)=>{ const prev = i>0 ? Q[i-1] : null;
     const cur = q.partial ? q.rev/q.months.length : q.rev, base = prev ? (q.partial ? prev.rev/prev.months.length : prev.rev) : 0;
     const g = prev && base>0 ? Math.round((cur/base-1)*100) : null;
     const span = q.months.length>1 ? `${q.months[0]}~${q.months[q.months.length-1]}월` : `${q.months[0]}월`;
-    return `<div style="flex:1;min-width:150px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 16px">
+    return `<div style="flex:1;min-width:150px;background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700;color:${C.txt}">${q.q}분기</span><span style="font-size:10.5px;color:${C.sub}">${span}${q.partial?' · 진행 중':''}</span></div>
-      <div style="font-size:22px;font-weight:800;color:${C.txt};margin-top:6px;letter-spacing:-0.5px">${man(q.rev)}<span style="font-size:12px;color:${C.sub};font-weight:600;margin-left:2px">만</span></div>
-      <div style="font-size:11.5px;margin-top:4px;color:${C.sub}">순이익 <b style="color:${q.prf>=0?C.gold:C.red}">${man(q.prf)}만</b>${g!==null?` · ${q.partial?'월평균 기준 ':''}전분기 <b style="color:${g>=0?C.gold:C.red}">${g>=0?'+':''}${g}%</b>`:''}</div>
+      <div style="font-size:22px;font-weight:800;color:${C.txt};margin-top:6px;letter-spacing:-0.5px">${man(q.rev)}<span style="font-size:12px;color:${C.sub};font-weight:600;margin-left:2px">만원</span></div>
+      <div style="font-size:11.5px;margin-top:4px;color:${C.sub}">순이익 <b style="color:${q.prf>=0?C.gold:C.red}">${man(q.prf)}만원</b>${g!==null?` · ${q.partial?'월평균 기준 ':''}전분기 <b style="color:${g>=0?C.gold:C.red}">${g>=0?'+':''}${g}%</b>`:''}</div>
     </div>`; }).join('');
 
+  // 채널별 수익성 행 (가로 막대)
+  const chanMaxRev = Math.max(...chan.map(c=>c.rev));
+  const chanRows = chan.map(c=>{ const mr = c.rev>0 ? c.net/c.rev*100 : 0; const up = c.units>0 ? c.net/c.units : 0;
+    return `<div style="display:grid;grid-template-columns:72px 1fr 76px 70px 84px;align-items:center;gap:10px;padding:9px 0;border-top:1px solid ${C.line}">
+      <div style="font-size:12px;font-weight:700;color:${C.txt}"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${c.color};margin-right:6px"></i>${c.k}</div>
+      <div style="height:9px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden"><div style="width:${(c.rev/chanMaxRev*100).toFixed(1)}%;height:100%;background:${c.color}"></div></div>
+      <div style="text-align:right;font-size:12px;color:${C.txt};font-weight:700">${man(c.rev)}<span style="font-size:10px;color:${C.sub};font-weight:500"> 만원</span></div>
+      <div style="text-align:right;font-size:12px;font-weight:700;color:${mr>=0?C.gold:C.red}">${mr.toFixed(1)}%</div>
+      <div style="text-align:right;font-size:12px;color:${up>=0?C.txt:C.red}">${Math.round(up).toLocaleString()}<span style="font-size:10px;color:${C.sub}"> 원/개</span></div>
+    </div>`; }).join('');
+  const clientMax = clientList.length ? clientList[0][1] : 1; const bTot = clientList.reduce((s,c)=>s+c[1],0);
+  const clientRows = clientList.slice(0,5).map(([k,v])=>`<div style="display:grid;grid-template-columns:96px 1fr 60px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid ${C.line}">
+      <div style="font-size:12px;font-weight:700;color:${C.txt};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k}</div>
+      <div style="height:9px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden"><div style="width:${(v/clientMax*100).toFixed(1)}%;height:100%;background:${C.b2b}"></div></div>
+      <div style="text-align:right;font-size:12px;font-weight:700;color:${C.txt}">${pct0(v,bTot)}</div></div>`).join('');
+
+  const insightTiles = [
+    tile('손익분기', firstProfit ? `${firstProfit.m}월 첫 월 흑자${cumPos?` · ${cumPos.m}월 누적 흑자`:''}` : '아직 월 흑자 없음',
+         `${first.m}월 ${man(first.prf)}만원 → ${last.m}월 ${man(last.prf)}만원. 누적 순이익 ${man(T.prf)}만원, 이익률 ${pct(T.prf,T.rev)}`, firstProfit?C.gold:C.red),
+    tile('매출 구조 전환', `이커머스 ${Math.round(ecShareFirst*100)}% → B2B ${Math.round(b2bShareLast*100)}%`,
+         `${first.m}월은 이커머스가 ${Math.round(ecShareFirst*100)}%, ${last.m}월은 B2B·공구가 ${Math.round(b2bShareLast*100)}%. 누계 B2B 이익률 ${pct(T.bNet,T.b)}로 수익 구조가 B2B에 의존`),
+    tile('개당 경제성', `${man1(unitRevLast)}만원 / 개 · 순이익 ${Math.round(unitPrfLast).toLocaleString()}원`,
+         `개당 매출 ${first.m}월 ${man1(unitRevFirst)}만원 → ${last.m}월 ${man1(unitRevLast)}만원(공급가 위주로 하락), 개당 순이익 ${Math.round(unitPrfFirst).toLocaleString()}원 → ${Math.round(unitPrfLast).toLocaleString()}원. 물량 ${first.units.toLocaleString()} → ${last.units.toLocaleString()}개로 ${first.units>0?(last.units/first.units).toFixed(1):'–'}배`),
+    tile('이커머스 광고 효율', roas!==null ? `ROAS ${roas.toFixed(1)}배 · 순이익 ${man(T.eNet)}만원` : '광고비 미집계',
+         roas!==null ? `광고·대행비 누계 ${man(T.ecAd)}만원으로 이커머스 매출 ${man(T.e)}만원. 광고 반영 전 판매이익 ${man(T.ePrf)}만원 → 반영 후 ${man(T.eNet)}만원${ecNegMonths.length?` (${ecNegMonths.join('·')} 적자)`:''}` : '', T.eNet>=0?C.txt:C.red),
+    tile('팝업 정산 구조', T.sell>0 ? `소비자 판매 ${man(T.sell)}만원 → 정산 ${man(T.p)}만원` : '팝업 실적 없음',
+         T.sell>0 ? `정산률 ${pct0(T.p,T.sell)} (위탁 공급가 기준). 팝업 이익률 ${pct(T.pPrf,T.p)}, 개당 순이익 ${T.pU>0?Math.round(T.pPrf/T.pU).toLocaleString():'–'}원 — GWP 부담 차감 후` : ''),
+    tile('거래처 집중도', topClient ? `${topClient[0]} ${pct0(topClient[1],bTot)}` : '–',
+         topClient ? `B2B·공구 매출 ${man(bTot)}만원 중 상위 1개 거래처 비중. 상위 2개 합산 ${pct0((clientList[0]?.[1]||0)+(clientList[1]?.[1]||0),bTot)} — 단일 거래처 의존도가 높아 이탈 시 매출 변동 큼` : '')
+  ].join('');
+
   el.innerHTML = `
-  <div id="annualReport" style="background:radial-gradient(ellipse at 20% 0%,#182035 0%,#0D1220 55%,#080B14 100%);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:30px 34px 22px;color:${C.txt};font-family:inherit">
+  <div id="annualReport" style="background:radial-gradient(ellipse at 20% 0%,#182035 0%,#0D1220 55%,#080B14 100%);border:1px solid ${C.edge};border-radius:18px;padding:30px 34px 22px;color:${C.txt};font-family:inherit">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
       <div>
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">ANOK · Annual Performance ${year}</div>
         <div style="font-size:28px;font-weight:800;letter-spacing:-0.8px;margin-top:8px;line-height:1.15">${year}년 사업 성과</div>
-        <div style="font-size:13px;color:${C.sub};margin-top:8px">${first.m}월 론칭 후 ${n}개월 — 누계 매출 <b style="color:${C.txt}">${eok(T.rev)}억</b> · 순이익 <b style="color:${C.gold}">${man(T.prf)}만</b> (${pct(T.prf,T.rev)}) · 월 매출 ${first.m}월 대비 <b style="color:${C.gold}">${growthX?growthX.toFixed(1)+'배':'–'}</b></div>
+        <div style="font-size:13px;color:${C.sub};margin-top:8px">${first.m}월 론칭 후 ${n}개월 — 누계 매출 <b style="color:${C.txt}">${eok(T.rev)}억원</b> · 순이익 <b style="color:${C.gold}">${man(T.prf)}만원</b> (${pct(T.prf,T.rev)}) · 월 매출 ${first.m}월 대비 <b style="color:${C.gold}">${growthX?growthX.toFixed(1)+'배':'–'}</b></div>
       </div>
       <div style="text-align:right;font-size:11px;color:${C.sub};line-height:1.7">PERFECT DRIVE INC.<br>기준일 ${today}${last.partial?` · ${last.m}월은 ${last.partial}일까지`:''}<br>단위 만원 · VAT 별도</div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:24px">
-      ${kpi('누계 매출', man(T.rev), '만', `월평균 ${man(T.rev/n)}만 · 최고 ${best.m}월 ${man(best.rev)}만`)}
-      ${kpi('누계 순이익', man(T.prf), '만', `이익률 ${pct(T.prf,T.rev)} · 월평균 ${man(T.prf/n)}만`, T.prf>=0?C.gold:C.red)}
-      ${kpi('월 매출 성장', growthX?growthX.toFixed(1):'–', '배', `${first.m}월 ${man(first.rev)}만 → ${last.m}월 ${man(last.rev)}만${cmgr!==null?` · 월평균 +${cmgr.toFixed(0)}%`:''}`, C.gold)}
+      ${kpi('누계 매출', man(T.rev), '만원', `월평균 ${man(T.rev/n)}만원 · 최고 ${best.m}월 ${man(best.rev)}만원`)}
+      ${kpi('누계 순이익', man(T.prf), '만원', `이익률 ${pct(T.prf,T.rev)} · 월평균 ${man(T.prf/n)}만원`, T.prf>=0?C.gold:C.red)}
+      ${kpi('월 매출 성장', growthX?growthX.toFixed(1):'–', '배', `${first.m}월 ${man(first.rev)}만원 → ${last.m}월 ${man(last.rev)}만원${cmgr!==null?` · 월평균 +${cmgr.toFixed(0)}%`:''}`, C.gold)}
       ${kpi('누계 출고', T.units.toLocaleString(), '개', `월평균 ${Math.round(T.units/n).toLocaleString()}개 · ${last.m}월 ${last.units.toLocaleString()}개`)}
     </div>
-
     <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">${qCards}</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px" class="annual-grid2">
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">월별 매출</span><span style="font-size:11px;color:${C.sub}">막대 위 전월 대비 증감</span></div>
-        <div style="height:230px;position:relative"><canvas id="annualRevChart"></canvas></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">월별 매출 · 채널 구성</span>
+          <span style="font-size:11px;color:${C.sub}"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.ec};margin-right:4px"></i>이커머스 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.b2b};margin:0 4px 0 10px"></i>B2B·공구 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.pop};margin:0 4px 0 10px"></i>팝업 · 막대 위 전월비</span></div>
+        <div style="height:240px;position:relative"><canvas id="annualRevChart"></canvas></div>
       </div>
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">월별 순이익</span><span style="font-size:11px;color:${C.sub}"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.gold};margin:0 4px 0 0"></i>흑자 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.red};margin:0 4px 0 10px"></i>적자 · 점선 이익률</span></div>
-        <div style="height:230px;position:relative"><canvas id="annualPrfChart"></canvas></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">월별 순이익 · 이익률</span><span style="font-size:11px;color:${C.sub}"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.gold};margin:0 4px 0 0"></i>흑자 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.red};margin:0 4px 0 10px"></i>적자 · 점선 이익률</span></div>
+        <div style="height:240px;position:relative"><canvas id="annualPrfChart"></canvas></div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px" class="annual-grid2">
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">매출 채널 구성</span>
-          <span style="font-size:11px;color:${C.sub}"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.ec};margin-right:4px"></i>이커머스 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.b2b};margin:0 4px 0 10px"></i>B2B·공구 <i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${C.pop};margin:0 4px 0 10px"></i>팝업</span></div>
-        <div style="height:190px;position:relative"><canvas id="annualMixChart"></canvas></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px" class="annual-grid2">
+      <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 18px 8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">채널별 수익성 (누계)</span><span style="font-size:10.5px;color:${C.sub}">매출 · 이익률 · 개당 순이익</span></div>
+        <div style="margin-top:6px">${chanRows}</div>
       </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:13px;font-weight:700">월별 출고 수량</span><span style="font-size:11px;color:${C.sub}">개 · 채널 누적</span></div>
-        <div style="height:190px;position:relative"><canvas id="annualUnitChart"></canvas></div>
+      <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 18px 8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">B2B 거래처 비중 (누계)</span><span style="font-size:10.5px;color:${C.sub}">B2B·공구 매출 ${man(bTot)}만원 기준</span></div>
+        <div style="margin-top:6px">${clientRows||`<div style="font-size:12px;color:${C.sub};padding:10px 0">B2B 매출 없음</div>`}</div>
       </div>
     </div>
 
-    <div style="margin-top:22px;overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;text-align:right;white-space:nowrap">
-        <thead><tr style="color:${C.sub};font-size:11px">
-          <th style="text-align:left;padding:6px 12px;font-weight:600">월</th><th style="padding:6px 12px;font-weight:600">매출</th><th style="padding:6px 12px;font-weight:600">전월비</th><th style="padding:6px 12px;font-weight:600">순이익</th><th style="padding:6px 12px;font-weight:600">이익률</th><th style="padding:6px 12px;font-weight:600">출고</th><th style="padding:6px 12px 6px 18px;font-weight:600;text-align:left">채널 구성</th></tr></thead>
-        <tbody>${tr}
-          <tr style="border-top:2px solid rgba(212,184,150,0.45)">
-            <td style="text-align:left;padding:12px;font-weight:800;color:${C.txt};font-size:13px">누계</td>
-            <td style="padding:12px;font-weight:800;color:${C.txt};font-size:13px">${man(T.rev)}</td>
-            <td style="padding:12px"></td>
-            <td style="padding:12px;font-weight:800;font-size:13px;color:${T.prf>=0?C.gold:C.red}">${man(T.prf)}</td>
-            <td style="padding:12px;color:${C.sub};font-size:12px;font-weight:700">${pct(T.prf,T.rev)}</td>
-            <td style="padding:12px;color:${C.sub};font-size:12px;font-weight:700">${T.units.toLocaleString()}</td>
-            <td style="padding:12px 12px 12px 18px">${mixBar({rev:T.rev,eRev:T.e,bRev:T.b,pRev:T.p})}<div style="font-size:10.5px;color:${C.sub};margin-top:4px">이커머스 ${Math.round(T.e/T.rev*100)}% · B2B ${Math.round(T.b/T.rev*100)}% · 팝업 ${Math.round(T.p/T.rev*100)}%</div></td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">데이터에서 자동 계산</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px" class="annual-grid3">${insightTiles}</div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:12px;border-top:1px solid ${C.line};font-size:10.5px;color:${C.mute}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:12px;border-top:1px solid ${C.line};font-size:10.5px;color:${C.mute}">
       <span>ANOK Annual Performance · PERFECT DRIVE INC.</span>
       <span>매출은 정산 기준(팝업은 초인파트너스 정산매출) · 순이익 = 판매이익 − 광고·대행·운영비 − GWP 순부담${rows.some(r=>r.popEst)?' · 정산 전 팝업은 집계 기준 추정':''}</span>
     </div>
   </div>
-  <style>@media (max-width:760px){ #annualReport .annual-grid2{grid-template-columns:1fr !important} #annualReport{padding:20px 16px 16px !important} }</style>`;
+  <style>@media (max-width:760px){ #annualReport .annual-grid2{grid-template-columns:1fr !important} #annualReport .annual-grid3{grid-template-columns:1fr !important} #annualReport{padding:20px 16px 16px !important} }</style>`;
 
   // ── 차트 ──
   Object.values(_annualCharts).forEach(c=>{ try{ c.destroy(); }catch(e){} }); _annualCharts = {};
@@ -8370,12 +8396,16 @@ function renderAnnual(){
     const {ctx}=chart; const meta=chart.getDatasetMeta(getMeta); ctx.save(); ctx.font='700 11.5px sans-serif'; ctx.textAlign='center';
     rows.forEach((r,i)=>{ const pt=meta.data[i]; if(!pt) return; const t=getText(r,i); if(t==null) return; ctx.fillStyle=typeof color==='function'?color(r):color; ctx.fillText(t, pt.x, pt.y+dy); }); ctx.restore(); }});
 
-  // 1) 매출: 인디고 막대, 최고월 골드, 막대 위 전월비
+  // 1) 매출: 채널 누적 막대, 맨 위에 합계 + 전월비
   const revMax = Math.max(...rows.map(r=>r.rev/10000));
   _annualCharts.rev = new Chart(document.getElementById('annualRevChart'), {type:'bar',
-    data:{labels, datasets:[{label:'매출', data:rows.map(r=>r.rev/10000), backgroundColor:rows.map(r=>r===best?C.gold:C.indigo), borderRadius:6, barPercentage:0.62}]},
+    data:{labels, datasets:[
+      {label:'이커머스', data:rows.map(r=>r.eRev/10000), backgroundColor:C.ec, stack:'rev', barPercentage:0.62},
+      {label:'B2B·공구', data:rows.map(r=>r.bRev/10000), backgroundColor:C.b2b, stack:'rev', barPercentage:0.62},
+      {label:'팝업', data:rows.map(r=>r.pRev/10000), backgroundColor:C.pop, stack:'rev', barPercentage:0.62, borderRadius:{topLeft:6,topRight:6}}
+    ]},
     options:base(revMax),
-    plugins:[labelPlugin((r,i)=>{ const p=i>0?rows[i-1]:null; const mom=p&&p.rev>0?Math.round((r.rev/p.rev-1)*100):null; return fmt(r.rev/10000)+(mom===null?'':`  ${mom>=0?'▲':'▼'}${Math.abs(mom)}%`); }, 0, r=>r===best?C.gold:C.txt)]
+    plugins:[labelPlugin((r,i)=>{ const p=i>0?rows[i-1]:null; const mom=p&&p.rev>0?Math.round((r.rev/p.rev-1)*100):null; return fmt(r.rev/10000)+(mom===null?'':`  ${mom>=0?'▲':'▼'}${Math.abs(mom)}%`); }, 2, r=>r===best?C.gold:C.txt)]
   });
   // 2) 순이익: 흑자 골드 / 적자 레드, 이익률 점선(보조축)
   const prfVals = rows.map(r=>r.prf/10000); const prfMax = Math.max(...prfVals, 1), prfMin = Math.min(...prfVals, 0);
@@ -8387,28 +8417,6 @@ function renderAnnual(){
     ]},
     options:o2,
     plugins:[labelPlugin(r=>fmt(r.prf/10000), 1, r=>r.prf>=0?C.gold:C.red, -7)]
-  });
-  // 3) 채널 구성: 100% 누적
-  const o3 = base(100); o3.scales.y.max = 100; o3.scales.y.suggestedMax = 100; o3.scales.y.ticks.callback = v=>v+'%'; o3.layout.padding.top = 4;
-  const share = (k)=>rows.map(r=>r.rev>0?+(r[k]/r.rev*100).toFixed(1):0);
-  _annualCharts.mix = new Chart(document.getElementById('annualMixChart'), {type:'bar',
-    data:{labels, datasets:[
-      {label:'이커머스', data:share('eRev'), backgroundColor:C.ec, stack:'m', barPercentage:0.62},
-      {label:'B2B·공구', data:share('bRev'), backgroundColor:C.b2b, stack:'m', barPercentage:0.62},
-      {label:'팝업', data:share('pRev'), backgroundColor:C.pop, stack:'m', barPercentage:0.62, borderRadius:{topLeft:6,topRight:6}}
-    ]}, options:o3,
-    plugins:[{id:'mixLbl', afterDatasetsDraw(chart){ const {ctx}=chart; ctx.save(); ctx.font='700 11px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#0B0F1A';
-      [0,1,2].forEach(di=>{ const meta=chart.getDatasetMeta(di); rows.forEach((r,i)=>{ const v=chart.data.datasets[di].data[i]; if(v<12) return; const bar=meta.data[i]; const yc=(bar.y+bar.base)/2; ctx.fillText(Math.round(v)+'%', bar.x, yc+4); }); }); ctx.restore(); }}]
-  });
-  // 4) 출고 수량
-  const unitMax = Math.max(...rows.map(r=>r.units));
-  _annualCharts.units = new Chart(document.getElementById('annualUnitChart'), {type:'bar',
-    data:{labels, datasets:[
-      {label:'이커머스', data:rows.map(r=>r.eUnits), backgroundColor:C.ec, stack:'u', barPercentage:0.62},
-      {label:'B2B·공구', data:rows.map(r=>r.bUnits), backgroundColor:C.b2b, stack:'u', barPercentage:0.62},
-      {label:'팝업', data:rows.map(r=>r.pUnits), backgroundColor:C.pop, stack:'u', barPercentage:0.62, borderRadius:{topLeft:6,topRight:6}}
-    ]}, options:base(unitMax),
-    plugins:[labelPlugin(r=>r.units.toLocaleString(), 2, C.txt)]
   });
 }
 
