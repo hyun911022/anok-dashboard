@@ -8186,12 +8186,25 @@ const anokApi = (()=>{
     return {ok:!res.dry, dry:!!res.dry, year, count:(res.next[String(year)]||[]).length, ids:(res.next[String(year)]||[]).map(x=>x.id+' '+x.title)};
   }
   // addInsight(2026, {title, headline, points, tone}, {at:index}) — 카드 1장 추가 (at 없으면 맨 뒤)
+  // addInsight(2026, card, {at, replaces:보관된카드id}) — replaces를 주면 그 카드 자리(formerIndex)에 넣고 보관함 항목에 '채움' 표시
   async function addInsight(year, t, opts={}){
-    const card = normIns(t);
-    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
+    const card = normIns(t); const y=String(year);
+    let at = opts.at;
+    if(opts.replaces && !Number.isInteger(at)){ const {data}=await getDoc('annual'); const a=((data.archive||{})[y]||[]).find(x=>x.id===opts.replaces); if(!a) throw new Error('보관함에 없음: '+opts.replaces); at=a.formerIndex; }
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[y])?ins[y]:[];
       if(cur.some(x=>x.title===card.title)) throw new Error('같은 제목 카드 있음: '+card.title);
-      if(Number.isInteger(opts.at)) cur.splice(opts.at,0,card); else cur.push(card); ins[String(year)]=cur; return ins; }, opts);
-    return {ok:!res.dry, dry:!!res.dry, id:card.id, count:(res.next[String(year)]||[]).length};
+      if(cur.length>=9 && !opts.force) throw new Error('화면 카드 9장 꽉 참 — 먼저 보관');
+      if(Number.isInteger(at) && at>=0) cur.splice(Math.min(at,cur.length),0,card); else cur.push(card); ins[y]=cur; return ins; }, opts);
+    if(opts.replaces && !opts.dry) await mutate('annual','archive', a=>{ a=a||{}; (a[y]||[]).forEach(x=>{ if(x.id===opts.replaces){ x.refilled=true; x.replacedBy=card.id; } }); return a; });
+    return {ok:!res.dry, dry:!!res.dry, id:card.id, count:(res.next[y]||[]).length};
+  }
+  // pending(2026) — 세션 시작 점검: 미답변 의견 · 이동현이 보관해서 채워야 할 자리 · 9장 대비 빈 슬롯
+  async function pending(year){
+    const {data}=await getDoc('annual'); const y=String(year);
+    const cards=(data.insights||{})[y]||[]; const arch=(data.archive||{})[y]||[];
+    return {openComments:(data.comments||[]).filter(c=>String(c.year)===y && c.status!=='done').map(c=>({id:c.id, card:c.title, text:c.text})),
+            toRefill:arch.filter(a=>a.archivedBy==='user' && !a.refilled).map(a=>({id:a.id, title:a.title, reason:a.archiveReason, at:a.archivedAt, formerIndex:a.formerIndex})),
+            cards:cards.length, emptySlots:Math.max(0, 9-cards.length)};
   }
   // updateInsight(2026, id, {headline, points, tone, title}) — 카드 1장 일부 수정 (id 유지)
   async function updateInsight(year, id, patch, opts={}){
@@ -8207,7 +8220,8 @@ const anokApi = (()=>{
     const card = ((data.insights||{})[y]||[]).find(x=>x.id===id); if(!card) throw new Error('화면 카드에 없음: '+id);
     const openCm = (data.comments||[]).filter(c=>((c.cardId && c.cardId===id) || (!c.cardId && c.title===card.title)) && c.status!=='done');
     if(openCm.length && !opts.force) throw new Error('미답변 의견 '+openCm.length+'건 — 답변 후 보관');
-    const arch = Object.assign({}, card, {archivedAt:getTodayKST(), archiveReason:String(reason)});
+    const formerIndex = ((data.insights||{})[y]||[]).findIndex(x=>x.id===id);
+    const arch = Object.assign({}, card, {archivedAt:getTodayKST(), archiveReason:String(reason), archivedBy:opts.by==='user'?'user':'claude', formerIndex, refilled:false});
     const r1 = await mutate('annual','archive', a=>{ a=a||{}; const cur=Array.isArray(a[y])?a[y]:[]; if(!cur.some(x=>x.id===id)) cur.unshift(arch); a[y]=cur; return a; }, opts);
     if(opts.dry) return {dry:true, card:arch};
     await mutate('annual','insights', ins=>{ ins=ins||{}; ins[y]=(ins[y]||[]).filter(x=>x.id!==id); return ins; });
@@ -8273,6 +8287,7 @@ const anokApi = (()=>{
       'markPaid(ids, date) / markPayablePaid(ids, date) 입금·지급 완료',
       'patchItem(doc, field, id, patch) / removeItem(doc, field, id)',
       'setInsights(year,[cards]) / addInsight(year,card,{at}) / updateInsight(year,id,patch) / archiveInsight(year,id,사유) / restoreInsight(year,id) / removeInsight(year,id)  전략보고 인사이트 카드 (id 고정, 의견 달린 카드는 삭제 대신 보관)',
+      'pending(year)  세션 시작 점검 — 미답변 의견 · 이동현 보관분(채울 자리) · 9장 대비 빈 슬롯',
       'comments(year) / replyComment(id, 답변) / removeComment(id)   인사이트 카드 의견 조회·반영 (세션 시작 시 comments()로 먼저 확인)',
       'find(doc, field, idOrFn) / get(doc) / undo() / stock()',
       '문서·필드: popups.items · stock.manualOuts|stockBatches|stockInitByMonth · payables.items · fcInbounds.items · expenses.items · records.records'
@@ -8280,7 +8295,7 @@ const anokApi = (()=>{
   }
 
   return {addPopupDay, addOut, addBatch, mergeIntoBatch, addPayable, addKolmarPO, addFCInbound, addExpense, setCoupangCosts,
-          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, updateInsight, archiveInsight, restoreInsight, removeInsight, setAnnualNote, addComment, comments, replyComment, removeComment, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
+          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, updateInsight, archiveInsight, restoreInsight, removeInsight, pending, setAnnualNote, addComment, comments, replyComment, removeComment, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
 })();
 window.anokApi = anokApi;
 
@@ -8403,6 +8418,7 @@ function renderAnnual(){
     </div>`;
   // 인사이트 카드 (B안 액션 박스): 제목 → 헤드라인 → 사실·의미 본문 → 대응은 골드 ACTION 박스 → 의견(코멘트)
   const cmAll = (annualDoc.comments||[]).filter(c=>String(c.year)===String(year));
+  const INS_SLOTS = 9;
   const cmOf = (id, lbl) => cmAll.filter(c=> c.cardId ? c.cardId===id : c.title===lbl);
   const tile = (lbl, big, desc, color, id, archived)=>{
     const pts = Array.isArray(desc) ? desc : String(desc||'').split('\n').filter(Boolean).map((v,i)=>({k:['사실','의미','대응'][i]||'', v}));
@@ -8418,7 +8434,7 @@ function renderAnnual(){
       ${cmHtml}
       <div class="ins-cm-box" style="display:none;margin-top:8px"><textarea class="ins-cm-text" rows="3" placeholder="이 카드에 대한 의견" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:${C.txt};font-size:12.5px;padding:8px 10px;resize:vertical;font-family:inherit"></textarea>
         <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px"><button class="ins-cm-cancel" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:${C.sub};font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer">취소</button><button class="ins-cm-save" style="background:${C.gold};border:none;color:#0B0F1A;font-weight:800;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">저장</button></div></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="ins-cm-open" style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.45);color:#C7D2FE;font-size:11.5px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:999px;letter-spacing:0.2px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 남기기</button></div>
+      <div class="ins-ar-box" style="display:none;margin-top:8px"><input class="ins-ar-text" type="text" placeholder="보관 사유 (예: 해소됨, 중요도 낮음)" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:${C.txt};font-size:12.5px;padding:8px 10px;font-family:inherit"><div class="ins-ar-msg" style="font-size:11px;color:${C.red};margin-top:5px;min-height:0"></div><div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px"><button class="ins-ar-cancel" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:${C.sub};font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer">취소</button><button class="ins-ar-save" style="background:${C.sub};border:none;color:#0B0F1A;font-weight:800;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">보관</button></div></div><div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px">${id&&!archived?`<button class="ins-ar-open" title="이 카드를 지난 인사이트로 보관 — Claude가 새 카드로 채움" style="display:inline-flex;align-items:center;gap:5px;background:transparent;border:1px solid rgba(147,166,198,0.3);color:${C.sub};font-size:11.5px;font-weight:700;cursor:pointer;padding:6px 11px;border-radius:999px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>보관</button>`:''}<button class="ins-cm-open" style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.45);color:#C7D2FE;font-size:11.5px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:999px;letter-spacing:0.2px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 남기기</button></div>
     </div>`;
   };
   const qCards = Q.map((q,i)=>{ const prev = i>0 ? Q[i-1] : null;
@@ -8464,6 +8480,8 @@ function renderAnnual(){
   ];
   const insightTiles = (Array.isArray(stored) && stored.length)
     ? stored.map(t=>tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone), t.id)).join('')
+      + Array.from({length:Math.max(0, INS_SLOTS - stored.length)}).map(()=>`<div style="border:1px dashed rgba(147,166,198,0.28);border-radius:16px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:18px;text-align:center">
+          <div style="font-size:12px;font-weight:700;color:${C.sub}">새 인사이트 준비 중</div><div style="font-size:11px;color:${C.mute};line-height:1.5">Claude가 다음 세션에 데이터를 검토해 채웁니다</div></div>`).join('')
     : autoTiles.join('');
   const insightDate = (Array.isArray(stored) && stored.length) ? (stored.map(t=>t.updatedAt||'').sort().pop()||'') : '';
   // 의견 & 답변 스레드 패널 (카드 밖, 전체 폭)
@@ -8477,7 +8495,7 @@ function renderAnnual(){
         <span style="flex:1"></span><span class="arch-chev" style="font-size:16px;color:${C.sub};transition:transform .2s">›</span></div>
       <div class="arch-body" style="padding:0 14px 14px">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start" class="annual-grid3">${archList.map(t=>`<div>
-          <div style="font-size:10.5px;color:${C.mute};margin:0 2px 6px">보관 ${String(t.archivedAt||'').slice(5).replace('-','/')} · ${t.archiveReason||''}</div>
+          <div style="font-size:10.5px;color:${C.mute};margin:0 2px 6px">보관 ${String(t.archivedAt||'').slice(5).replace('-','/')}${t.archivedBy==='user'?' · 이동현':''} · ${t.archiveReason||''}${t.replacedBy?' · 후속 카드 있음':''}</div>
           ${tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone), t.id, true)}</div>`).join('')}</div>
       </div></div>` : '';
   const threadsBlock = cmSorted.length ? `<div style="margin-top:18px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:#A5B4FC;text-transform:uppercase">의견 & 답변</span><span style="font-size:11px;color:${C.sub}">${cmSorted.length}건 · 검토 대기 ${cmSorted.filter(c=>c.status!=='done').length}건</span></div>
@@ -8562,7 +8580,8 @@ function renderAnnual(){
   #annualReport .ins-arch .arch-body{display:none}
   #annualReport .ins-arch.open .arch-body{display:block}
   #annualReport .ins-arch.open .arch-chev{transform:rotate(90deg)}
-  #annualReport .ins-arch .ins-cm-open{display:none !important}
+  #annualReport .ins-arch .ins-cm-open, #annualReport .ins-arch .ins-ar-open{display:none !important}
+  #annualReport .ins-ar-open:hover{border-color:rgba(147,166,198,0.7) !important;color:#E8EDF7 !important}
   #annualReport .cm-th .cm-th-body{display:none}
   #annualReport .cm-th.open .cm-th-body{display:block}
   #annualReport .cm-th.open .cm-th-chev{transform:rotate(90deg)}
@@ -8588,6 +8607,18 @@ function renderAnnual(){
 
   // ── 의견 입력 핸들러 ──
   el.querySelectorAll('.ins-card').forEach(card=>{
+    const arOpen=card.querySelector('.ins-ar-open'), arBox=card.querySelector('.ins-ar-box');
+    if(arOpen && arBox){
+      const msg=arBox.querySelector('.ins-ar-msg');
+      arOpen.onclick=()=>{ arBox.style.display='block'; arOpen.style.display='none'; msg.textContent=''; arBox.querySelector('input').focus(); };
+      arBox.querySelector('.ins-ar-cancel').onclick=()=>{ arBox.style.display='none'; arOpen.style.display=''; };
+      arBox.querySelector('.ins-ar-save').onclick=async ()=>{
+        const why=arBox.querySelector('input').value.trim(); if(!why){ msg.textContent='보관 사유를 한 줄 적어주세요'; return; }
+        const b=arBox.querySelector('.ins-ar-save'); b.disabled=true; b.textContent='보관 중';
+        try{ await anokApi.archiveInsight(year, card.dataset.id, why, {by:'user'}); if(typeof showToast==='function') showToast('보관 — Claude가 새 카드로 채웁니다'); }
+        catch(e){ msg.textContent = /미답변/.test(e.message) ? '답변 대기 중인 의견이 있어 보관할 수 없습니다' : ('보관 실패: '+e.message); b.disabled=false; b.textContent='보관'; }
+      };
+    }
     const box=card.querySelector('.ins-cm-box'), open=card.querySelector('.ins-cm-open');
     open.onclick=()=>{ box.style.display='block'; open.style.display='none'; box.querySelector('textarea').focus(); };
     card.querySelector('.ins-cm-cancel').onclick=()=>{ box.style.display='none'; open.style.display=''; };
