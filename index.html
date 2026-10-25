@@ -8180,7 +8180,7 @@ const anokApi = (()=>{
     const res = await mutate('annual','insights', (ins, data)=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
       const list = tiles.map(t=>normIns(t, cur.find(x=>(t.id && x.id===t.id) || (!t.id && x.title===t.title))));
       const keep = new Set(list.map(x=>x.id)); const cms = (data.comments||[]).filter(c=>String(c.year)===String(year));
-      const dropped = cur.filter(x=>!keep.has(x.id) && cms.some(c=>c.cardId===x.id));
+      const dropped = cur.filter(x=>!keep.has(x.id) && cms.some(c=>(x.id && c.cardId===x.id) || (!c.cardId && c.title===x.title)));
       if(dropped.length && !opts.force) throw new Error('의견 달린 카드가 빠짐: '+dropped.map(x=>x.title).join(', ')+' — archiveInsight로 보관하거나 {force:true}');
       if(!list.length) delete ins[String(year)]; else ins[String(year)] = list; return ins; }, opts);
     return {ok:!res.dry, dry:!!res.dry, year, count:(res.next[String(year)]||[]).length, ids:(res.next[String(year)]||[]).map(x=>x.id+' '+x.title)};
@@ -8205,7 +8205,7 @@ const anokApi = (()=>{
     if(!reason) throw new Error('보관 사유 필요');
     const {data} = await getDoc('annual'); const y=String(year);
     const card = ((data.insights||{})[y]||[]).find(x=>x.id===id); if(!card) throw new Error('화면 카드에 없음: '+id);
-    const openCm = (data.comments||[]).filter(c=>c.cardId===id && c.status!=='done');
+    const openCm = (data.comments||[]).filter(c=>((c.cardId && c.cardId===id) || (!c.cardId && c.title===card.title)) && c.status!=='done');
     if(openCm.length && !opts.force) throw new Error('미답변 의견 '+openCm.length+'건 — 답변 후 보관');
     const arch = Object.assign({}, card, {archivedAt:getTodayKST(), archiveReason:String(reason)});
     const r1 = await mutate('annual','archive', a=>{ a=a||{}; const cur=Array.isArray(a[y])?a[y]:[]; if(!cur.some(x=>x.id===id)) cur.unshift(arch); a[y]=cur; return a; }, opts);
@@ -8227,7 +8227,7 @@ const anokApi = (()=>{
   async function removeInsight(year, id, opts={}){
     const res = await mutate('annual','insights', (ins, data)=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
       const i = typeof id==='number' ? id : cur.findIndex(x=>x.id===id); if(i<0||i>=cur.length) throw new Error('카드 없음: '+id);
-      if((data.comments||[]).some(c=>c.cardId===cur[i].id) && !opts.force) throw new Error('의견 달린 카드는 삭제 불가 — archiveInsight 사용');
+      if((data.comments||[]).some(c=>(cur[i].id && c.cardId===cur[i].id) || (!c.cardId && c.title===cur[i].title)) && !opts.force) throw new Error('의견 달린 카드는 삭제 불가 — archiveInsight 사용');
       cur.splice(i,1); ins[String(year)]=cur; return ins; }, opts);
     return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
   }
