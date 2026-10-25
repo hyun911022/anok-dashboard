@@ -7970,7 +7970,7 @@ const anokApi = (()=>{
       else if(name==='payables' && field==='items') payables = value;
       else if(name==='fcInbounds' && field==='items') fcInbounds = value;
       else if(name==='expenses' && field==='items') expenses = value;
-      else if(name==='annual'){ annualDoc = annualDoc||{insights:{},notes:{}}; annualDoc[field] = value; }
+      else if(name==='annual'){ annualDoc = annualDoc||{insights:{},notes:{},comments:[]}; annualDoc[field] = value; }
       else if(name==='records' && field==='records'){ records = value; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){} }
       else if(name==='stock'){
         if(field==='manualOuts') manualOuts = value;
@@ -8186,6 +8186,26 @@ const anokApi = (()=>{
     const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[]; if(index<0||index>=cur.length) throw new Error('index 범위 밖'); cur.splice(index,1); ins[String(year)]=cur; return ins; }, opts);
     return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
   }
+  // ═════ 인사이트 카드 의견(코멘트) ═════
+  // addComment(2026, '거래처 집중도', '의견 본문')  — 화면 버튼이 호출. comments(year) 로 미확인 의견 조회, replyComment(id, '답변') 로 반영 처리
+  async function addComment(year, title, text, opts={}){
+    if(!text) throw new Error('text 필요');
+    const c = {id:'cm_'+Date.now().toString(36), year:String(year), title:String(title||''), text:String(text), at:getTodayKST(), status:'open', reply:''};
+    const res = await mutate('annual','comments', arr=>{ arr=Array.isArray(arr)?arr:[]; arr.push(c); return arr; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, comment:c};
+  }
+  async function comments(year, opts={}){
+    const {data} = await getDoc('annual'); const arr = Array.isArray(data.comments)?data.comments:[];
+    return arr.filter(c=>(!year||String(c.year)===String(year)) && (opts.all||c.status!=='done'));
+  }
+  async function replyComment(id, reply, opts={}){
+    const res = await mutate('annual','comments', arr=>{ arr=Array.isArray(arr)?arr:[]; const c=arr.find(x=>x.id===id); if(!c) throw new Error('없음: '+id); c.reply=String(reply||''); c.status = opts.keepOpen?'open':'done'; c.repliedAt=getTodayKST(); return arr; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, comment:res.next.find(x=>x.id===id)};
+  }
+  async function removeComment(id, opts={}){
+    const res = await mutate('annual','comments', arr=>{ arr=Array.isArray(arr)?arr:[]; const i=arr.findIndex(x=>x.id===id); if(i<0) throw new Error('없음: '+id); arr.splice(i,1); return arr; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, remaining:res.next.length};
+  }
   // setAnnualNote(2026, '경영 코멘트 본문')  — 인사이트 아래 '경영 코멘트' 박스. 빈 문자열이면 숨김
   async function setAnnualNote(year, text, opts={}){
     const res = await mutate('annual','notes', notes=>{ notes = notes||{}; if(!text) delete notes[String(year)]; else notes[String(year)] = text; return notes; }, opts);
@@ -8204,14 +8224,15 @@ const anokApi = (()=>{
       'addFCInbound(f) / addExpense(e) / setCoupangCosts(date, c)',
       'markPaid(ids, date) / markPayablePaid(ids, date) 입금·지급 완료',
       'patchItem(doc, field, id, patch) / removeItem(doc, field, id)',
-      'setInsights(year, [{title,headline,body,tone}]) / addInsight / removeInsight / setAnnualNote(year, text)  연간성과 해석 카드 (코드 수정 없이 갱신)',
+      'setInsights(year, [{title,headline,points,tone}]) / addInsight / removeInsight / setAnnualNote(year, text)  연간성과 해석 카드',
+      'comments(year) / replyComment(id, 답변) / removeComment(id)   인사이트 카드 의견 조회·반영 (세션 시작 시 comments()로 먼저 확인)',
       'find(doc, field, idOrFn) / get(doc) / undo() / stock()',
       '문서·필드: popups.items · stock.manualOuts|stockBatches|stockInitByMonth · payables.items · fcInbounds.items · expenses.items · records.records'
     ].join('\n');
   }
 
   return {addPopupDay, addOut, addBatch, mergeIntoBatch, addPayable, addKolmarPO, addFCInbound, addExpense, setCoupangCosts,
-          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, removeInsight, setAnnualNote, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
+          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, removeInsight, setAnnualNote, addComment, comments, replyComment, removeComment, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
 })();
 window.anokApi = anokApi;
 
@@ -8220,7 +8241,7 @@ window.anokApi = anokApi;
 //  계산 기준은 홈 월별 손익과 동일: 이커머스 calcDay 순이익 − 광고·대행·ecommerce 비용 / B2B·공구 − b2b 비용 / 팝업(초인 정산 or 미정산월 calcPopupMonthPL)
 // ══════════════════════════════════════════
 const ANNUAL_CHOIN_ID = 'client_1784508753237';
-let annualDoc = {insights:{}, notes:{}};
+let annualDoc = {insights:{}, notes:{}, comments:[]};
 let _annualResizeT=null; window.addEventListener('resize', ()=>{ if((window.__activeTab||'')!=='annual') return; clearTimeout(_annualResizeT); _annualResizeT=setTimeout(()=>{ try{ renderAnnual(); }catch(e){} }, 250); });   // Firestore anok/annual — 해석 문장(Claude가 anokApi.setInsight로 갱신), 숫자는 항상 자동 계산
 async function loadAnnual(){
   if(!window._firestore) return;
@@ -8229,7 +8250,7 @@ async function loadAnnual(){
     const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const db = getFirestore(getApps()[0]);
     const snap = await getDoc(doc(db, 'anok', 'annual'));
-    if(snap.exists()) annualDoc = Object.assign({insights:{}, notes:{}}, snap.data());
+    if(snap.exists()) annualDoc = Object.assign({insights:{}, notes:{}, comments:[]}, snap.data());
   } catch(e){ console.log('annual load error:', e); }
 }
 let _annualCharts = {};
@@ -8325,17 +8346,28 @@ function renderAnnual(){
       <div class="a-kpi-big" style="font-size:30px;font-weight:800;color:${color||C.txt};margin-top:6px;letter-spacing:-0.8px;line-height:1.1">${big}<span style="font-size:13px;font-weight:600;color:${C.sub};margin-left:3px">${unit}</span></div>
       <div style="font-size:11.5px;color:${C.sub};margin-top:7px">${sub}</div>
     </div>`;
-  // desc: 문자열(줄바꿈 \n 으로 끊어 표시) 또는 [{k:'사실', v:'…'}, …] 구조
-  const descHtml = d => {
-    if(Array.isArray(d)) return d.map(p=>`<div class="a-pt" style="display:grid;grid-template-columns:34px 1fr;gap:8px;margin-top:7px;align-items:start"><span style="font-size:10px;font-weight:700;color:${C.gold};letter-spacing:0.5px;padding-top:2px">${p.k||''}</span><span style="font-size:12px;color:${C.txt};line-height:1.55">${p.v||''}</span></div>`).join('');
-    return String(d||'').split('\n').filter(Boolean).map(l=>`<div style="font-size:12px;color:${C.txt};line-height:1.55;margin-top:6px;padding-left:10px;text-indent:-10px">· ${l}</div>`).join('');
-  };
-  const tile = (lbl, big, desc, color)=>`
-    <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:16px 18px 14px;min-width:0">
-      <div style="font-size:11px;color:${C.sub};font-weight:600;letter-spacing:0.4px">${lbl}</div>
-      <div style="font-size:19px;font-weight:800;color:${color||C.txt};margin-top:6px;letter-spacing:-0.4px;line-height:1.25">${big}</div>
-      <div style="margin-top:6px">${descHtml(desc)}</div>
+  // 인사이트 카드 (B안 액션 박스): 제목 → 헤드라인 → 사실·의미 본문 → 대응은 골드 ACTION 박스 → 의견(코멘트)
+  const cmAll = (annualDoc.comments||[]).filter(c=>String(c.year)===String(year));
+  const tile = (lbl, big, desc, color, idx)=>{
+    const pts = Array.isArray(desc) ? desc : String(desc||'').split('\n').filter(Boolean).map((v,i)=>({k:['사실','의미','대응'][i]||'', v}));
+    const act = pts.find(p=>p.k==='대응'); const rest = pts.filter(p=>p.k!=='대응');
+    const cms = cmAll.filter(c=>c.title===lbl);
+    const cmHtml = cms.map(c=>`<div style="margin-top:8px;padding:9px 11px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25)">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;font-weight:800;letter-spacing:0.8px;color:#A5B4FC">의견 · ${(c.at||'').slice(5).replace('-','/')}</span><span style="font-size:10px;font-weight:700;color:${c.status==='done'?C.gold:C.sub}">${c.status==='done'?'반영':'검토 대기'}</span></div>
+        <div style="font-size:12.5px;color:${C.txt};line-height:1.55;margin-top:4px;white-space:pre-line">${c.text}</div>
+        ${c.reply?`<div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(255,255,255,0.1);font-size:12.5px;color:${C.sub};line-height:1.55;white-space:pre-line"><b style="color:${C.gold}">Claude</b> · ${c.reply}</div>`:''}
+      </div>`).join('');
+    return `<div class="ins-card" data-title="${lbl}" style="background:${C.card};border:1px solid ${C.edge};border-radius:16px;padding:18px 18px 14px;display:flex;flex-direction:column;min-width:0">
+      <div style="font-size:11px;color:${C.sub};font-weight:700;letter-spacing:1px">${lbl}</div>
+      <div style="font-size:18px;font-weight:800;color:${color||C.txt};margin-top:8px;letter-spacing:-0.3px;line-height:1.3">${big}</div>
+      <div style="margin-top:12px;flex:1">${rest.map(p=>`<p style="margin:0 0 9px;font-size:13px;color:${C.sub};line-height:1.6">${p.k?`<b style="color:${C.txt};font-weight:700">${p.k}.</b> `:''}${p.v}</p>`).join('')}</div>
+      ${act?`<div style="margin-top:6px;background:rgba(212,184,150,0.08);border-left:3px solid ${C.gold};border-radius:0 10px 10px 0;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:${C.gold};letter-spacing:1px">ACTION</div><div style="font-size:13px;color:${C.txt};line-height:1.6;margin-top:3px;font-weight:600">${act.v}</div></div>`:''}
+      ${cmHtml}
+      <div class="ins-cm-box" style="display:none;margin-top:8px"><textarea class="ins-cm-text" rows="3" placeholder="이 카드에 대한 의견" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:${C.txt};font-size:12.5px;padding:8px 10px;resize:vertical;font-family:inherit"></textarea>
+        <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px"><button class="ins-cm-cancel" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:${C.sub};font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer">취소</button><button class="ins-cm-save" style="background:${C.gold};border:none;color:#0B0F1A;font-weight:800;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">저장</button></div></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="ins-cm-open" style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.45);color:#C7D2FE;font-size:11.5px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:999px;letter-spacing:0.2px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 남기기</button></div>
     </div>`;
+  };
   const qCards = Q.map((q,i)=>{ const prev = i>0 ? Q[i-1] : null;
     const cur = q.partial ? q.rev/q.months.length : q.rev, base = prev ? (q.partial ? prev.rev/prev.months.length : prev.rev) : 0;
     const g = prev && base>0 ? Math.round((cur/base-1)*100) : null;
@@ -8428,7 +8460,7 @@ function renderAnnual(){
       </div>
     </div>
 
-    <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">${insightDate?`해석 기준 ${insightDate}`:'데이터에서 자동 계산'}</span></div>
+    <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">${insightDate?`해석 기준 ${insightDate}`:'데이터에서 자동 계산'}</span>${(()=>{const o=cmAll.filter(c=>c.status!=='done').length; return o?`<span style="font-size:10.5px;font-weight:700;color:#A5B4FC;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:999px;padding:2px 9px">의견 ${o}건 검토 대기</span>`:'';})()}</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px" class="annual-grid3">${insightTiles}</div>
     ${noteBlock}
 
@@ -8439,7 +8471,9 @@ function renderAnnual(){
   </div>
   <style>
   #annualReport .a-pt{grid-template-columns:34px 1fr !important}
+  #annualReport .ins-cm-open:hover{background:rgba(99,102,241,0.28) !important;border-color:rgba(165,180,252,0.8) !important;color:#fff !important}
   #annualReport .a-cli{grid-template-columns:96px 1fr 60px !important}
+  @media (max-width:1100px){ #annualReport .annual-grid3{grid-template-columns:1fr 1fr !important} }
   @media (max-width:760px){
     #annualReport .a-cli{grid-template-columns:84px 1fr 44px !important; gap:8px !important}
     #annualReport .annual-grid2{grid-template-columns:1fr !important} #annualReport .annual-grid3{grid-template-columns:1fr !important}
@@ -8453,6 +8487,19 @@ function renderAnnual(){
     #annualReport .a-chart{height:200px !important}
     #annualReport .a-legend{display:none !important}
   }</style>`;
+
+  // ── 의견 입력 핸들러 ──
+  el.querySelectorAll('.ins-card').forEach(card=>{
+    const box=card.querySelector('.ins-cm-box'), open=card.querySelector('.ins-cm-open');
+    open.onclick=()=>{ box.style.display='block'; open.style.display='none'; box.querySelector('textarea').focus(); };
+    card.querySelector('.ins-cm-cancel').onclick=()=>{ box.style.display='none'; open.style.display=''; };
+    card.querySelector('.ins-cm-save').onclick=async ()=>{
+      const txt=box.querySelector('textarea').value.trim(); if(!txt) return;
+      const btn=card.querySelector('.ins-cm-save'); btn.disabled=true; btn.textContent='저장 중';
+      try{ await anokApi.addComment(year, card.dataset.title, txt); if(typeof showToast==='function') showToast('의견 저장'); }
+      catch(e){ console.error('comment save', e); btn.disabled=false; btn.textContent='저장 실패 · 재시도'; }
+    };
+  });
 
   // ── 차트 ──
   Object.values(_annualCharts).forEach(c=>{ try{ c.destroy(); }catch(e){} }); _annualCharts = {};
