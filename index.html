@@ -7919,6 +7919,7 @@ const anokApi = (()=>{
   // ── 읽기 ──
   async function getDoc(name){
     const r = await fetch(BASE+name+'?key='+KEY); const j = await r.json();
+    if(j.error && j.error.status==='NOT_FOUND') return {data:{}, updateTime:null};   // 문서 없음 → 첫 쓰기에서 생성
     if(j.error) throw new Error(name+' 읽기 실패: '+JSON.stringify(j.error));
     const data = {}; Object.keys(j.fields||{}).forEach(k=>data[k]=dec(j.fields[k]));
     return {data, updateTime:j.updateTime};
@@ -7927,7 +7928,8 @@ const anokApi = (()=>{
   // ── 쓰기 (선행조건 + 재시도) ──
   let _lastBackup = null;   // {doc, field, value, updateTime}
   async function writeField(name, field, value, updateTime){
-    const url = BASE+name+'?updateMask.fieldPaths='+field+'&currentDocument.updateTime='+encodeURIComponent(updateTime)+'&key='+KEY;
+    const pre = updateTime ? '&currentDocument.updateTime='+encodeURIComponent(updateTime) : '&currentDocument.exists=false';
+    const url = BASE+name+'?updateMask.fieldPaths='+field+pre+'&key='+KEY;
     const r = await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{[field]:enc(value)}})});
     const j = await r.json();
     if(j.name) return {ok:true, updateTime:j.updateTime};
@@ -7968,6 +7970,7 @@ const anokApi = (()=>{
       else if(name==='payables' && field==='items') payables = value;
       else if(name==='fcInbounds' && field==='items') fcInbounds = value;
       else if(name==='expenses' && field==='items') expenses = value;
+      else if(name==='annual'){ annualDoc = annualDoc||{insights:{},notes:{}}; annualDoc[field] = value; }
       else if(name==='records' && field==='records'){ records = value; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){} }
       else if(name==='stock'){
         if(field==='manualOuts') manualOuts = value;
@@ -8165,6 +8168,29 @@ const anokApi = (()=>{
     return {ok:!res.dry, dry:!!res.dry, removed:id, remaining:res.next.length};
   }
 
+  // ═════ 연간성과 해석 문장 (anok/annual) ═════
+  // setInsights(2026, [{title:'거래처 집중도', headline:'…', body:'…', tone:'good'|'bad'|''}, …])  — 그 해 인사이트 카드 전체 교체 (3~6장 권장). 빈 배열이면 자동 문구로 복귀
+  async function setInsights(year, tiles, opts={}){
+    if(!Array.isArray(tiles)) throw new Error('tiles는 배열');
+    const list = tiles.map(t=>({title:String(t.title||''), headline:String(t.headline||''), body:String(t.body||''), tone:t.tone||'', updatedAt:getTodayKST()}));
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; if(!list.length) delete ins[String(year)]; else ins[String(year)] = list; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, year, count:list.length};
+  }
+  // addInsight(2026, {title, headline, body, tone}) / removeInsight(2026, index)
+  async function addInsight(year, t, opts={}){
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[]; cur.push({title:String(t.title||''), headline:String(t.headline||''), body:String(t.body||''), tone:t.tone||'', updatedAt:getTodayKST()}); ins[String(year)]=cur; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
+  }
+  async function removeInsight(year, index, opts={}){
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[]; if(index<0||index>=cur.length) throw new Error('index 범위 밖'); cur.splice(index,1); ins[String(year)]=cur; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
+  }
+  // setAnnualNote(2026, '경영 코멘트 본문')  — 인사이트 아래 '경영 코멘트' 박스. 빈 문자열이면 숨김
+  async function setAnnualNote(year, text, opts={}){
+    const res = await mutate('annual','notes', notes=>{ notes = notes||{}; if(!text) delete notes[String(year)]; else notes[String(year)] = text; return notes; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, year, note:res.next[String(year)]||null};
+  }
+
   // ═════ 조회 ═════
   async function find(docName, field, pred){ const {data}=await getDoc(docName); const arr=data[field]||[]; return typeof pred==='function' ? arr.filter(pred) : arr.filter(x=>x.id===pred); }
   function help(){
@@ -8177,13 +8203,14 @@ const anokApi = (()=>{
       'addFCInbound(f) / addExpense(e) / setCoupangCosts(date, c)',
       'markPaid(ids, date) / markPayablePaid(ids, date) 입금·지급 완료',
       'patchItem(doc, field, id, patch) / removeItem(doc, field, id)',
+      'setInsights(year, [{title,headline,body,tone}]) / addInsight / removeInsight / setAnnualNote(year, text)  연간성과 해석 카드 (코드 수정 없이 갱신)',
       'find(doc, field, idOrFn) / get(doc) / undo() / stock()',
       '문서·필드: popups.items · stock.manualOuts|stockBatches|stockInitByMonth · payables.items · fcInbounds.items · expenses.items · records.records'
     ].join('\n');
   }
 
   return {addPopupDay, addOut, addBatch, mergeIntoBatch, addPayable, addKolmarPO, addFCInbound, addExpense, setCoupangCosts,
-          markPaid, markPayablePaid, patchItem, removeItem, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
+          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, removeInsight, setAnnualNote, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
 })();
 window.anokApi = anokApi;
 
@@ -8192,6 +8219,17 @@ window.anokApi = anokApi;
 //  계산 기준은 홈 월별 손익과 동일: 이커머스 calcDay 순이익 − 광고·대행·ecommerce 비용 / B2B·공구 − b2b 비용 / 팝업(초인 정산 or 미정산월 calcPopupMonthPL)
 // ══════════════════════════════════════════
 const ANNUAL_CHOIN_ID = 'client_1784508753237';
+let annualDoc = {insights:{}, notes:{}};   // Firestore anok/annual — 해석 문장(Claude가 anokApi.setInsight로 갱신), 숫자는 항상 자동 계산
+async function loadAnnual(){
+  if(!window._firestore) return;
+  try {
+    const { getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const db = getFirestore(getApps()[0]);
+    const snap = await getDoc(doc(db, 'anok', 'annual'));
+    if(snap.exists()) annualDoc = Object.assign({insights:{}, notes:{}}, snap.data());
+  } catch(e){ console.log('annual load error:', e); }
+}
 let _annualCharts = {};
 
 function calcAnnualSeries(year){
@@ -8227,6 +8265,7 @@ function calcAnnualSeries(year){
     const bNet = bPrf - b2bExp;
     let popEst = false; const popPL = calcPopupMonthPL(month); const popSellout = popPL.rev||0;
     if(!choinSettled){ if(popPL.settle>0){ pRev += popPL.settle; pPrf += popPL.prf; pUnits += popPL.byPopup.reduce((a,b)=>a+b.units,0); popEst = true; } }
+    if(pRev>0) clients['초인파트너스'] = (clients['초인파트너스']||0) + pRev;   // 팝업 정산(초인)도 거래처 비중에 포함
     const rev = eRev+bRev+pRev, prf = eNet+bNet+pPrf, units = eUnits+bUnits+pUnits;
     if(rev===0 && units===0 && prf===0) continue;
     rows.push({month, m, eRev:Math.round(eRev), bRev:Math.round(bRev), pRev:Math.round(pRev), rev:Math.round(rev),
@@ -8316,20 +8355,29 @@ function renderAnnual(){
       <div style="height:9px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden"><div style="width:${(v/clientMax*100).toFixed(1)}%;height:100%;background:${C.b2b}"></div></div>
       <div style="text-align:right;font-size:12px;font-weight:700;color:${C.txt}">${pct0(v,bTot)}</div></div>`).join('');
 
-  const insightTiles = [
-    tile('손익분기', firstProfit ? `${firstProfit.m}월 첫 월 흑자${cumPos?` · ${cumPos.m}월 누적 흑자`:''}` : '아직 월 흑자 없음',
-         `${first.m}월 ${man(first.prf)}만원 → ${last.m}월 ${man(last.prf)}만원. 누적 순이익 ${man(T.prf)}만원, 이익률 ${pct(T.prf,T.rev)}`, firstProfit?C.gold:C.red),
-    tile('매출 구조 전환', `이커머스 ${Math.round(ecShareFirst*100)}% → B2B ${Math.round(b2bShareLast*100)}%`,
-         `${first.m}월은 이커머스가 ${Math.round(ecShareFirst*100)}%, ${last.m}월은 B2B·공구가 ${Math.round(b2bShareLast*100)}%. 누계 B2B 이익률 ${pct(T.bNet,T.b)}로 수익 구조가 B2B에 의존`),
-    tile('개당 경제성', `${man1(unitRevLast)}만원 / 개 · 순이익 ${Math.round(unitPrfLast).toLocaleString()}원`,
-         `개당 매출 ${first.m}월 ${man1(unitRevFirst)}만원 → ${last.m}월 ${man1(unitRevLast)}만원(공급가 위주로 하락), 개당 순이익 ${Math.round(unitPrfFirst).toLocaleString()}원 → ${Math.round(unitPrfLast).toLocaleString()}원. 물량 ${first.units.toLocaleString()} → ${last.units.toLocaleString()}개로 ${first.units>0?(last.units/first.units).toFixed(1):'–'}배`),
-    tile('이커머스 광고 효율', roas!==null ? `ROAS ${roas.toFixed(1)}배 · 순이익 ${man(T.eNet)}만원` : '광고비 미집계',
-         roas!==null ? `광고·대행비 누계 ${man(T.ecAd)}만원으로 이커머스 매출 ${man(T.e)}만원. 광고 반영 전 판매이익 ${man(T.ePrf)}만원 → 반영 후 ${man(T.eNet)}만원${ecNegMonths.length?` (${ecNegMonths.join('·')} 적자)`:''}` : '', T.eNet>=0?C.txt:C.red),
-    tile('팝업 정산 구조', T.sell>0 ? `소비자 판매 ${man(T.sell)}만원 → 정산 ${man(T.p)}만원` : '팝업 실적 없음',
-         T.sell>0 ? `정산률 ${pct0(T.p,T.sell)} (위탁 공급가 기준). 팝업 이익률 ${pct(T.pPrf,T.p)}, 개당 순이익 ${T.pU>0?Math.round(T.pPrf/T.pU).toLocaleString():'–'}원 — GWP 부담 차감 후` : ''),
+  const stored = (annualDoc.insights||{})[String(year)];
+  const recoverMonths = (firstProfit && cumPos) ? (cumPos.m - first.m) : null;
+  const toneColor = t => t==='good'?C.gold : t==='bad'?C.red : C.txt;
+  const autoTiles = [
+    tile('손익분기', firstProfit ? `${first.m}월 적자 → ${cumPos?cumPos.m+'월 누적 흑자 전환':'누적 적자'}` : '아직 월 흑자 없음',
+         firstProfit ? `론칭월 ${man(first.prf)}만원 적자를 ${recoverMonths!==null?recoverMonths+'개월 만에 회수':'아직 미회수'}. 이후 ${rows.filter(r=>r.prf>0).length}개월 연속 흑자, 누적 ${man(T.prf)}만원(${pct(T.prf,T.rev)}). 인건비·고정비가 없는 구조라 이 이익률은 그 비용 반영 전 숫자` : '', firstProfit?C.gold:C.red),
+    tile('사업 모델 전환', `이커머스 ${Math.round(ecShareFirst*100)}% → B2B ${Math.round(b2bShareLast*100)}%`,
+         `${first.m}월 DTC 중심에서 ${last.m}월 B2B 유통 공급 중심으로 전환. 매출 ${growthX?growthX.toFixed(1):'–'}배 성장의 실체는 거래처 발주. B2B 매출은 유통 재고 이전이므로 거래처의 실제 판매 속도가 다음 발주를 결정`),
+    tile('개당 경제성', `개당 순이익 ${Math.round(unitPrfFirst).toLocaleString()}원 → ${Math.round(unitPrfLast).toLocaleString()}원`,
+         `개당 매출 ${man1(unitRevFirst)}만원 → ${man1(unitRevLast)}만원은 인식 기준이 소비자가에서 공급가로 바뀐 결과(단가 인하 아님). 광고·배송·수수료가 없는 B2B로 옮겨가며 단위 수익성은 개선`),
+    tile('이커머스 광고 효율', roas!==null ? `광고 집행월 ${ecNegMonths.length?ecNegMonths.join('·')+' 적자':'흑자 유지'}` : '광고비 미집계',
+         roas!==null ? `광고·대행비 ${man(T.ecAd)}만원이 판매이익 ${man(T.ePrf)}만원을 ${man(T.eNet)}만원으로 줄임. 광고가 증분 매출을 만들지 못하면 자연 판매만 남기는 게 이익에 유리` : '', T.eNet>=0?C.txt:C.red),
     tile('거래처 집중도', topClient ? `${topClient[0]} ${pct0(topClient[1],bTot)}` : '–',
-         topClient ? `B2B·공구 매출 ${man(bTot)}만원 중 상위 1개 거래처 비중. 상위 2개 합산 ${pct0((clientList[0]?.[1]||0)+(clientList[1]?.[1]||0),bTot)} — 단일 거래처 의존도가 높아 이탈 시 매출 변동 큼` : '')
-  ].join('');
+         topClient ? `거래처 매출 ${man(bTot)}만원 중 상위 1개 ${pct0(topClient[1],bTot)}, 상위 2개 ${pct0((clientList[0]?.[1]||0)+(clientList[1]?.[1]||0),bTot)}. 발주 주기와 결제 조건에 현금흐름이 종속` : '')
+  ];
+  const insightTiles = (Array.isArray(stored) && stored.length)
+    ? stored.map(t=>tile(t.title||'', t.headline||'', t.body||'', toneColor(t.tone))).join('')
+    : autoTiles.join('');
+  const insightDate = (Array.isArray(stored) && stored.length) ? (stored.map(t=>t.updatedAt||'').sort().pop()||'') : '';
+  const noteTxt = (annualDoc.notes||{})[String(year)];
+  const noteBlock = noteTxt ? `<div style="margin-top:12px;background:rgba(212,184,150,0.06);border:1px solid rgba(212,184,150,0.25);border-radius:14px;padding:14px 18px">
+      <div style="font-size:11px;color:${C.gold};font-weight:700;letter-spacing:0.5px">경영 코멘트</div>
+      <div style="font-size:12.5px;color:${C.txt};margin-top:6px;line-height:1.65;white-space:pre-line">${noteTxt}</div></div>` : '';
 
   el.innerHTML = `
   <div id="annualReport" style="background:radial-gradient(ellipse at 20% 0%,#182035 0%,#0D1220 55%,#080B14 100%);border:1px solid ${C.edge};border-radius:18px;padding:30px 34px 22px;color:${C.txt};font-family:inherit">
@@ -8368,13 +8416,14 @@ function renderAnnual(){
         <div style="margin-top:6px">${chanRows}</div>
       </div>
       <div style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 18px 8px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">B2B 거래처 비중 (누계)</span><span style="font-size:10.5px;color:${C.sub}">B2B·공구 매출 ${man(bTot)}만원 기준</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">거래처 비중 (누계)</span><span style="font-size:10.5px;color:${C.sub}">B2B·공구·팝업 정산 ${man(bTot)}만원 기준</span></div>
         <div style="margin-top:6px">${clientRows||`<div style="font-size:12px;color:${C.sub};padding:10px 0">B2B 매출 없음</div>`}</div>
       </div>
     </div>
 
-    <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">데이터에서 자동 계산</span></div>
+    <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">${insightDate?`해석 기준 ${insightDate}`:'데이터에서 자동 계산'}</span></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px" class="annual-grid3">${insightTiles}</div>
+    ${noteBlock}
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:12px;border-top:1px solid ${C.line};font-size:10.5px;color:${C.mute}">
       <span>ANOK Annual Performance · PERFECT DRIVE INC.</span>
@@ -8731,7 +8780,7 @@ setTimeout(async function(){
   try{ restoreTab(); }catch(e){ console.log('restoreTab error:', e); }
   await Promise.all([
     loadData(), loadStockData(), loadOrderData(), loadProducts(),
-    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups(), loadFCInbounds(), loadPayables()
+    loadB2BClients(), loadGroupBuys(), loadExpenses(), loadPopups(), loadFCInbounds(), loadPayables(), loadAnnual()
   ].map(p => Promise.resolve(p).catch(e=>console.log('load error:', e))));
   // 로드 완료 후 현재 탭 재렌더 (데이터 반영)
   const cur = window.__activeTab || 'dashboard';
