@@ -8242,6 +8242,13 @@ window.anokApi = anokApi;
 // ══════════════════════════════════════════
 const ANNUAL_CHOIN_ID = 'client_1784508753237';
 let annualDoc = {insights:{}, notes:{}, comments:[]};
+// 의견 & 답변 스레드 접기/펼치기 (채널 탭 팝업 행과 같은 방식) — 재렌더 없이 DOM 클래스만 토글, 상태는 세션 동안 유지
+function toggleCmThread(id, forceOpen){
+  window.__cmExpand__ = window.__cmExpand__ || {};
+  const el = document.getElementById('cmth-'+id); if(!el) return;
+  const next = forceOpen===true ? true : !el.classList.contains('open');
+  el.classList.toggle('open', next); window.__cmExpand__[id] = next;
+}
 let _annualResizeT=null; window.addEventListener('resize', ()=>{ if((window.__activeTab||'')!=='annual') return; clearTimeout(_annualResizeT); _annualResizeT=setTimeout(()=>{ try{ renderAnnual(); }catch(e){} }, 250); });   // Firestore anok/annual — 해석 문장(Claude가 anokApi.setInsight로 갱신), 숫자는 항상 자동 계산
 async function loadAnnual(){
   if(!window._firestore) return;
@@ -8353,7 +8360,7 @@ function renderAnnual(){
     const act = pts.find(p=>p.k==='대응'); const rest = pts.filter(p=>p.k!=='대응');
     const cms = cmAll.filter(c=>c.title===lbl);
     const openN = cms.filter(c=>c.status!=='done').length;
-    const cmHtml = cms.length ? `<a href="#cmth-${cms[0].id}" onclick="event.preventDefault();const t=document.getElementById('cmth-${cms[0].id}'); if(t){ t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.boxShadow='0 0 0 2px rgba(165,180,252,0.6)'; setTimeout(()=>t.style.boxShadow='',1600);}" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;font-weight:700;color:${openN?'#C7D2FE':C.gold};background:${openN?'rgba(99,102,241,0.12)':'rgba(212,184,150,0.08)'};border:1px solid ${openN?'rgba(99,102,241,0.4)':'rgba(212,184,150,0.3)'};border-radius:999px;padding:4px 10px;text-decoration:none;width:fit-content"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 ${cms.length} · ${openN?'검토 대기 '+openN:'답변 완료'}</a>` : '';
+    const cmHtml = cms.length ? `<a href="#cmth-${cms[0].id}" onclick="event.preventDefault();const t=document.getElementById('cmth-${cms[0].id}'); if(t){ toggleCmThread('${cms[0].id}', true); t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.boxShadow='0 0 0 2px rgba(165,180,252,0.6)'; setTimeout(()=>t.style.boxShadow='',1600);}" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;font-weight:700;color:${openN?'#C7D2FE':C.gold};background:${openN?'rgba(99,102,241,0.12)':'rgba(212,184,150,0.08)'};border:1px solid ${openN?'rgba(99,102,241,0.4)':'rgba(212,184,150,0.3)'};border-radius:999px;padding:4px 10px;text-decoration:none;width:fit-content"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 ${cms.length} · ${openN?'검토 대기 '+openN:'답변 완료'}</a>` : '';
     return `<div class="ins-card" data-title="${lbl}" style="background:${C.card};border:1px solid ${C.edge};border-radius:16px;padding:18px 18px 14px;display:flex;flex-direction:column;min-width:0">
       <div style="font-size:11px;color:${C.sub};font-weight:700;letter-spacing:1px">${lbl}</div>
       <div style="font-size:18px;font-weight:800;color:${color||C.txt};margin-top:8px;letter-spacing:-0.3px;line-height:1.3">${big}</div>
@@ -8413,14 +8420,23 @@ function renderAnnual(){
   // 의견 & 답변 스레드 패널 (카드 밖, 전체 폭)
   const cmSorted = cmAll.slice().sort((a,b)=> (a.status==='done')-(b.status==='done') || String(b.at).localeCompare(String(a.at)));
   const threadsBlock = cmSorted.length ? `<div style="margin-top:18px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:#A5B4FC;text-transform:uppercase">의견 & 답변</span><span style="font-size:11px;color:${C.sub}">${cmSorted.length}건 · 검토 대기 ${cmSorted.filter(c=>c.status!=='done').length}건</span></div>
-    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">${cmSorted.map(c=>`
-      <div id="cmth-${c.id}" style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 18px;transition:box-shadow .3s">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:800;color:${C.txt}">${c.title}<span style="font-weight:600;color:${C.sub};margin-left:8px;font-size:11px">${c.at||''}</span></span>
-          <span style="font-size:10.5px;font-weight:700;color:${c.status==='done'?C.gold:'#C7D2FE'};background:${c.status==='done'?'rgba(212,184,150,0.08)':'rgba(99,102,241,0.12)'};border:1px solid ${c.status==='done'?'rgba(212,184,150,0.3)':'rgba(99,102,241,0.4)'};border-radius:999px;padding:2px 9px">${c.status==='done'?'답변 완료':'검토 대기'}</span></div>
-        <div style="margin-top:8px;display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:#A5B4FC;letter-spacing:0.5px;padding-top:2px">의견</span><span style="font-size:13px;color:${C.txt};line-height:1.6;white-space:pre-line">${c.text}</span></div>
-        ${c.reply?`<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.1);display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:${C.gold};letter-spacing:0.5px;padding-top:2px">Claude${c.repliedAt?`<br><span style="font-weight:600;color:${C.mute};font-size:9.5px">${String(c.repliedAt).slice(5)}</span>`:''}</span><span style="font-size:13px;color:${C.sub};line-height:1.65;white-space:pre-line">${c.reply}</span></div>`:''}
-      </div>`).join('')}</div>` : '';
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">${cmSorted.map(c=>{
+      const ex = (window.__cmExpand__||{})[c.id]; const open = ex===undefined ? c.status!=='done' : ex;
+      const first = String(c.text||'').replace(/\s+/g,' ').trim();
+      return `
+      <div id="cmth-${c.id}" class="cm-th${open?' open':''}" style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;transition:box-shadow .3s,border-color .2s">
+        <div class="cm-th-head" onclick="toggleCmThread('${c.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;min-width:0">
+          <span style="font-size:12px;font-weight:800;color:${C.txt};white-space:nowrap">${c.title}</span>
+          <span style="font-size:11px;color:${C.sub};white-space:nowrap">${(c.at||'').slice(5).replace('-','/')}</span>
+          <span class="cm-th-peek" style="flex:1;min-width:0;font-size:12px;color:${C.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${first}</span>
+          <span style="font-size:10.5px;font-weight:700;white-space:nowrap;color:${c.status==='done'?C.gold:'#C7D2FE'};background:${c.status==='done'?'rgba(212,184,150,0.08)':'rgba(99,102,241,0.12)'};border:1px solid ${c.status==='done'?'rgba(212,184,150,0.3)':'rgba(99,102,241,0.4)'};border-radius:999px;padding:2px 9px">${c.status==='done'?'답변 완료':'검토 대기'}</span>
+          <span class="cm-th-chev" style="font-size:16px;color:${C.sub};line-height:1;transition:transform .2s">›</span>
+        </div>
+        <div class="cm-th-body" style="padding:0 18px 14px">
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start;padding-top:10px;border-top:1px solid ${C.line}" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:#A5B4FC;letter-spacing:0.5px;padding-top:2px">의견</span><span style="font-size:13px;color:${C.txt};line-height:1.6;white-space:pre-line">${c.text}</span></div>
+          ${c.reply?`<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.1);display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:${C.gold};letter-spacing:0.5px;padding-top:2px">Claude${c.repliedAt?`<br><span style="font-weight:600;color:${C.mute};font-size:9.5px">${String(c.repliedAt).slice(5)}</span>`:''}</span><span style="font-size:13px;color:${C.sub};line-height:1.65;white-space:pre-line">${c.reply}</span></div>`:''}
+        </div>
+      </div>`; }).join('')}</div>` : '';
   const noteTxt = (annualDoc.notes||{})[String(year)];
   const noteBlock = noteTxt ? `<div style="margin-top:12px;background:rgba(212,184,150,0.06);border:1px solid rgba(212,184,150,0.25);border-radius:14px;padding:14px 18px">
       <div style="font-size:11px;color:${C.gold};font-weight:700;letter-spacing:0.5px">경영 코멘트</div>
@@ -8481,6 +8497,12 @@ function renderAnnual(){
   <style>
   #annualReport .a-pt{grid-template-columns:34px 1fr !important}
   #annualReport .a-pt2{grid-template-columns:56px 1fr !important}
+  #annualReport .cm-th .cm-th-body{display:none}
+  #annualReport .cm-th.open .cm-th-body{display:block}
+  #annualReport .cm-th.open .cm-th-chev{transform:rotate(90deg)}
+  #annualReport .cm-th.open .cm-th-peek{visibility:hidden}
+  #annualReport .cm-th-head:hover{background:rgba(255,255,255,0.02)}
+  #annualReport .cm-th:hover{border-color:rgba(147,166,198,0.3) !important}
   #annualReport .ins-cm-open:hover{background:rgba(99,102,241,0.28) !important;border-color:rgba(165,180,252,0.8) !important;color:#fff !important}
   #annualReport .a-cli{grid-template-columns:96px 1fr 60px !important}
   @media (max-width:1100px){ #annualReport .annual-grid3{grid-template-columns:1fr 1fr !important} }
