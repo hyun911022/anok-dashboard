@@ -7870,6 +7870,316 @@ async function deletePriceHistory(skuId, ch, idx){
   renderPriceManager();
 }
 
+// ══════════════════════════════════════════
+//  anokApi — Claude(운영자)용 쓰기 함수 (2026-10-25)
+//  화면 UI 없음. 크롬 콘솔/javascript_exec에서 `await anokApi.addPopupDay(...)` 식으로 호출.
+//  · 모든 쓰기는 Firestore REST PATCH + currentDocument.updateTime 선행조건 → 받아온 뒤 문서가 바뀌었으면 자동 재시도(최대 3회)
+//  · {dry:true} 옵션이면 저장하지 않고 만들 데이터·검증값만 돌려줌
+//  · 저장 전 상태는 anokApi.undo()로 1회 되돌릴 수 있음 (같은 페이지 세션 안에서만)
+//  · 저장 후 페이지 메모리(popups/payables/… 전역)도 같은 값으로 맞추고 현재 탭을 다시 그림
+// ══════════════════════════════════════════
+const anokApi = (()=>{
+  const KEY = 'AIzaSyBfIt4-fxvBaYs0QQlsVvjChxrIRb9Ge-E';
+  const BASE = 'https://firestore.googleapis.com/v1/projects/anok-f8400/databases/(default)/documents/anok/';
+  const SKUS = ['shampoo','treatment','bodywash','bodylotion','wego120'];
+  const LOCS = ['daehwa','icheon','fc','choin'];
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const POP_DAY_KEYS = ['date','shampoo','treatment','bodywash','bodylotion','wego120','wegoGift','gwpBall','gwpTag','tagPaid','bagPaid','bagFree','rev','setRev','units','setHair','setBody'];
+
+  // ── Firestore JSON ↔ JS ──
+  const enc = v => {
+    if(v===null || v===undefined) return {nullValue:null};
+    if(typeof v==='boolean') return {booleanValue:v};
+    if(typeof v==='number') return Number.isInteger(v) ? {integerValue:String(v)} : {doubleValue:v};
+    if(typeof v==='string') return {stringValue:v};
+    if(Array.isArray(v)) return {arrayValue:{values:v.map(enc)}};
+    if(typeof v==='object'){ const f={}; Object.keys(v).forEach(k=>{ if(v[k]!==undefined) f[k]=enc(v[k]); }); return {mapValue:{fields:f}}; }
+    throw new Error('encode: 지원하지 않는 값 '+typeof v);
+  };
+  const dec = v => {
+    if(v===null || v===undefined) return null;
+    if('nullValue' in v) return null;
+    if('booleanValue' in v) return v.booleanValue;
+    if('integerValue' in v) return Number(v.integerValue);
+    if('doubleValue' in v) return v.doubleValue;
+    if('stringValue' in v) return v.stringValue;
+    if('timestampValue' in v) return v.timestampValue;
+    if('arrayValue' in v) return (v.arrayValue.values||[]).map(dec);
+    if('mapValue' in v){ const o={}; const f=v.mapValue.fields||{}; Object.keys(f).forEach(k=>o[k]=dec(f[k])); return o; }
+    return null;
+  };
+
+  // ── 읽기 ──
+  async function getDoc(name){
+    const r = await fetch(BASE+name+'?key='+KEY); const j = await r.json();
+    if(j.error) throw new Error(name+' 읽기 실패: '+JSON.stringify(j.error));
+    const data = {}; Object.keys(j.fields||{}).forEach(k=>data[k]=dec(j.fields[k]));
+    return {data, updateTime:j.updateTime};
+  }
+
+  // ── 쓰기 (선행조건 + 재시도) ──
+  let _lastBackup = null;   // {doc, field, value, updateTime}
+  async function writeField(name, field, value, updateTime){
+    const url = BASE+name+'?updateMask.fieldPaths='+field+'&currentDocument.updateTime='+encodeURIComponent(updateTime)+'&key='+KEY;
+    const r = await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{[field]:enc(value)}})});
+    const j = await r.json();
+    if(j.name) return {ok:true, updateTime:j.updateTime};
+    const st = j.error && (j.error.status||'');
+    if(r.status===409 || st==='FAILED_PRECONDITION' || st==='ABORTED') return {ok:false, conflict:true};
+    throw new Error(name+'.'+field+' 저장 실패: '+JSON.stringify(j.error));
+  }
+  // fn(currentFieldValue, wholeDocData) → newFieldValue
+  async function mutate(name, field, fn, opts={}){
+    for(let attempt=0; attempt<3; attempt++){
+      const {data, updateTime} = await getDoc(name);
+      const before = JSON.parse(JSON.stringify(data[field] ?? null));
+      const next = fn(JSON.parse(JSON.stringify(data[field] ?? null)), data);
+      if(opts.dry) return {dry:true, next, data};
+      const res = await writeField(name, field, next, updateTime);
+      if(res.ok){
+        _lastBackup = {doc:name, field, value:before, updateTime:res.updateTime};
+        syncLocal(name, field, next);
+        return {ok:true, next, data};
+      }
+      await new Promise(r=>setTimeout(r, 300*(attempt+1)));
+    }
+    throw new Error(name+'.'+field+': 다른 기기 저장과 3회 충돌 — 잠시 후 다시 시도');
+  }
+  async function undo(){
+    if(!_lastBackup) throw new Error('되돌릴 저장이 없음');
+    const b = _lastBackup;
+    const res = await writeField(b.doc, b.field, b.value, b.updateTime);
+    if(!res.ok) throw new Error('undo 충돌: 그 사이 문서가 또 바뀜 — 수동 확인 필요');
+    syncLocal(b.doc, b.field, b.value); _lastBackup = null;
+    return {ok:true, restored:b.doc+'.'+b.field};
+  }
+
+  // ── 페이지 메모리 동기화 + 현재 탭 재렌더 ──
+  function syncLocal(name, field, value){
+    try{
+      if(name==='popups' && field==='items') popups = value;
+      else if(name==='payables' && field==='items') payables = value;
+      else if(name==='fcInbounds' && field==='items') fcInbounds = value;
+      else if(name==='expenses' && field==='items') expenses = value;
+      else if(name==='records' && field==='records'){ records = value; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){} }
+      else if(name==='stock'){
+        if(field==='manualOuts') manualOuts = value;
+        if(field==='stockBatches') stockBatches = value;
+        if(field==='stockInitByMonth') stockInitByMonth = value;
+        try{ localStorage.setItem(STOCK_KEY, JSON.stringify({stockInitByMonth, stockBatches, manualOuts})); }catch(e){}
+      }
+      if(typeof refreshTargets==='function') refreshTargets();
+      if(typeof render==='function') render();
+      const cur = window.__activeTab || 'dashboard';
+      const def = (typeof TAB_DEFS!=='undefined') ? TAB_DEFS.find(d=>d.key===cur) : null;
+      if(def && def.render && typeof window[def.render]==='function') window[def.render]();
+    }catch(e){ console.warn('syncLocal:', e); }
+  }
+
+  // ── 검증값 (전역을 잠시 바꿔 계산 → 원복) ──
+  function withTemp(assign, calc){
+    const saved = {popups, payables, manualOuts, stockBatches, fcInbounds, records};
+    try{ assign(); return calc(); }
+    finally{ popups=saved.popups; payables=saved.payables; manualOuts=saved.manualOuts; stockBatches=saved.stockBatches; fcInbounds=saved.fcInbounds; records=saved.records; }
+  }
+  const stockNow = () => {
+    const tot = calcCurrentStock(), ic = calcIcheonStock(), fc = calcCoupangFCStock(); const o={};
+    SKUS.forEach(k=>o[k]={total:tot[k]||0, daehwa:(tot[k]||0)-(ic[k]||0)-(fc[k]||0), icheon:ic[k]||0, fc:fc[k]||0}); return o;
+  };
+  const sumSup = o => SKUS.reduce((s,k)=>s+(o[k]||0)*(o['price_'+k]||0),0)+(o.extraAmount||0);
+
+  // ── 공통 검사 ──
+  const chkDate = (d,label) => { if(!DATE_RE.test(d||'')) throw new Error((label||'date')+' 형식 오류: '+d+' (YYYY-MM-DD)'); };
+  const chkId = (arr,id) => { if(!id) throw new Error('id 필요'); if(arr.some(x=>x.id===id)) throw new Error('id 중복: '+id); };
+  const numOr0 = v => { const n=Number(v||0); if(Number.isNaN(n)) throw new Error('숫자 아님: '+v); return n; };
+
+  // ═════ 팝업 일별 실적 ═════
+  // addPopupDay('pop_busan_samjung_2610', {date:'2026-10-24', shampoo:1, treatment:2, bodylotion:1, wego120:2, gwpBall:2, rev:139500, setRev:42900, units:6}, {overwrite:false, dry:false})
+  async function addPopupDay(popupId, day, opts={}){
+    chkDate(day.date);
+    Object.keys(day).forEach(k=>{ if(!POP_DAY_KEYS.includes(k)) throw new Error('일별 실적에 없는 필드: '+k+' (허용: '+POP_DAY_KEYS.join(',')+')'); });
+    const d = {date:day.date}; POP_DAY_KEYS.filter(k=>k!=='date').forEach(k=>{ if(k==='setHair'||k==='setBody'){ if(day[k]) d[k]=numOr0(day[k]); } else d[k]=numOr0(day[k]); });
+    if(d.units===0) d.units = SKUS.reduce((s,k)=>s+d[k],0);
+    const res = await mutate('popups','items', items=>{
+      const p = items.find(x=>x.id===popupId); if(!p) throw new Error('팝업 없음: '+popupId);
+      p.days = p.days||[];
+      if(p.days.some(x=>x.date===d.date)){ if(!opts.overwrite) throw new Error(d.date+' 실적이 이미 있음 — {overwrite:true}로 덮어쓰기'); p.days = p.days.filter(x=>x.date!==d.date); }
+      p.days.push(d); p.days.sort((a,b)=>a.date.localeCompare(b.date)); return items;
+    }, opts);
+    const p = res.next.find(x=>x.id===popupId); const closed=new Set(p.closedDates||[]);
+    const open = p.days.filter(x=>!closed.has(x.date) && x.date<=d.date);
+    const cum = open.reduce((s,x)=>s+(x.rev||0),0);
+    return {ok:!res.dry, dry:!!res.dry, popup:p.name, day:d, cumRev:cum, dayCount:open.length, targetPct:p.dailyTarget?Math.round(cum/(p.dailyTarget*open.length)*100):null};
+  }
+
+  // ═════ 출고 (B2B 납품 · 샘플 · 위탁) ═════
+  // addOut({id:'out_grc_1021', date:'2026-10-21', loc:'daehwa', clientId:'client_1783797748868', wego120:80, isB2B:true, payDate:'2026-11-30', reason:'…', pinBatch:'batch_x', zeroRate:false, taxIssued:true, taxDate:'2026-10-20'})
+  // 단가는 price_<sku>로 직접 주거나, isB2B면 b2bClients 프리셋에서 자동
+  async function addOut(out, opts={}){
+    chkDate(out.date); if(!LOCS.includes(out.loc)) throw new Error('loc은 '+LOCS.join('/'));
+    const o = {id:out.id, date:out.date, loc:out.loc, reason:out.reason||'', isB2B:!!out.isB2B, zeroRate:!!out.zeroRate,
+               paid:!!out.paid, paidDate:out.paidDate||'', payDate:out.payDate||'', taxIssued:!!out.taxIssued, taxDate:out.taxDate||''};
+    SKUS.forEach(k=>{ o[k]=numOr0(out[k]); o['price_'+k]=numOr0(out['price_'+k]); });
+    if(o.isB2B){
+      const c = b2bClients.find(x=>x.id===out.clientId); if(!c) throw new Error('clientId 없음: '+out.clientId);
+      o.clientId=c.id; o.clientName=c.name;
+      SKUS.forEach(k=>{ if(!out['price_'+k] && o[k]>0) o['price_'+k]=numOr0((c.prices||{})[k]); });
+      if(o.payDate) chkDate(o.payDate,'payDate');
+    }
+    if(out.pinBatch) o.pinBatch = out.pinBatch;
+    if(out.extraAmount) o.extraAmount = numOr0(out.extraAmount);
+    if(SKUS.every(k=>o[k]===0)) throw new Error('수량이 전부 0');
+    const res = await mutate('stock','manualOuts', arr=>{ chkId(arr,o.id); arr.push(o); return arr; }, opts);
+    const sup = sumSup(o);
+    const st = res.dry ? withTemp(()=>{manualOuts=res.next;}, stockNow) : stockNow();
+    const after={}; SKUS.forEach(k=>{ if(o[k]>0) after[k]=st[k]; });
+    return {ok:!res.dry, dry:!!res.dry, out:o, supply:sup, vatIncl:Math.round(sup*(o.zeroRate?1:1.1)), stockAfter:after};
+  }
+
+  // ═════ 입고 배치 ═════
+  // addBatch({id:'batch_kolmar_261020', date:'2026-10-20', reason:'…', loc:'icheon', items:[{sku:'wego120', qty:1000, expiry:'2029-07-02', mfgDate:'2026-07-03'}]})
+  async function addBatch(b, opts={}){
+    chkDate(b.date); const loc = b.loc||'icheon'; if(!LOCS.includes(loc)) throw new Error('loc은 '+LOCS.join('/'));
+    if(!Array.isArray(b.items) || !b.items.length) throw new Error('items 필요');
+    const items = b.items.map(it=>{
+      if(!SKUS.includes(it.sku)) throw new Error('sku 오류: '+it.sku); const qty=numOr0(it.qty); if(qty<=0) throw new Error(it.sku+' 수량 0');
+      chkDate(it.expiry, it.sku+' expiry'); const o={sku:it.sku, qty, expiry:it.expiry, mfgDate:it.mfgDate||'', halfLifeDate:it.halfLifeDate||''};
+      if(o.mfgDate && !o.halfLifeDate){ chkDate(o.mfgDate, it.sku+' mfgDate'); const a=new Date(o.mfgDate), z=new Date(o.expiry); o.halfLifeDate=new Date((a.getTime()+z.getTime())/2).toISOString().slice(0,10); }
+      return o;
+    });
+    const batch = {id:b.id, date:b.date, reason:b.reason||'', items, inbounds:[{date:b.date, loc, reason:b.reason||'', items:items.map(it=>({sku:it.sku, qty:it.qty}))}]};
+    const res = await mutate('stock','stockBatches', arr=>{ chkId(arr,batch.id); arr.push(batch); return arr; }, opts);
+    const st = res.dry ? withTemp(()=>{stockBatches=res.next;}, stockNow) : stockNow();
+    const after={}; items.forEach(it=>after[it.sku]=st[it.sku]);
+    return {ok:!res.dry, dry:!!res.dry, batch, stockAfter:after};
+  }
+
+  // ═════ 기존 배치에 합산 (같은 유통기한 재입고) ═════
+  // mergeIntoBatch('batch_wego_restore', {sku:'wego120', qty:1000, date:'2026-10-20', loc:'icheon', reason:'…'})
+  async function mergeIntoBatch(batchId, add, opts={}){
+    chkDate(add.date); const loc=add.loc||'icheon'; const qty=numOr0(add.qty); if(qty<=0) throw new Error('수량 0'); if(!SKUS.includes(add.sku)) throw new Error('sku 오류');
+    const res = await mutate('stock','stockBatches', arr=>{
+      const b = arr.find(x=>x.id===batchId); if(!b) throw new Error('배치 없음: '+batchId);
+      const it = (b.items||[]).find(x=>x.sku===add.sku); if(!it) throw new Error(batchId+'에 '+add.sku+' 없음');
+      it.qty = (it.qty||0)+qty; b.inbounds = b.inbounds||[];
+      b.inbounds.push({date:add.date, loc, reason:add.reason||'', items:[{sku:add.sku, qty}]});
+      if(add.reason) b.reason = (b.reason||'')+' · '+add.reason; return arr;
+    }, opts);
+    const st = res.dry ? withTemp(()=>{stockBatches=res.next;}, stockNow) : stockNow();
+    return {ok:!res.dry, dry:!!res.dry, batchId, added:{sku:add.sku, qty, loc}, stockAfter:{[add.sku]:st[add.sku]}};
+  }
+
+  // ═════ 매입채무 ═════
+  // addPayable({id:'pay_kolmar_261020', vendor:'콜마글로벌 주식회사', rep:'구민기', item:'위고 슬림핏 1,000', issueDate:'2026-10-20', dueDate:'2026-10-31', supply:3950000, note:'…'})
+  async function addPayable(p, opts={}){
+    chkDate(p.issueDate,'issueDate'); chkDate(p.dueDate,'dueDate'); const supply=numOr0(p.supply); if(supply<=0) throw new Error('supply 0');
+    const tax = p.tax!==undefined ? numOr0(p.tax) : Math.round(supply*0.1);
+    const o = {id:p.id, vendor:p.vendor||'콜마글로벌 주식회사', rep:p.rep||'구민기', item:p.item||'', issueDate:p.issueDate, dueDate:p.dueDate, supply, tax, amount:supply+tax, note:p.note||'', paid:false, paidDate:''};
+    const res = await mutate('payables','items', arr=>{ chkId(arr,o.id); arr.push(o); return arr; }, opts);
+    const unpaid = res.next.filter(x=>!x.paid && /콜마/.test(x.vendor||'')).reduce((s,x)=>s+(x.amount||0),0);
+    return {ok:!res.dry, dry:!!res.dry, payable:o, kolmarUnpaidTotal:unpaid};
+  }
+
+  // ═════ 콜마 발주 원스톱 (매입채무 + 이천 입고 배치) ═════
+  // addKolmarPO({date:'2026-10-20', dueDate:'2026-10-31', items:[{sku:'wego120', qty:1000, unitCost:3950, expiry:'2029-07-02', mfgDate:'2026-07-03', mergeInto:'batch_wego_restore'}], note:'PO 10/20 (PRD_발주서_261020)'})
+  // · expiry를 모르면 비워두면 발주일+3년 임시값 + reason에 '유통기한 임시' 표기
+  // · mergeInto를 주면 새 배치 대신 그 배치에 합산 (같은 유통기한 재입고)
+  async function addKolmarPO(po, opts={}){
+    chkDate(po.date); chkDate(po.dueDate,'dueDate'); if(!Array.isArray(po.items)||!po.items.length) throw new Error('items 필요');
+    const ymd = po.date.replace(/-/g,'').slice(2); const tag = po.date.slice(5).replace('-','/');
+    const supply = po.items.reduce((s,it)=>s+numOr0(it.qty)*numOr0(it.unitCost),0);
+    const names = {shampoo:'샴푸',treatment:'트리트먼트',bodywash:'바디워시',bodylotion:'바디로션',wego120:'위고 슬림핏'};
+    const itemStr = po.items.map(it=>names[it.sku]+' '+Number(it.qty).toLocaleString()).join(' · ');
+    const pay = await addPayable({id:'pay_kolmar_'+ymd, item:itemStr, issueDate:po.date, dueDate:po.dueDate, supply, note:(po.note?po.note+' · ':'')+'그레이스 이천물류 입고'}, opts);
+    const results = {payable:pay, batches:[], merges:[]};
+    const fresh = po.items.filter(it=>!it.mergeInto);
+    if(fresh.length){
+      const items = fresh.map(it=>{ const exp = it.expiry || (po.date.slice(0,4)*1+3)+po.date.slice(4); return {sku:it.sku, qty:it.qty, expiry:exp, mfgDate:it.mfgDate||'', _tmp:!it.expiry}; });
+      const tmp = items.some(it=>it._tmp); items.forEach(it=>delete it._tmp);
+      results.batches.push(await addBatch({id:'batch_kolmar_'+ymd, date:po.date, loc:'icheon', reason:'콜마 '+tag+' 발주 '+itemStr+' — 그레이스 이천물류 입고'+(tmp?' (유통기한 임시 — 입고 확인 후 수정)':''), items}, opts));
+    }
+    for(const it of po.items.filter(it=>it.mergeInto)){
+      results.merges.push(await mergeIntoBatch(it.mergeInto, {sku:it.sku, qty:it.qty, date:po.date, loc:'icheon', reason:'콜마 '+tag+' 발주 '+names[it.sku]+' '+Number(it.qty).toLocaleString()+' 합산(이천)'}, opts));
+    }
+    return {ok:!opts.dry, dry:!!opts.dry, supply, tax:pay.payable.tax, amount:pay.payable.amount, ...results};
+  }
+
+  // ═════ 쿠팡 FC 입고 · 비용 · 쿠팡 일 비용 ═════
+  async function addFCInbound(f, opts={}){
+    chkDate(f.date); const o={id:f.id||('fc_'+f.date.replace(/-/g,'')), date:f.date, reason:f.reason||'쿠팡 FC 입고 (대화창고 → FC)'};
+    SKUS.forEach(k=>o[k]=numOr0(f[k])); if(SKUS.every(k=>o[k]===0)) throw new Error('수량 전부 0');
+    const res = await mutate('fcInbounds','items', arr=>{ chkId(arr,o.id); arr.push(o); return arr; }, opts);
+    const st = res.dry ? withTemp(()=>{fcInbounds=res.next;}, stockNow) : stockNow();
+    const after={}; SKUS.forEach(k=>{ if(o[k]>0) after[k]=st[k]; });
+    return {ok:!res.dry, dry:!!res.dry, inbound:o, stockAfter:after};
+  }
+  async function addExpense(e, opts={}){
+    chkDate(e.date); if(!['b2b','ecommerce'].includes(e.category)) throw new Error("category는 'b2b'|'ecommerce'");
+    const o={id:e.id, date:e.date, category:e.category, amount:numOr0(e.amount), note:e.note||''}; if(o.amount<=0) throw new Error('amount 0');
+    const res = await mutate('expenses','items', arr=>{ chkId(arr,o.id); arr.push(o); return arr; }, opts);
+    const m=o.date.slice(0,7); const mt=res.next.filter(x=>x.date.startsWith(m)&&x.category===o.category).reduce((s,x)=>s+(x.amount||0),0);
+    return {ok:!res.dry, dry:!!res.dry, expense:o, monthCategoryTotal:mt};
+  }
+  // setCoupangCosts('2026-10-22', {fulfil:7150, coupon:5400, adcost:0})  — 금액은 쿠팡 화면 그대로(VAT 포함), 코드가 /1.1
+  async function setCoupangCosts(date, c, opts={}){
+    chkDate(date);
+    const res = await mutate('records','records', arr=>{
+      const r = arr.find(x=>x.date===date); if(!r) throw new Error(date+' 일 실적 없음 — UI에서 먼저 입력');
+      r.coupang = r.coupang||{}; ['fulfil','coupon','adcost'].forEach(k=>{ if(c[k]!==undefined) r.coupang[k]=numOr0(c[k]); }); return arr;
+    }, opts);
+    const r = res.next.find(x=>x.date===date);
+    return {ok:!res.dry, dry:!!res.dry, date, coupang:r.coupang};
+  }
+
+  // ═════ 입금/지급 완료 · 임의 필드 수정 ═════
+  // markPaid(['out_musinsa_0827_a','out_musinsa_0916'], '2026-10-23')  — 미수금(manualOuts)
+  async function markPaid(ids, paidDate, opts={}){
+    chkDate(paidDate,'paidDate'); const list=[].concat(ids);
+    const res = await mutate('stock','manualOuts', arr=>{ list.forEach(id=>{ const o=arr.find(x=>x.id===id); if(!o) throw new Error('없음: '+id); o.paid=true; o.paidDate=paidDate; }); return arr; }, opts);
+    const tot = list.reduce((s,id)=>{ const o=res.next.find(x=>x.id===id); return s+Math.round(sumSup(o)*(o.zeroRate?1:1.1)); },0);
+    return {ok:!res.dry, dry:!!res.dry, ids:list, paidDate, vatInclTotal:tot};
+  }
+  // markPayablePaid(['pay_kolmar_261008'], '2026-10-31')  — 미지급금(payables)
+  async function markPayablePaid(ids, paidDate, opts={}){
+    chkDate(paidDate,'paidDate'); const list=[].concat(ids);
+    const res = await mutate('payables','items', arr=>{ list.forEach(id=>{ const o=arr.find(x=>x.id===id); if(!o) throw new Error('없음: '+id); o.paid=true; o.paidDate=paidDate; }); return arr; }, opts);
+    const tot = list.reduce((s,id)=>s+(res.next.find(x=>x.id===id).amount||0),0);
+    return {ok:!res.dry, dry:!!res.dry, ids:list, paidDate, amountTotal:tot};
+  }
+  // patchItem('stock','manualOuts','out_musinsa_1019',{date:'2026-10-27'})  — 배열 항목의 필드 일부 수정 (id 기준)
+  async function patchItem(docName, field, id, patch, opts={}){
+    if(patch.id!==undefined) throw new Error('id는 수정 불가');
+    const res = await mutate(docName, field, arr=>{ const o=arr.find(x=>x.id===id); if(!o) throw new Error('없음: '+id); Object.assign(o, patch); return arr; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, item:res.next.find(x=>x.id===id)};
+  }
+  // removeItem('stock','stockBatches','batch_kolmar_261020')
+  async function removeItem(docName, field, id, opts={}){
+    const res = await mutate(docName, field, arr=>{ const i=arr.findIndex(x=>x.id===id); if(i<0) throw new Error('없음: '+id); arr.splice(i,1); return arr; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, removed:id, remaining:res.next.length};
+  }
+
+  // ═════ 조회 ═════
+  async function find(docName, field, pred){ const {data}=await getDoc(docName); const arr=data[field]||[]; return typeof pred==='function' ? arr.filter(pred) : arr.filter(x=>x.id===pred); }
+  function help(){
+    return [
+      'anokApi — 모든 함수는 async, 마지막 인자 {dry:true}면 저장 없이 미리보기',
+      'addPopupDay(popupId, day, {overwrite})          팝업 일별 실적',
+      'addOut(out)                                      출고(B2B 납품·샘플·위탁) — isB2B+clientId면 단가 자동',
+      'addBatch(batch) / mergeIntoBatch(batchId, add)   입고 배치 신규 / 기존 배치 합산',
+      'addPayable(p) / addKolmarPO(po)                  매입채무 / 콜마 발주 원스톱(매입채무+이천 배치)',
+      'addFCInbound(f) / addExpense(e) / setCoupangCosts(date, c)',
+      'markPaid(ids, date) / markPayablePaid(ids, date) 입금·지급 완료',
+      'patchItem(doc, field, id, patch) / removeItem(doc, field, id)',
+      'find(doc, field, idOrFn) / get(doc) / undo() / stock()',
+      '문서·필드: popups.items · stock.manualOuts|stockBatches|stockInitByMonth · payables.items · fcInbounds.items · expenses.items · records.records'
+    ].join('\n');
+  }
+
+  return {addPopupDay, addOut, addBatch, mergeIntoBatch, addPayable, addKolmarPO, addFCInbound, addExpense, setCoupangCosts,
+          markPaid, markPayablePaid, patchItem, removeItem, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
+})();
+window.anokApi = anokApi;
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;
