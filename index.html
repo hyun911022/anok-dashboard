@@ -879,10 +879,10 @@
         <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">대시보드</button>
         <button class="tab" data-tab="channel" onclick="switchTab('channel')">채널</button>
         <button class="tab" data-tab="stock" onclick="switchTab('stock')">재고현황</button>
-        <button class="tab" data-tab="products" onclick="switchTab('products')">상품관리</button>
-        <button class="tab" data-tab="pricing" onclick="switchTab('pricing')">판매가 관리</button>
         <button class="tab" data-tab="settlement" onclick="switchTab('settlement')">정산일정</button>
         <button class="tab" data-tab="expenses" onclick="switchTab('expenses')">비용관리</button>
+        <button class="tab" data-tab="products" onclick="switchTab('products')">상품관리</button>
+        <button class="tab" data-tab="pricing" onclick="switchTab('pricing')">판매가 관리</button>
         <button class="tab" data-tab="simulator" onclick="switchTab('simulator')">수익 시뮬레이션</button>
       </div>
       <button class="btn-input btn-input-pc" onclick="openModal()">+ 일 실적 입력</button>
@@ -2778,11 +2778,11 @@ const TAB_DEFS = [
   {key:'dashboard',  panel:'tabDashboard'},
   {key:'channel',    panel:'tabChannel',    render:'renderChannel'},
   {key:'stock',      panel:'tabStock',      render:'renderStock'},
+  {key:'settlement', panel:'tabSettlement', render:'renderSettlement'},
+  {key:'expenses',   panel:'tabExpenses',   render:'renderExpenses'},
   {key:'products',   panel:'tabProducts',   render:'renderProducts'},
   {key:'pricing',    panel:'tabPricing',    render:'renderPriceManager'},
-  {key:'expenses',   panel:'tabExpenses',   render:'renderExpenses'},
-  {key:'simulator',  panel:'tabSimulator',  render:'renderSimulator'},
-  {key:'settlement', panel:'tabSettlement', render:'renderSettlement'}
+  {key:'simulator',  panel:'tabSimulator',  render:'renderSimulator'}
 ];
 
 function switchTab(tab){
