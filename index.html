@@ -7970,7 +7970,7 @@ const anokApi = (()=>{
       else if(name==='payables' && field==='items') payables = value;
       else if(name==='fcInbounds' && field==='items') fcInbounds = value;
       else if(name==='expenses' && field==='items') expenses = value;
-      else if(name==='annual'){ annualDoc = annualDoc||{insights:{},notes:{},comments:[]}; annualDoc[field] = value; }
+      else if(name==='annual'){ annualDoc = annualDoc||{insights:{},notes:{},comments:[],archive:{}}; annualDoc[field] = value; }
       else if(name==='records' && field==='records'){ records = value; try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }catch(e){} }
       else if(name==='stock'){
         if(field==='manualOuts') manualOuts = value;
@@ -8169,28 +8169,76 @@ const anokApi = (()=>{
   }
 
   // ═════ 연간성과 해석 문장 (anok/annual) ═════
-  // setInsights(2026, [{title:'거래처 집중도', headline:'…', body:'…', tone:'good'|'bad'|''}, …])  — 그 해 인사이트 카드 전체 교체 (3~6장 권장). 빈 배열이면 자동 문구로 복귀
+  // 카드 구조: {id, title, headline, points:[{k,v}], body, tone, updatedAt}. id는 고정 — 의견(comments.cardId)이 id로 연결되므로 제목을 바꿔도 의견이 따라감
+  const newInsId = () => 'ins_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const normIns = (t, prev) => ({id:String(t.id||(prev&&prev.id)||newInsId()), title:String(t.title||''), headline:String(t.headline||''), body:String(t.body||''),
+    points:Array.isArray(t.points)?t.points.map(p=>({k:String(p.k||''), v:String(p.v||'')})):[], tone:t.tone||'', updatedAt:getTodayKST()});
+  // setInsights(2026, [{id?, title, headline, points, tone}, …]) — 그 해 화면 카드 전체 교체. id 없는 카드는 같은 제목의 기존 카드 id를 이어받고, 없으면 새 id
+  //   빠진 카드는 사라지므로 의견 달린 카드를 빼려면 setInsights 말고 archiveInsight 사용 (의견 달린 카드가 빠지면 에러)
   async function setInsights(year, tiles, opts={}){
     if(!Array.isArray(tiles)) throw new Error('tiles는 배열');
-    const norm = t=>({title:String(t.title||''), headline:String(t.headline||''), body:String(t.body||''), points:Array.isArray(t.points)?t.points.map(p=>({k:String(p.k||''), v:String(p.v||'')})):[], tone:t.tone||'', updatedAt:getTodayKST()});
-    const list = tiles.map(norm);
-    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; if(!list.length) delete ins[String(year)]; else ins[String(year)] = list; return ins; }, opts);
-    return {ok:!res.dry, dry:!!res.dry, year, count:list.length};
+    const res = await mutate('annual','insights', (ins, data)=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
+      const list = tiles.map(t=>normIns(t, cur.find(x=>(t.id && x.id===t.id) || (!t.id && x.title===t.title))));
+      const keep = new Set(list.map(x=>x.id)); const cms = (data.comments||[]).filter(c=>String(c.year)===String(year));
+      const dropped = cur.filter(x=>!keep.has(x.id) && cms.some(c=>c.cardId===x.id));
+      if(dropped.length && !opts.force) throw new Error('의견 달린 카드가 빠짐: '+dropped.map(x=>x.title).join(', ')+' — archiveInsight로 보관하거나 {force:true}');
+      if(!list.length) delete ins[String(year)]; else ins[String(year)] = list; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, year, count:(res.next[String(year)]||[]).length, ids:(res.next[String(year)]||[]).map(x=>x.id+' '+x.title)};
   }
-  // addInsight(2026, {title, headline, body, tone}) / removeInsight(2026, index)
+  // addInsight(2026, {title, headline, points, tone}, {at:index}) — 카드 1장 추가 (at 없으면 맨 뒤)
   async function addInsight(year, t, opts={}){
-    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[]; cur.push({title:String(t.title||''), headline:String(t.headline||''), body:String(t.body||''), points:Array.isArray(t.points)?t.points.map(p=>({k:String(p.k||''), v:String(p.v||'')})):[], tone:t.tone||'', updatedAt:getTodayKST()}); ins[String(year)]=cur; return ins; }, opts);
-    return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
+    const card = normIns(t);
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
+      if(cur.some(x=>x.title===card.title)) throw new Error('같은 제목 카드 있음: '+card.title);
+      if(Number.isInteger(opts.at)) cur.splice(opts.at,0,card); else cur.push(card); ins[String(year)]=cur; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, id:card.id, count:(res.next[String(year)]||[]).length};
   }
-  async function removeInsight(year, index, opts={}){
-    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[]; if(index<0||index>=cur.length) throw new Error('index 범위 밖'); cur.splice(index,1); ins[String(year)]=cur; return ins; }, opts);
+  // updateInsight(2026, id, {headline, points, tone, title}) — 카드 1장 일부 수정 (id 유지)
+  async function updateInsight(year, id, patch, opts={}){
+    const res = await mutate('annual','insights', ins=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
+      const i = cur.findIndex(x=>x.id===id); if(i<0) throw new Error('카드 없음: '+id);
+      cur[i] = normIns(Object.assign({}, cur[i], patch, {id}), cur[i]); ins[String(year)]=cur; return ins; }, opts);
+    return {ok:!res.dry, dry:!!res.dry, card:(res.next[String(year)]||[]).find(x=>x.id===id)};
+  }
+  // archiveInsight(2026, id, '보관 사유') — 화면에서 내리고 '지난 인사이트'로 이동. 의견 스레드는 그대로 연결. 미답변 의견이 있으면 거부
+  async function archiveInsight(year, id, reason, opts={}){
+    if(!reason) throw new Error('보관 사유 필요');
+    const {data} = await getDoc('annual'); const y=String(year);
+    const card = ((data.insights||{})[y]||[]).find(x=>x.id===id); if(!card) throw new Error('화면 카드에 없음: '+id);
+    const openCm = (data.comments||[]).filter(c=>c.cardId===id && c.status!=='done');
+    if(openCm.length && !opts.force) throw new Error('미답변 의견 '+openCm.length+'건 — 답변 후 보관');
+    const arch = Object.assign({}, card, {archivedAt:getTodayKST(), archiveReason:String(reason)});
+    const r1 = await mutate('annual','archive', a=>{ a=a||{}; const cur=Array.isArray(a[y])?a[y]:[]; if(!cur.some(x=>x.id===id)) cur.unshift(arch); a[y]=cur; return a; }, opts);
+    if(opts.dry) return {dry:true, card:arch};
+    await mutate('annual','insights', ins=>{ ins=ins||{}; ins[y]=(ins[y]||[]).filter(x=>x.id!==id); return ins; });
+    return {ok:true, archived:card.title, reason};
+  }
+  // restoreInsight(2026, id, {at:index}) — 보관함 카드를 화면으로 복귀
+  async function restoreInsight(year, id, opts={}){
+    const {data} = await getDoc('annual'); const y=String(year);
+    const card = ((data.archive||{})[y]||[]).find(x=>x.id===id); if(!card) throw new Error('보관함에 없음: '+id);
+    const back = Object.assign({}, card); delete back.archivedAt; delete back.archiveReason;
+    await mutate('annual','insights', ins=>{ ins=ins||{}; const cur=Array.isArray(ins[y])?ins[y]:[]; if(!cur.some(x=>x.id===id)){ if(Number.isInteger(opts.at)) cur.splice(opts.at,0,back); else cur.push(back); } ins[y]=cur; return ins; }, opts);
+    if(opts.dry) return {dry:true};
+    await mutate('annual','archive', a=>{ a=a||{}; a[y]=(a[y]||[]).filter(x=>x.id!==id); return a; });
+    return {ok:true, restored:card.title};
+  }
+  // removeInsight(2026, id) — 완전 삭제. 의견이 하나라도 달린 카드는 거부 (→ archiveInsight)
+  async function removeInsight(year, id, opts={}){
+    const res = await mutate('annual','insights', (ins, data)=>{ ins = ins||{}; const cur = Array.isArray(ins[String(year)])?ins[String(year)]:[];
+      const i = typeof id==='number' ? id : cur.findIndex(x=>x.id===id); if(i<0||i>=cur.length) throw new Error('카드 없음: '+id);
+      if((data.comments||[]).some(c=>c.cardId===cur[i].id) && !opts.force) throw new Error('의견 달린 카드는 삭제 불가 — archiveInsight 사용');
+      cur.splice(i,1); ins[String(year)]=cur; return ins; }, opts);
     return {ok:!res.dry, dry:!!res.dry, count:(res.next[String(year)]||[]).length};
   }
   // ═════ 인사이트 카드 의견(코멘트) ═════
-  // addComment(2026, '거래처 집중도', '의견 본문')  — 화면 버튼이 호출. comments(year) 로 미확인 의견 조회, replyComment(id, '답변') 로 반영 처리
-  async function addComment(year, title, text, opts={}){
+  // addComment(2026, cardId, '의견 본문') — 화면 버튼이 호출. comments(year)로 미확인 조회, replyComment(id,'답변')로 반영
+  async function addComment(year, cardId, text, opts={}){
     if(!text) throw new Error('text 필요');
-    const c = {id:'cm_'+Date.now().toString(36), year:String(year), title:String(title||''), text:String(text), at:getTodayKST(), status:'open', reply:''};
+    const {data} = await getDoc('annual'); const y=String(year);
+    const all = [...((data.insights||{})[y]||[]), ...((data.archive||{})[y]||[])];
+    const card = all.find(x=>x.id===cardId) || all.find(x=>x.title===cardId); if(!card) throw new Error('카드 없음: '+cardId);
+    const c = {id:'cm_'+Date.now().toString(36), year:y, cardId:card.id, title:card.title, text:String(text), at:getTodayKST(), status:'open', reply:''};
     const res = await mutate('annual','comments', arr=>{ arr=Array.isArray(arr)?arr:[]; arr.push(c); return arr; }, opts);
     return {ok:!res.dry, dry:!!res.dry, comment:c};
   }
@@ -8224,7 +8272,7 @@ const anokApi = (()=>{
       'addFCInbound(f) / addExpense(e) / setCoupangCosts(date, c)',
       'markPaid(ids, date) / markPayablePaid(ids, date) 입금·지급 완료',
       'patchItem(doc, field, id, patch) / removeItem(doc, field, id)',
-      'setInsights(year, [{title,headline,points,tone}]) / addInsight / removeInsight / setAnnualNote(year, text)  연간성과 해석 카드',
+      'setInsights(year,[cards]) / addInsight(year,card,{at}) / updateInsight(year,id,patch) / archiveInsight(year,id,사유) / restoreInsight(year,id) / removeInsight(year,id)  전략보고 인사이트 카드 (id 고정, 의견 달린 카드는 삭제 대신 보관)',
       'comments(year) / replyComment(id, 답변) / removeComment(id)   인사이트 카드 의견 조회·반영 (세션 시작 시 comments()로 먼저 확인)',
       'find(doc, field, idOrFn) / get(doc) / undo() / stock()',
       '문서·필드: popups.items · stock.manualOuts|stockBatches|stockInitByMonth · payables.items · fcInbounds.items · expenses.items · records.records'
@@ -8232,7 +8280,7 @@ const anokApi = (()=>{
   }
 
   return {addPopupDay, addOut, addBatch, mergeIntoBatch, addPayable, addKolmarPO, addFCInbound, addExpense, setCoupangCosts,
-          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, removeInsight, setAnnualNote, addComment, comments, replyComment, removeComment, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
+          markPaid, markPayablePaid, patchItem, removeItem, setInsights, addInsight, updateInsight, archiveInsight, restoreInsight, removeInsight, setAnnualNote, addComment, comments, replyComment, removeComment, find, get:getDoc, undo, stock:stockNow, help, _enc:enc, _dec:dec, _mutate:mutate};
 })();
 window.anokApi = anokApi;
 
@@ -8241,7 +8289,7 @@ window.anokApi = anokApi;
 //  계산 기준은 홈 월별 손익과 동일: 이커머스 calcDay 순이익 − 광고·대행·ecommerce 비용 / B2B·공구 − b2b 비용 / 팝업(초인 정산 or 미정산월 calcPopupMonthPL)
 // ══════════════════════════════════════════
 const ANNUAL_CHOIN_ID = 'client_1784508753237';
-let annualDoc = {insights:{}, notes:{}, comments:[]};
+let annualDoc = {insights:{}, notes:{}, comments:[], archive:{}};
 // 의견 & 답변 스레드 접기/펼치기 (채널 탭 팝업 행과 같은 방식) — 재렌더 없이 DOM 클래스만 토글, 상태는 세션 동안 유지
 function toggleCmThread(id, forceOpen){
   window.__cmExpand__ = window.__cmExpand__ || {};
@@ -8257,7 +8305,7 @@ async function loadAnnual(){
     const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const db = getFirestore(getApps()[0]);
     const snap = await getDoc(doc(db, 'anok', 'annual'));
-    if(snap.exists()) annualDoc = Object.assign({insights:{}, notes:{}, comments:[]}, snap.data());
+    if(snap.exists()) annualDoc = Object.assign({insights:{}, notes:{}, comments:[], archive:{}}, snap.data());
   } catch(e){ console.log('annual load error:', e); }
 }
 let _annualCharts = {};
@@ -8355,13 +8403,14 @@ function renderAnnual(){
     </div>`;
   // 인사이트 카드 (B안 액션 박스): 제목 → 헤드라인 → 사실·의미 본문 → 대응은 골드 ACTION 박스 → 의견(코멘트)
   const cmAll = (annualDoc.comments||[]).filter(c=>String(c.year)===String(year));
-  const tile = (lbl, big, desc, color, idx)=>{
+  const cmOf = (id, lbl) => cmAll.filter(c=> c.cardId ? c.cardId===id : c.title===lbl);
+  const tile = (lbl, big, desc, color, id, archived)=>{
     const pts = Array.isArray(desc) ? desc : String(desc||'').split('\n').filter(Boolean).map((v,i)=>({k:['사실','의미','대응'][i]||'', v}));
     const act = pts.find(p=>p.k==='대응'); const rest = pts.filter(p=>p.k!=='대응');
-    const cms = cmAll.filter(c=>c.title===lbl);
+    const cms = cmOf(id, lbl);
     const openN = cms.filter(c=>c.status!=='done').length;
     const cmHtml = cms.length ? `<a href="#cmth-${cms[0].id}" onclick="event.preventDefault();const t=document.getElementById('cmth-${cms[0].id}'); if(t){ toggleCmThread('${cms[0].id}', true); t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.boxShadow='0 0 0 2px rgba(165,180,252,0.6)'; setTimeout(()=>t.style.boxShadow='',1600);}" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;font-weight:700;color:${openN?'#C7D2FE':C.gold};background:${openN?'rgba(99,102,241,0.12)':'rgba(212,184,150,0.08)'};border:1px solid ${openN?'rgba(99,102,241,0.4)':'rgba(212,184,150,0.3)'};border-radius:999px;padding:4px 10px;text-decoration:none;width:fit-content"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 ${cms.length} · ${openN?'검토 대기 '+openN:'답변 완료'}</a>` : '';
-    return `<div class="ins-card" data-title="${lbl}" style="background:${C.card};border:1px solid ${C.edge};border-radius:16px;padding:18px 18px 14px;display:flex;flex-direction:column;min-width:0">
+    return `<div class="ins-card" data-id="${id||''}" data-title="${lbl}" style="${archived?'opacity:0.82;':''}background:${C.card};border:1px solid ${C.edge};border-radius:16px;padding:18px 18px 14px;display:flex;flex-direction:column;min-width:0">
       <div style="font-size:11px;color:${C.sub};font-weight:700;letter-spacing:1px">${lbl}</div>
       <div style="font-size:18px;font-weight:800;color:${color||C.txt};margin-top:8px;letter-spacing:-0.3px;line-height:1.3">${big}</div>
       <div style="margin-top:12px;flex:1">${rest.map(p=>`<p style="margin:0 0 9px;font-size:13px;color:${C.sub};line-height:1.6">${p.k?`<b style="color:${C.txt};font-weight:700">${p.k}.</b> `:''}${p.v}</p>`).join('')}</div>
@@ -8414,11 +8463,23 @@ function renderAnnual(){
          topClient ? `거래처 매출 ${man(bTot)}만원 중 상위 1개 ${pct0(topClient[1],bTot)}, 상위 2개 ${pct0((clientList[0]?.[1]||0)+(clientList[1]?.[1]||0),bTot)}. 발주 주기와 결제 조건에 현금흐름이 종속` : '')
   ];
   const insightTiles = (Array.isArray(stored) && stored.length)
-    ? stored.map(t=>tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone))).join('')
+    ? stored.map(t=>tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone), t.id)).join('')
     : autoTiles.join('');
   const insightDate = (Array.isArray(stored) && stored.length) ? (stored.map(t=>t.updatedAt||'').sort().pop()||'') : '';
   // 의견 & 답변 스레드 패널 (카드 밖, 전체 폭)
   const cmSorted = cmAll.slice().sort((a,b)=> (a.status==='done')-(b.status==='done') || String(b.at).localeCompare(String(a.at)));
+  // 지난 인사이트 (보관함) — 접힌 섹션, 펼치면 보관 카드 그리드
+  const archList = ((annualDoc.archive||{})[String(year)]||[]);
+  const archOpen = !!window.__archOpen__;
+  const archiveBlock = archList.length ? `<div id="insArchive" class="ins-arch${archOpen?' open':''}" style="margin-top:14px;border:1px solid ${C.edge};border-radius:14px;background:rgba(255,255,255,0.015)">
+      <div onclick="window.__archOpen__=!document.getElementById('insArchive').classList.contains('open');document.getElementById('insArchive').classList.toggle('open')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer">
+        <span style="font-size:13px;font-weight:800;color:${C.txt}">지난 인사이트</span><span style="font-size:11px;color:${C.sub}">${archList.length}장 · 해소됐거나 의사결정에서 빠진 카드</span>
+        <span style="flex:1"></span><span class="arch-chev" style="font-size:16px;color:${C.sub};transition:transform .2s">›</span></div>
+      <div class="arch-body" style="padding:0 14px 14px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start" class="annual-grid3">${archList.map(t=>`<div>
+          <div style="font-size:10.5px;color:${C.mute};margin:0 2px 6px">보관 ${String(t.archivedAt||'').slice(5).replace('-','/')} · ${t.archiveReason||''}</div>
+          ${tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone), t.id, true)}</div>`).join('')}</div>
+      </div></div>` : '';
   const threadsBlock = cmSorted.length ? `<div style="margin-top:18px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:#A5B4FC;text-transform:uppercase">의견 & 답변</span><span style="font-size:11px;color:${C.sub}">${cmSorted.length}건 · 검토 대기 ${cmSorted.filter(c=>c.status!=='done').length}건</span></div>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">${cmSorted.map(c=>{
       const ex = (window.__cmExpand__||{})[c.id]; const open = ex===undefined ? c.status!=='done' : ex;
@@ -8426,7 +8487,7 @@ function renderAnnual(){
       return `
       <div id="cmth-${c.id}" class="cm-th${open?' open':''}" style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;transition:box-shadow .3s,border-color .2s">
         <div class="cm-th-head" onclick="toggleCmThread('${c.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;min-width:0">
-          <span style="font-size:12px;font-weight:800;color:${C.txt};white-space:nowrap">${c.title}</span>
+          <span style="font-size:12px;font-weight:800;color:${C.txt};white-space:nowrap">${c.title}${archList.some(a=>a.id===c.cardId)?`<span style="font-weight:600;color:${C.mute};font-size:10.5px;margin-left:5px">(보관)</span>`:''}</span>
           <span style="font-size:11px;color:${C.sub};white-space:nowrap">${(c.at||'').slice(5).replace('-','/')}</span>
           <span class="cm-th-peek" style="flex:1;min-width:0;font-size:12px;color:${C.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${first}</span>
           <span style="font-size:10.5px;font-weight:700;white-space:nowrap;color:${c.status==='done'?C.gold:'#C7D2FE'};background:${c.status==='done'?'rgba(212,184,150,0.08)':'rgba(99,102,241,0.12)'};border:1px solid ${c.status==='done'?'rgba(212,184,150,0.3)':'rgba(99,102,241,0.4)'};border-radius:999px;padding:2px 9px">${c.status==='done'?'답변 완료':'검토 대기'}</span>
@@ -8486,6 +8547,7 @@ function renderAnnual(){
 
     <div style="margin-top:34px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span class="a-title" style="font-size:28px;font-weight:800;letter-spacing:-0.8px;line-height:1.15;color:${C.txt}">인사이트</span><span style="font-size:11px;color:${C.sub}">${insightDate?`해석 기준 ${insightDate}`:'데이터에서 자동 계산'}</span>${(()=>{const o=cmAll.filter(c=>c.status!=='done').length; return o?`<span style="font-size:10.5px;font-weight:700;color:#A5B4FC;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:999px;padding:2px 9px">의견 ${o}건 검토 대기</span>`:'';})()}</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;align-items:start" class="annual-grid3">${insightTiles}</div>
+    ${archiveBlock}
     ${threadsBlock}
     ${noteBlock}
 
@@ -8497,6 +8559,10 @@ function renderAnnual(){
   <style>
   #annualReport .a-pt{grid-template-columns:34px 1fr !important}
   #annualReport .a-pt2{grid-template-columns:56px 1fr !important}
+  #annualReport .ins-arch .arch-body{display:none}
+  #annualReport .ins-arch.open .arch-body{display:block}
+  #annualReport .ins-arch.open .arch-chev{transform:rotate(90deg)}
+  #annualReport .ins-arch .ins-cm-open{display:none !important}
   #annualReport .cm-th .cm-th-body{display:none}
   #annualReport .cm-th.open .cm-th-body{display:block}
   #annualReport .cm-th.open .cm-th-chev{transform:rotate(90deg)}
@@ -8528,7 +8594,7 @@ function renderAnnual(){
     card.querySelector('.ins-cm-save').onclick=async ()=>{
       const txt=box.querySelector('textarea').value.trim(); if(!txt) return;
       const btn=card.querySelector('.ins-cm-save'); btn.disabled=true; btn.textContent='저장 중';
-      try{ await anokApi.addComment(year, card.dataset.title, txt); if(typeof showToast==='function') showToast('의견 저장'); }
+      try{ await anokApi.addComment(year, card.dataset.id || card.dataset.title, txt); if(typeof showToast==='function') showToast('의견 저장'); }
       catch(e){ console.error('comment save', e); btn.disabled=false; btn.textContent='저장 실패 · 재시도'; }
     };
   });
