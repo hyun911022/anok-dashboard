@@ -8352,11 +8352,8 @@ function renderAnnual(){
     const pts = Array.isArray(desc) ? desc : String(desc||'').split('\n').filter(Boolean).map((v,i)=>({k:['사실','의미','대응'][i]||'', v}));
     const act = pts.find(p=>p.k==='대응'); const rest = pts.filter(p=>p.k!=='대응');
     const cms = cmAll.filter(c=>c.title===lbl);
-    const cmHtml = cms.map(c=>`<div style="margin-top:8px;padding:9px 11px;border-radius:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25)">
-        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;font-weight:800;letter-spacing:0.8px;color:#A5B4FC">의견 · ${(c.at||'').slice(5).replace('-','/')}</span><span style="font-size:10px;font-weight:700;color:${c.status==='done'?C.gold:C.sub}">${c.status==='done'?'반영':'검토 대기'}</span></div>
-        <div style="font-size:12.5px;color:${C.txt};line-height:1.55;margin-top:4px;white-space:pre-line">${c.text}</div>
-        ${c.reply?`<div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(255,255,255,0.1);font-size:12.5px;color:${C.sub};line-height:1.55;white-space:pre-line"><b style="color:${C.gold}">Claude</b> · ${c.reply}</div>`:''}
-      </div>`).join('');
+    const openN = cms.filter(c=>c.status!=='done').length;
+    const cmHtml = cms.length ? `<a href="#cmth-${cms[0].id}" onclick="event.preventDefault();const t=document.getElementById('cmth-${cms[0].id}'); if(t){ t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.boxShadow='0 0 0 2px rgba(165,180,252,0.6)'; setTimeout(()=>t.style.boxShadow='',1600);}" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;font-weight:700;color:${openN?'#C7D2FE':C.gold};background:${openN?'rgba(99,102,241,0.12)':'rgba(212,184,150,0.08)'};border:1px solid ${openN?'rgba(99,102,241,0.4)':'rgba(212,184,150,0.3)'};border-radius:999px;padding:4px 10px;text-decoration:none;width:fit-content"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>의견 ${cms.length} · ${openN?'검토 대기 '+openN:'답변 완료'}</a>` : '';
     return `<div class="ins-card" data-title="${lbl}" style="background:${C.card};border:1px solid ${C.edge};border-radius:16px;padding:18px 18px 14px;display:flex;flex-direction:column;min-width:0">
       <div style="font-size:11px;color:${C.sub};font-weight:700;letter-spacing:1px">${lbl}</div>
       <div style="font-size:18px;font-weight:800;color:${color||C.txt};margin-top:8px;letter-spacing:-0.3px;line-height:1.3">${big}</div>
@@ -8413,6 +8410,17 @@ function renderAnnual(){
     ? stored.map(t=>tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone))).join('')
     : autoTiles.join('');
   const insightDate = (Array.isArray(stored) && stored.length) ? (stored.map(t=>t.updatedAt||'').sort().pop()||'') : '';
+  // 의견 & 답변 스레드 패널 (카드 밖, 전체 폭)
+  const cmSorted = cmAll.slice().sort((a,b)=> (a.status==='done')-(b.status==='done') || String(b.at).localeCompare(String(a.at)));
+  const threadsBlock = cmSorted.length ? `<div style="margin-top:18px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:#A5B4FC;text-transform:uppercase">의견 & 답변</span><span style="font-size:11px;color:${C.sub}">${cmSorted.length}건 · 검토 대기 ${cmSorted.filter(c=>c.status!=='done').length}건</span></div>
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">${cmSorted.map(c=>`
+      <div id="cmth-${c.id}" style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;padding:14px 18px;transition:box-shadow .3s">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:800;color:${C.txt}">${c.title}<span style="font-weight:600;color:${C.sub};margin-left:8px;font-size:11px">${c.at||''}</span></span>
+          <span style="font-size:10.5px;font-weight:700;color:${c.status==='done'?C.gold:'#C7D2FE'};background:${c.status==='done'?'rgba(212,184,150,0.08)':'rgba(99,102,241,0.12)'};border:1px solid ${c.status==='done'?'rgba(212,184,150,0.3)':'rgba(99,102,241,0.4)'};border-radius:999px;padding:2px 9px">${c.status==='done'?'답변 완료':'검토 대기'}</span></div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:#A5B4FC;letter-spacing:0.5px;padding-top:2px">의견</span><span style="font-size:13px;color:${C.txt};line-height:1.6;white-space:pre-line">${c.text}</span></div>
+        ${c.reply?`<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.1);display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start" class="a-pt2"><span style="font-size:10.5px;font-weight:800;color:${C.gold};letter-spacing:0.5px;padding-top:2px">Claude${c.repliedAt?`<br><span style="font-weight:600;color:${C.mute};font-size:9.5px">${String(c.repliedAt).slice(5)}</span>`:''}</span><span style="font-size:13px;color:${C.sub};line-height:1.65;white-space:pre-line">${c.reply}</span></div>`:''}
+      </div>`).join('')}</div>` : '';
   const noteTxt = (annualDoc.notes||{})[String(year)];
   const noteBlock = noteTxt ? `<div style="margin-top:12px;background:rgba(212,184,150,0.06);border:1px solid rgba(212,184,150,0.25);border-radius:14px;padding:14px 18px">
       <div style="font-size:11px;color:${C.gold};font-weight:700;letter-spacing:0.5px">경영 코멘트</div>
@@ -8461,7 +8469,8 @@ function renderAnnual(){
     </div>
 
     <div style="margin-top:22px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:${C.gold};text-transform:uppercase">Insights</span><span style="font-size:11px;color:${C.sub}">${insightDate?`해석 기준 ${insightDate}`:'데이터에서 자동 계산'}</span>${(()=>{const o=cmAll.filter(c=>c.status!=='done').length; return o?`<span style="font-size:10.5px;font-weight:700;color:#A5B4FC;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:999px;padding:2px 9px">의견 ${o}건 검토 대기</span>`:'';})()}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px" class="annual-grid3">${insightTiles}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px;align-items:start" class="annual-grid3">${insightTiles}</div>
+    ${threadsBlock}
     ${noteBlock}
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:12px;border-top:1px solid ${C.line};font-size:10.5px;color:${C.mute}">
@@ -8471,6 +8480,7 @@ function renderAnnual(){
   </div>
   <style>
   #annualReport .a-pt{grid-template-columns:34px 1fr !important}
+  #annualReport .a-pt2{grid-template-columns:56px 1fr !important}
   #annualReport .ins-cm-open:hover{background:rgba(99,102,241,0.28) !important;border-color:rgba(165,180,252,0.8) !important;color:#fff !important}
   #annualReport .a-cli{grid-template-columns:96px 1fr 60px !important}
   @media (max-width:1100px){ #annualReport .annual-grid3{grid-template-columns:1fr 1fr !important} }
