@@ -6536,9 +6536,17 @@ function calcChoinStock(){
         out[k] += live.length ? Math.max(0, rem - ci) : rem;
       }); });
     } else {
-      const done = ps.filter(p=>popupStatus(p)==='done' && p.finalStock)
+      // 진행·예정 팝업이 없을 때: 가장 최근 종료 팝업 기준 (2026-10-30 수정)
+      //  · 실사 마감 재고(finalStock)가 입력돼 있으면 그 값
+      //  · 없으면 그 팝업의 위탁 잔량(풀이면 풀 전체 잔량 = 위탁 출고 − 판매·증정)
+      //  이전에는 finalStock 있는 팝업만 찾아, 9월 이후 풀 팝업 대신 8월 동래점 마감 재고가 표시되는 오류가 있었음
+      const done = ps.filter(p=>popupStatus(p)==='done')
                      .sort((a,b)=>(b.toDate||'').localeCompare(a.toDate||''));
-      if(done[0]) STOCK_SKUS.forEach(k=>out[k]=(done[0].finalStock[k]||0));
+      const last = done[0];
+      if(last){
+        if(last.finalStock) STOCK_SKUS.forEach(k=>out[k]=(last.finalStock[k]||0));
+        else { const s=calcPopupStats(last); STOCK_SKUS.forEach(k=>out[k]=Math.max(0, s.remain[k]||0)); }
+      }
     }
   }catch(e){}
   return out;
