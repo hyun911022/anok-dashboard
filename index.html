@@ -1646,7 +1646,6 @@
         <label>입고 창고</label>
         <select id="si_loc" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
           <option value="icheon">이천창고 (그레이스 이천물류)</option>
-          <option value="daehwa">대화창고 (대화물류)</option>
         </select>
       </div>
       <div class="modal-date" style="margin-bottom:16px">
@@ -1743,10 +1742,7 @@
       <div class="modal-date" style="margin-bottom:12px">
         <label>출고 창고</label>
         <select id="mo_loc" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#12151F">
-          <option value="daehwa">대화창고에서 출고</option>
           <option value="icheon">이천창고에서 출고</option>
-          <option value="transfer_d2i">창고 이동: 대화 → 이천 (재고 총량 불변)</option>
-          <option value="transfer_i2d">창고 이동: 이천 → 대화 (재고 총량 불변)</option>
         </select>
       </div>
 
@@ -3619,7 +3615,7 @@ function calcCoupangDailyRate(days){
 //    이천 재고는 명시적으로 집계(입고 loc·출고 loc·창고 이동·FC 입고 loc·이커머스 출고 전환일)하고,
 //    대화 재고 = (총재고 − 쿠팡 FC) − 이천 재고 (잔차)로 두어 합계가 항상 맞도록 한다.
 const STOCK_LOCS = { daehwa:'대화창고', icheon:'이천창고' };
-let ECOM_ICHEON_FROM = null;   // 'YYYY-MM-DD' — 이 날짜부터 이커머스(자사몰·네이버·무신사) 출고를 이천에서 차감. 이전 전까지는 null
+let ECOM_ICHEON_FROM = '2026-11-04';   // 2026-11-03 대화물류 전량 이천 이관 → 11/4 판매분부터 이커머스 출고를 이천에서 차감   // 'YYYY-MM-DD' — 이 날짜부터 이커머스(자사몰·네이버·무신사) 출고를 이천에서 차감. 이전 전까지는 null
 function calcIcheonStock(){
   const out = {}; STOCK_SKUS.forEach(k=>out[k]=0);
   (stockBatches||[]).forEach(b=>{
@@ -4049,7 +4045,6 @@ function renderStock(){
       const costVal = grand * (UNIT_COSTS[k]||0);   // 원가가치
       return `<tr>
         <td style="text-align:left;color:var(--text2);font-weight:600">${CH_SKU_NAMES[k]}</td>
-        <td>${dh.toLocaleString()}</td>
         <td>${ic.toLocaleString()}</td>
         <td>${ch.toLocaleString()}</td>
         <td>${fcQty.toLocaleString()}</td>
@@ -4067,10 +4062,10 @@ function renderStock(){
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
           <div style="font-size:13px;font-weight:700;color:var(--text)">보관처별 재고</div>
-          <div style="font-size:10px;color:var(--text3)">대화 ${dhTot.toLocaleString()} · 이천 ${icTot.toLocaleString()} · 초인 ${chTot.toLocaleString()} · 쿠팡 FC ${fcTot.toLocaleString()} · 전체 ${allTot.toLocaleString()}개 · 원가가치 ${Math.round(costTot/10000).toLocaleString()}만원</div>
+          <div style="font-size:10px;color:var(--text3)">${dhTot!==0?`<span style="color:#EF4444">미배정 ${dhTot.toLocaleString()} · </span>`:''}이천 ${icTot.toLocaleString()} · 초인 ${chTot.toLocaleString()} · 쿠팡 FC ${fcTot.toLocaleString()} · 전체 ${allTot.toLocaleString()}개 · 원가가치 ${Math.round(costTot/10000).toLocaleString()}만원</div>
         </div>
         <table class="pop-tbl" style="margin-bottom:0">
-          <thead><tr><th style="text-align:left">SKU</th><th>대화창고</th><th>이천창고</th><th>초인 위탁</th><th>쿠팡 FC</th><th>합계</th><th>원가가치 (만원)</th></tr></thead>
+          <thead><tr><th style="text-align:left">SKU</th><th>이천창고</th><th>초인 위탁</th><th>쿠팡 FC</th><th>합계</th><th>원가가치 (만원)</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -4265,7 +4260,7 @@ function saveStockInit(){
     }
   });
   if(items.length===0){ showToast('입고 수량을 입력해주세요'); return; }
-  const loc = document.getElementById('si_loc')?.value || 'daehwa';
+  const loc = document.getElementById('si_loc')?.value || 'icheon';
   const batch={id:'batch_'+Date.now(), date, reason:reason||'정기 입고', loc, items};
   stockBatches.push(batch);
   saveStockData();
@@ -4277,7 +4272,7 @@ function saveStockInit(){
 function openManualOutModal(){
   document.getElementById('mo_date').value=getTodayKST();
   document.getElementById('mo_reason').value='';
-  const moLoc=document.getElementById('mo_loc'); if(moLoc) moLoc.value='daehwa';
+  const moLoc=document.getElementById('mo_loc'); if(moLoc) moLoc.value='icheon';
   if(typeof onMoDateChange==='function') onMoDateChange();
   // 거래처 초기화
   const sel=document.getElementById('mo_client'); if(sel) sel.value='';
@@ -4315,7 +4310,7 @@ function saveManualOut(){
   entry.isB2B = STOCK_SKUS.some(k=>entry[k]>0 && entry['price_'+k]>0);
 
   // 출고 창고 / 창고 이동
-  const locSel = document.getElementById('mo_loc')?.value || 'daehwa';
+  const locSel = document.getElementById('mo_loc')?.value || 'icheon';
   if(locSel==='transfer_d2i' || locSel==='transfer_i2d'){
     entry.transfer = true; entry.noStock = true; entry.isB2B = false;
     entry.fromLoc = locSel==='transfer_d2i' ? 'daehwa' : 'icheon';
@@ -4649,11 +4644,11 @@ function addInbound(date, reason, items, loc){
         // 기존 배치를 최초 입고 건으로 승격
         target.inbounds=[{date:target.date, reason:target.reason, items:target.items.map(x=>({sku:x.sku, qty:x.qty - (x.sku===it.sku && x.expiry===it.expiry ? it.qty : 0)}))}];
       }
-      target.inbounds.push({date, reason, loc: loc||'daehwa', items:[{sku:it.sku, qty:it.qty}]});
+      target.inbounds.push({date, reason, loc: loc||'icheon', items:[{sku:it.sku, qty:it.qty}]});
     } else {
       stockBatches.push({
         id:'batch_'+Date.now()+'_'+it.sku,
-        date, reason, loc: loc||'daehwa',
+        date, reason, loc: loc||'icheon',
         items:[{sku:it.sku, qty:it.qty, expiry:it.expiry, mfgDate:it.mfgDate||''}]
       });
     }
@@ -7897,7 +7892,7 @@ const anokApi = (()=>{
   const KEY = 'AIzaSyBfIt4-fxvBaYs0QQlsVvjChxrIRb9Ge-E';
   const BASE = 'https://firestore.googleapis.com/v1/projects/anok-f8400/databases/(default)/documents/anok/';
   const SKUS = ['shampoo','treatment','bodywash','bodylotion','wego120'];
-  const LOCS = ['daehwa','icheon','fc','choin'];
+  const LOCS = ['icheon','fc','choin'];   // 대화창고는 2026-11-03 이천으로 통합·폐쇄 (과거 기록의 loc:'daehwa'는 그대로 유지)
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   const POP_DAY_KEYS = ['date','shampoo','treatment','bodywash','bodylotion','wego120','wegoGift','gwpBall','gwpTag','tagPaid','bagPaid','bagFree','rev','setRev','units','setHair','setBody'];
 
@@ -8124,7 +8119,7 @@ const anokApi = (()=>{
 
   // ═════ 쿠팡 FC 입고 · 비용 · 쿠팡 일 비용 ═════
   async function addFCInbound(f, opts={}){
-    chkDate(f.date); const o={id:f.id||('fc_'+f.date.replace(/-/g,'')), date:f.date, reason:f.reason||'쿠팡 FC 입고 (대화창고 → FC)'};
+    chkDate(f.date); const o={id:f.id||('fc_'+f.date.replace(/-/g,'')), date:f.date, loc:f.loc||'icheon', reason:f.reason||'쿠팡 FC 입고 (이천창고 → FC)'};
     SKUS.forEach(k=>o[k]=numOr0(f[k])); if(SKUS.every(k=>o[k]===0)) throw new Error('수량 전부 0');
     const res = await mutate('fcInbounds','items', arr=>{ chkId(arr,o.id); arr.push(o); return arr; }, opts);
     const st = res.dry ? withTemp(()=>{fcInbounds=res.next;}, stockNow) : stockNow();
