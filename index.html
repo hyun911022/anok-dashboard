@@ -1986,6 +1986,9 @@ function initMonthSelect(){
 function onMonthChange(){
   selectedMonth = document.getElementById('monthSelect').value;
   render();
+  // 대시보드 외 탭(채널·재고·정산일정·전략보고 등)을 보고 있으면 그 탭도 바뀐 월로 다시 그린다 (2026-11-09)
+  const t = window.__activeTab;
+  if(t && t!=='dashboard' && typeof switchTab==='function') switchTab(t);
 }
 // ──────────────────────────────────────────────────────────────
 
