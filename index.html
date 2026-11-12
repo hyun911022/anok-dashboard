@@ -4369,20 +4369,39 @@ function _settlementRows(){
     });
     supply += (r.extraAmount||0);   // GWP 등 SKU 외 정산 항목
     if(supply <= 0) return; // 무상/샘플 제외
+    // 공급가와 부가세를 따로 받는 건 (vatSplit: {payDate, paid, paidDate}) — 2026-11-12 추가
+    //  공급가 행(원 레코드의 paid/payDate)과 부가세 행(vatSplit의 paid/payDate)으로 나눠 표시
+    const split = r.vatSplit && !r.zeroRate;
     rows.push({
       src: 'b2b',
       idx,
       outDate: r.date || '',
-      client: r.clientName || r.reason || '(거래처 미지정)',
+      client: (r.clientName || r.reason || '(거래처 미지정)') + (split ? ' (공급가)' : ''),
       supply,
       zeroRate: !!r.zeroRate,
-      vatIncl: r.zeroRate ? supply : Math.round(supply*1.1),
+      vatIncl: (r.zeroRate || split) ? supply : Math.round(supply*1.1),
       payDate: r.payDate || '',
       paid: !!r.paid,
       paidDate: r.paidDate || '',
       taxIssued: !!r.taxIssued,
       taxDate: r.taxDate || ''
     });
+    if(split){
+      rows.push({
+        src: 'b2b_vat',
+        idx,
+        outDate: r.date || '',
+        client: (r.clientName || r.reason || '(거래처 미지정)') + ' · 부가세',
+        supply: 0,
+        zeroRate: false,
+        vatIncl: Math.round(supply*0.1),
+        payDate: r.vatSplit.payDate || '',
+        paid: !!r.vatSplit.paid,
+        paidDate: r.vatSplit.paidDate || '',
+        taxIssued: !!r.taxIssued,
+        taxDate: r.taxDate || ''
+      });
+    }
   });
   // 공구 실적도 정산 대상 (매출은 VAT 제외 공급가 기준)
   (typeof groupBuys !== 'undefined' ? groupBuys : []).forEach((gb, idx)=>{
@@ -4407,6 +4426,7 @@ function _settlementRows(){
 // 정산 대상 레코드 조회 / 저장 (B2B 수기출고 · 공구 공통)
 function _stlTarget(src, idx){
   if(src === 'gb') return (typeof groupBuys !== 'undefined' ? groupBuys : [])[idx];
+  if(src === 'b2b_vat') return ((manualOuts || [])[idx] || {}).vatSplit;   // 부가세 분리 입금 행
   return (manualOuts || [])[idx];
 }
 function _stlPersist(src){
