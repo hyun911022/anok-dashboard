@@ -4346,7 +4346,7 @@ function saveManualOut(){
     updateClientDropdown();
   } else if(selectedClientId){
     const client = b2bClients.find(c=>c.id===selectedClientId);
-    if(client){ entry.clientId = client.id; entry.clientName = client.name; }
+    if(client){ entry.clientId = client.id; entry.clientName = client.name; if(client.zeroRate) entry.zeroRate = true; }   // 거래처 기본 영세율 (2026-11-27)
   }
 
   manualOuts.push(entry);
@@ -8059,6 +8059,7 @@ const anokApi = (()=>{
     if(o.isB2B){
       const c = b2bClients.find(x=>x.id===out.clientId); if(!c) throw new Error('clientId 없음: '+out.clientId);
       o.clientId=c.id; o.clientName=c.name;
+      if(out.zeroRate===undefined && c.zeroRate) o.zeroRate=true;   // 거래처 기본 영세율 (2026-11-27)
       SKUS.forEach(k=>{ if(!out['price_'+k] && o[k]>0) o['price_'+k]=numOr0((c.prices||{})[k]); });
       if(o.payDate) chkDate(o.payDate,'payDate');
     }
