@@ -8526,11 +8526,11 @@ function renderAnnual(){
           ${tile(t.title||'', t.headline||'', (Array.isArray(t.points)&&t.points.length)?t.points:(t.body||''), toneColor(t.tone), t.id, true)}</div>`).join('')}</div>
       </div></div>` : '';
   const threadsBlock = cmSorted.length ? `<div style="margin-top:18px;display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:2px;color:#A5B4FC;text-transform:uppercase">의견 & 답변</span><span style="font-size:11px;color:${C.sub}">${cmSorted.length}건 · 검토 대기 ${cmSorted.filter(c=>c.status!=='done').length}건</span></div>
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">${cmSorted.map(c=>{
+    <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:10px">${cmSorted.map(c=>{
       const ex = (window.__cmExpand__||{})[c.id]; const open = ex===undefined ? c.status!=='done' : ex;
       const first = String(c.text||'').replace(/\s+/g,' ').trim();
       return `
-      <div id="cmth-${c.id}" class="cm-th${open?' open':''}" style="background:${C.card};border:1px solid ${C.edge};border-radius:14px;transition:box-shadow .3s,border-color .2s">
+      <div id="cmth-${c.id}" class="cm-th${open?' open':''}" style="min-width:0;background:${C.card};border:1px solid ${C.edge};border-radius:14px;transition:box-shadow .3s,border-color .2s">
         <div class="cm-th-head" onclick="toggleCmThread('${c.id}')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;min-width:0">
           <span style="font-size:12px;font-weight:800;color:${C.txt};white-space:nowrap">${c.title}${archList.some(a=>a.id===c.cardId)?`<span style="font-weight:600;color:${C.mute};font-size:10.5px;margin-left:5px">(보관)</span>`:''}</span>
           <span style="font-size:11px;color:${C.sub};white-space:nowrap">${(c.at||'').slice(5).replace('-','/')}</span>
