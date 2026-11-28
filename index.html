@@ -619,6 +619,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBfIt4-fxvBaYs0QQlsVvjChxrIRb9Ge-E",
@@ -631,6 +632,35 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
+  // ── 로그인 게이트 (2026-11-28) — 허용한 구글 계정만 대시보드·데이터 접근 ──
+  //    데이터 보호의 실제 장치는 Firestore 보안 규칙(같은 계정만 허용). 이 화면은 그 앞의 입구.
+  const ALLOWED_EMAILS = ['hyun911022@gmail.com'];
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const gate = () => document.getElementById('authGate');
+  const gateMsg = (t) => { const el = document.getElementById('authMsg'); if(el) el.textContent = t || ''; };
+  window.__anokIdToken = () => auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null);
+  window.anokSignIn = async () => {
+    gateMsg('');
+    try { await signInWithPopup(auth, provider); }
+    catch(e){
+      if(e && (e.code==='auth/popup-blocked' || e.code==='auth/operation-not-supported-in-this-environment')) { await signInWithRedirect(auth, provider); }
+      else if(e && e.code!=='auth/popup-closed-by-user' && e.code!=='auth/cancelled-popup-request') gateMsg('로그인 실패: ' + (e.code||e.message));
+    }
+  };
+  window.anokSignOut = async () => { await signOut(auth); location.reload(); };
+  getRedirectResult(auth).catch(e=>gateMsg('로그인 실패: ' + (e.code||e.message)));
+  onAuthStateChanged(auth, async (user) => {
+    if(user && ALLOWED_EMAILS.includes((user.email||'').toLowerCase()) && user.emailVerified){
+      if(gate()) gate().style.display = 'none';
+      if(window.__resolveAuth){ window.__resolveAuth(user); window.__resolveAuth = null; }
+    } else {
+      if(user){ gateMsg('접근 권한이 없는 계정입니다: ' + user.email); await signOut(auth); }
+      if(gate()) gate().style.display = 'flex';
+    }
+  });
 
   async function loadFromFirestore() {
     try {
@@ -763,6 +793,15 @@
 </script>
 </head>
 <body>
+
+<div id="authGate" style="position:fixed;inset:0;z-index:99999;background:#0B0D14;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="width:100%;max-width:340px;text-align:center">
+    <div style="font-size:12px;letter-spacing:.18em;color:#6B7280;margin-bottom:10px">ANOK · PERFECT DRIVE INC.</div>
+    <div style="font-size:22px;font-weight:700;color:#F3F4F6;margin-bottom:28px">실적 대시보드</div>
+    <button onclick="window.anokSignIn && window.anokSignIn()" style="width:100%;padding:13px 16px;border-radius:10px;border:1px solid #374151;background:#F9FAFB;color:#111827;font-size:15px;font-weight:600;cursor:pointer">Google 계정으로 로그인</button>
+    <div id="authMsg" style="min-height:18px;margin-top:14px;font-size:12px;color:#F87171"></div>
+  </div>
+</div>
 
 <div class="header">
   <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
@@ -1823,6 +1862,8 @@
 
 <script>
 const STORAGE_KEY = 'anok_data_v1';
+// 로그인 게이트: 허용 계정 로그인 시 module 스크립트가 resolve (2026-11-28)
+window.__authReady = new Promise(res => { window.__resolveAuth = res; });
 // ── 신제품 SKU (2026-11-27) — 단품만(세트 없음). 재고·팝업·B2B·채널 입력 전부 STOCK_SKUS로 함께 돈다 ──
 const NEW_SKUS = ['handcream_sig','handcream_van','roomspray'];
 const NEW_SKU_NAMES  = {handcream_sig:'핸드크림 시그니처', handcream_van:'핸드크림 바닐라', roomspray:'룸스프레이'};
@@ -7986,6 +8027,7 @@ const anokApi = (()=>{
   const SKUS = ['shampoo','treatment','bodywash','bodylotion','wego120',...NEW_SKUS];
   const LOCS = ['icheon','fc','choin'];   // 대화창고는 2026-11-03 이천으로 통합·폐쇄 (과거 기록의 loc:'daehwa'는 그대로 유지)
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  async function authHdr(){ try{ const t = await (window.__anokIdToken ? window.__anokIdToken() : null); return t ? {Authorization:'Bearer '+t} : {}; }catch(e){ return {}; } }
   const POP_DAY_KEYS = ['date','shampoo','treatment','bodywash','bodylotion','wego120',...NEW_SKUS,'wegoGift','gwpBall','gwpTag','tagPaid','bagPaid','bagFree','rev','setRev','units','setHair','setBody'];
 
   // ── Firestore JSON ↔ JS ──
@@ -8013,7 +8055,7 @@ const anokApi = (()=>{
 
   // ── 읽기 ──
   async function getDoc(name){
-    const r = await fetch(BASE+name+'?key='+KEY); const j = await r.json();
+    const r = await fetch(BASE+name+'?key='+KEY, {headers: await authHdr()}); const j = await r.json();
     if(j.error && j.error.status==='NOT_FOUND') return {data:{}, updateTime:null};   // 문서 없음 → 첫 쓰기에서 생성
     if(j.error) throw new Error(name+' 읽기 실패: '+JSON.stringify(j.error));
     const data = {}; Object.keys(j.fields||{}).forEach(k=>data[k]=dec(j.fields[k]));
@@ -8025,7 +8067,7 @@ const anokApi = (()=>{
   async function writeField(name, field, value, updateTime){
     const pre = updateTime ? '&currentDocument.updateTime='+encodeURIComponent(updateTime) : '&currentDocument.exists=false';
     const url = BASE+name+'?updateMask.fieldPaths='+field+pre+'&key='+KEY;
-    const r = await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{[field]:enc(value)}})});
+    const r = await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json', ...(await authHdr())},body:JSON.stringify({fields:{[field]:enc(value)}})});
     const j = await r.json();
     if(j.name) return {ok:true, updateTime:j.updateTime};
     const st = j.error && (j.error.status||'');
@@ -9074,6 +9116,7 @@ function simResetToCurrent(){
 }
 
 setTimeout(async function(){
+  await window.__authReady;   // 허용 계정 로그인 전에는 데이터를 읽지 않음
   // 데이터 로드 전에 먼저 탭을 복원 → 화면 깜빡임 최소화
   try{ restoreTab(); }catch(e){ console.log('restoreTab error:', e); }
   await Promise.all([
